@@ -1,0 +1,98 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "API: Install dependencies",
+      "type": "shell",
+      "command": "C:/Program Files/nodejs/npm.cmd",
+      "args": ["install"],
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "PATH": "C:\\Program Files\\nodejs;${env:PATH}"
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "API: Run dev server",
+      "type": "shell",
+      "command": "C:/Program Files/nodejs/npm.cmd",
+      "args": ["run", "dev"],
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "PATH": "C:\\Program Files\\nodejs;${env:PATH}"
+        }
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Flutter: Pub get",
+      "type": "shell",
+      "command": "flutter",
+      "args": ["pub", "get"],
+      "options": {
+        "cwd": "${workspaceFolder}/backend/lucky_ly_mobile"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Flutter: Run web-server",
+      "type": "shell",
+      "command": "flutter",
+      "args": [
+        "run",
+        "-d",
+        "web-server",
+        "--dart-define=API_BASE_URL=http://localhost:4000"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/backend/lucky_ly_mobile"
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Flutter: Run android",
+      "type": "shell",
+      "command": "flutter",
+      "args": [
+        "run",
+        "--dart-define=API_BASE_URL=http://10.0.2.2:4000"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/backend/lucky_ly_mobile"
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Start Fullstack (API + Flutter Web)",
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "API: Run dev server",
+        "Flutter: Run web-server"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
