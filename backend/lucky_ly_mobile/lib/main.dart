@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 // Entry point khởi chạy ứng dụng Flutter.
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const LuckyLyAuthApp());
 }
 
@@ -232,12 +237,16 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                         const SizedBox(height: 24),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            _SocialButton(icon: Icons.apple, color: Colors.black87),
-                            SizedBox(width: 20),
-                            _SocialButton(icon: Icons.facebook, color: Color(0xFF1877F2)),
-                            SizedBox(width: 20),
-                            _SocialButton(icon: Icons.email, color: Color(0xFFEA4335)),
+                          children: [
+                            const _SocialButton(icon: Icons.apple, color: Colors.black87),
+                            const SizedBox(width: 20),
+                            const _SocialButton(icon: Icons.facebook, color: Color(0xFF1877F2)),
+                            const SizedBox(width: 20),
+                            _SocialButton(
+                              icon: Icons.email,
+                              color: const Color(0xFFEA4335),
+                              onPressed: _signInWithGoogle,
+                            ),
                           ],
                         ),
                         
@@ -470,6 +479,61 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     final decoded = jsonDecode(source);
     if (decoded is Map<String, dynamic>) return decoded;
     return <String, dynamic>{};
+  }
+
+  // Đăng nhập bằng Google: lấy idToken từ Firebase → gửi về backend.
+  Future<void> _signInWithGoogle() async {
+    if (isSubmitting) return;
+    setState(() => isSubmitting = true);
+
+    try {
+      // 1. Mở popup chọn tài khoản Google
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        // User bấm hủy
+        if (mounted) setState(() => isSubmitting = false);
+        return;
+      }
+
+      // 2. Lấy auth details từ Google
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // 3. Đăng nhập Firebase để lấy idToken
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final idToken = await userCredential.user?.getIdToken();
+
+      if (idToken == null) {
+        _showMessage('Cannot get Google token.');
+        return;
+      }
+
+      // 4. Gửi idToken về backend để xác thực + tạo/đăng nhập user
+      final response = await http
+          .post(
+            Uri.parse('$_apiBaseUrl/api/auth/google'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'idToken': idToken}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final body = _safeDecodeMap(response.body);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final user = body['user'] as Map<String, dynamic>?;
+        final userLabel = user?['email']?.toString() ?? 'user';
+        _showMessage('Welcome, $userLabel!', isError: false);
+      } else {
+        _showMessage(body['message']?.toString() ?? 'Google login failed.');
+      }
+    } catch (e) {
+      _showMessage('Google sign-in error: $e');
+    } finally {
+      if (mounted) setState(() => isSubmitting = false);
+    }
   }
 
   void _showMessage(String message, {bool isError = true}) {
@@ -791,17 +855,18 @@ class _PrimaryGradientButtonState extends State<_PrimaryGradientButton> with Sin
 
 // Nút Social Login bọc InkWell có hiệu ứng ripple tròn trịa
 class _SocialButton extends StatelessWidget {
-  const _SocialButton({required this.icon, required this.color});
+  const _SocialButton({required this.icon, required this.color, this.onPressed});
 
   final IconData icon;
   final Color color;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {},
+        onTap: onPressed ?? () {},
         borderRadius: BorderRadius.circular(18),
         splashColor: color.withValues(alpha: 0.1),
         highlightColor: color.withValues(alpha: 0.05),

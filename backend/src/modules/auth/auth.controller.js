@@ -1,5 +1,5 @@
-import { loginSchema, refreshSchema, registerSchema } from './auth.validation.js';
-import { loginUser, registerUser, revokeRefreshToken, rotateRefreshToken } from './auth.service.js';
+import { loginSchema, refreshSchema, registerSchema, googleLoginSchema } from './auth.validation.js';
+import { loginUser, registerUser, revokeRefreshToken, rotateRefreshToken, loginWithGoogle } from './auth.service.js';
 
 // Xử lý đăng ký tài khoản mới, validate input và trả access/refresh token.
 export async function register(req, res, next) {
@@ -59,6 +59,23 @@ export async function logout(req, res, next) {
 
     res.status(200).json({
       message: 'Logout successful'
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Xử lý đăng nhập bằng Google: verify idToken và trả token phiên.
+export async function googleLogin(req, res, next) {
+  try {
+    const payload = googleLoginSchema.parse(req.body);
+    const result = await loginWithGoogle(payload.idToken);
+
+    res.status(200).json({
+      message: 'Google login successful',
+      user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken
     });
   } catch (err) {
     next(err);
