@@ -65,11 +65,11 @@ export async function logout(req, res, next) {
   }
 }
 
-// Xử lý đăng nhập bằng Google: verify idToken và trả token phiên.
+// Xử lý đăng nhập bằng Google: verify idToken hoặc accessToken và trả token phiên.
 export async function googleLogin(req, res, next) {
   try {
     const payload = googleLoginSchema.parse(req.body);
-    const result = await loginWithGoogle(payload.idToken);
+    const result = await loginWithGoogle(payload);
 
     res.status(200).json({
       message: 'Google login successful',

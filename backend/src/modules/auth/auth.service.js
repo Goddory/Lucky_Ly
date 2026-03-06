@@ -242,15 +242,37 @@ export async function revokeRefreshToken(refreshToken) {
   return result.rowCount > 0;
 }
 
-// Nghiệp vụ đăng nhập Google: xác minh idToken, tìm hoặc tạo user, cấp token.
-export async function loginWithGoogle(idToken) {
-  // 1. Xác minh idToken với Google
-  const ticket = await googleClient.verifyIdToken({
-    idToken,
-    audience: env.googleClientId
-  });
-  const payload = ticket.getPayload();
-  const { email, name, picture, sub: googleUid } = payload;
+// Nghiệp vụ đăng nhập Google: xác minh token, tìm hoặc tạo user, cấp token.
+export async function loginWithGoogle({ idToken, accessToken }) {
+  let email, name, picture, googleUid;
+
+  if (idToken) {
+    // Mobile flow: verify idToken với Google
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: env.googleClientId
+    });
+    const payload = ticket.getPayload();
+    email = payload.email;
+    name = payload.name;
+    picture = payload.picture;
+    googleUid = payload.sub;
+  } else if (accessToken) {
+    // Web flow: dùng accessToken gọi Google userinfo API
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!res.ok) {
+      const error = new Error('Invalid Google access token');
+      error.statusCode = 401;
+      throw error;
+    }
+    const payload = await res.json();
+    email = payload.email;
+    name = payload.name;
+    picture = payload.picture;
+    googleUid = payload.sub;
+  }
 
   if (!email) {
     const error = new Error('Google account has no email');

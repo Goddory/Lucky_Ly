@@ -5,10 +5,25 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 // Entry point khởi chạy ứng dụng Flutter.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: 'AIzaSyC80tyTajho2-NMSc-y1UyrOCA-kcTFj5s',
+        authDomain: 'lucky-ly.firebaseapp.com',
+        projectId: 'lucky-ly',
+        storageBucket: 'lucky-ly.firebasestorage.app',
+        messagingSenderId: '301453242147',
+        appId: '1:301453242147:android:40879057464e2f0013e696',
+      ),
+    );
+  } else {
+    await Firebase.initializeApp();
+  }
   runApp(const LuckyLyAuthApp());
 }
 
@@ -41,11 +56,13 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateMixin {
-  // Base URL backend auth API, có thể override qua --dart-define.
-  static const String _apiBaseUrl = String.fromEnvironment(
+  // Base URL backend auth API — web dùng localhost, mobile emulator dùng 10.0.2.2
+  static final String _apiBaseUrl = const String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:4000',
-  );
+    defaultValue: '',
+  ).isNotEmpty
+      ? const String.fromEnvironment('API_BASE_URL')
+      : (kIsWeb ? 'http://localhost:4000' : 'http://10.0.2.2:4000');
 
   bool isSignUp = true;
   bool rememberMe = false;
@@ -488,35 +505,39 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
 
     try {
       // 1. Mở popup chọn tài khoản Google
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final googleSignIn = kIsWeb
+          ? GoogleSignIn(
+              clientId: '301453242147-i7a769fga6fmvmbdghnguntvhfe87r1c.apps.googleusercontent.com',
+            )
+          : GoogleSignIn(
+              serverClientId: '301453242147-i7a769fga6fmvmbdghnguntvhfe87r1c.apps.googleusercontent.com',
+            );
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
         // User bấm hủy
         if (mounted) setState(() => isSubmitting = false);
         return;
       }
 
-      // 2. Lấy auth details từ Google
+      // 2. Lấy auth tokens từ Google
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      final accessToken = googleAuth.accessToken;
 
-      // 3. Đăng nhập Firebase để lấy idToken
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-      final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-      final idToken = await userCredential.user?.getIdToken();
-
-      if (idToken == null) {
+      if (idToken == null && accessToken == null) {
         _showMessage('Cannot get Google token.');
         return;
       }
 
-      // 4. Gửi idToken về backend để xác thực + tạo/đăng nhập user
+      // 3. Gửi token về backend (idToken cho mobile, accessToken cho web)
       final response = await http
           .post(
             Uri.parse('$_apiBaseUrl/api/auth/google'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'idToken': idToken}),
+            body: jsonEncode({
+              if (idToken != null) 'idToken': idToken,
+              if (accessToken != null) 'accessToken': accessToken,
+            }),
           )
           .timeout(const Duration(seconds: 15));
 

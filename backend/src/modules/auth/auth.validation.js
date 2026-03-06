@@ -20,5 +20,8 @@ export const refreshSchema = z.object({
 });
 
 export const googleLoginSchema = z.object({
-  idToken: z.string().min(100).max(5000)
+  idToken: z.string().min(100).max(5000).optional(),
+  accessToken: z.string().min(10).max(5000).optional()
+}).refine(data => data.idToken || data.accessToken, {
+  message: 'Either idToken or accessToken is required'
 });
