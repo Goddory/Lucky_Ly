@@ -1,0 +1,1 @@
+import pg from 'pg'; const pool = new pg.Pool({ user: 'postgres', host: 'localhost', database: 'luckly', password: 'manhle2425@', port: 5432 }); pool.query(\SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'users'; \).then(res => { console.log(res.rows); pool.end(); }).catch(console.error);

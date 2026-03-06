@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { login, logout, refresh, register } from './auth.controller.js';
+import { facebookLogin, login, logout, refresh, register } from './auth.controller.js';
 
 // Giới hạn tần suất gọi API auth để giảm brute-force/password guessing.
 const authRateLimiter = rateLimit({
@@ -16,6 +16,7 @@ const router = Router();
 
 router.post('/register', authRateLimiter, register);
 router.post('/login', authRateLimiter, login);
+router.post('/facebook-login', authRateLimiter, facebookLogin);
 router.post('/refresh', authRateLimiter, refresh);
 router.post('/logout', authRateLimiter, logout);
 

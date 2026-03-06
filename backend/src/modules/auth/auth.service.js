@@ -152,6 +152,86 @@ export async function loginUser(payload) {
   }
 }
 
+// Nghiệp vụ đăng nhập bằng Facebook
+export async function loginFacebookUser(payload) {
+  const { facebookId, email, name, avatarUrl } = payload;
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Tìm user: Ưu tiên facebook_id, sau đó tìm theo email (nếu có email)
+    let userQuery = `
+      SELECT user_id, username, email, full_name, avatar_url, facebook_id
+      FROM users
+      WHERE facebook_id = $1
+    `;
+    let queryParams = [facebookId];
+
+    if (email && email.trim() !== '') {
+      userQuery += ` OR email = $2`;
+      queryParams.push(email.trim().toLowerCase());
+    }
+    userQuery += ` LIMIT 1`;
+
+    const result = await client.query(userQuery, queryParams);
+    let user = result.rows[0];
+
+    // Cập nhật facebook_id nếu tòm thấy user qua email nhưng chưa có facebook_id
+    if (user && !user.facebook_id) {
+      await client.query(
+        'UPDATE users SET facebook_id = $1 WHERE user_id = $2',
+        [facebookId, user.user_id]
+      );
+      user.facebook_id = facebookId;
+    }
+
+    if (!user) {
+      // Đăng ký mới nếu chưa có
+      // Tạo username ngẫu nhiên từ name
+      const cleanName = name.replace(/\s+/g, '').toLowerCase().substring(0, 10);
+      let newUsername = `fb_${cleanName}_${facebookId.substring(0, 5)}`;
+
+      const insertUserQuery = `
+        INSERT INTO users (username, email, full_name, avatar_url, facebook_id)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING user_id, username, email, full_name, avatar_url, facebook_id, created_at
+      `;
+      const finalEmail = (email && email.trim() !== '') ? email.trim().toLowerCase() : null;
+
+      const userResult = await client.query(insertUserQuery, [
+        newUsername, finalEmail, name.trim(), avatarUrl || null, facebookId
+      ]);
+      user = userResult.rows[0];
+
+      await client.query('INSERT INTO wallets (user_id, balance, currency, status) VALUES ($1, 0, $2, $3)', [
+        user.user_id, 'VND', 'ACTIVE'
+      ]);
+    }
+
+    const refreshToken = generateRefreshToken();
+    await persistRefreshToken(client, user.user_id, refreshToken);
+    await client.query('COMMIT');
+
+    return {
+      user: {
+        user_id: user.user_id,
+        username: user.username,
+        email: user.email,
+        full_name: user.full_name,
+        avatar_url: user.avatar_url
+      },
+      accessToken: buildAccessToken(user),
+      refreshToken
+    };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 // Nghiệp vụ refresh token rotation: kiểm tra token cũ, thu hồi và thay bằng token mới.
 export async function rotateRefreshToken(currentRefreshToken) {
   const tokenHash = hashToken(currentRefreshToken);
