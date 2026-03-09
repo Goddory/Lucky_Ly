@@ -1,3 +1,5 @@
+import { facebookLoginSchema, loginSchema, refreshSchema, registerSchema } from './auth.validation.js';
+import { loginFacebookUser, loginUser, registerUser, revokeRefreshToken, rotateRefreshToken } from './auth.service.js';
 import { loginSchema, refreshSchema, registerSchema, googleLoginSchema } from './auth.validation.js';
 import { loginUser, registerUser, revokeRefreshToken, rotateRefreshToken, loginWithGoogle } from './auth.service.js';
 
@@ -26,6 +28,23 @@ export async function login(req, res, next) {
 
     res.status(200).json({
       message: 'Login successful',
+      user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Xử lý đăng nhập bằng Facebook
+export async function facebookLogin(req, res, next) {
+  try {
+    const payload = facebookLoginSchema.parse(req.body);
+    const result = await loginFacebookUser(payload);
+
+    res.status(200).json({
+      message: 'Facebook login successful',
       user: result.user,
       accessToken: result.accessToken,
       refreshToken: result.refreshToken

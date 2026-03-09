@@ -19,6 +19,11 @@ export const refreshSchema = z.object({
   refreshToken: z.string().min(40).max(500)
 });
 
+export const facebookLoginSchema = z.object({
+  facebookId: z.string().min(1).max(255),
+  email: z.string().email().max(255).optional().or(z.literal('')),
+  name: z.string().min(1).max(150),
+  avatarUrl: z.string().url().max(1000).optional()
 export const googleLoginSchema = z.object({
   idToken: z.string().min(100).max(5000).optional(),
   accessToken: z.string().min(10).max(5000).optional()

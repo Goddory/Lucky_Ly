@@ -1,15 +1,26 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'home_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+
 // Entry point khởi chạy ứng dụng Flutter.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.macOS || defaultTargetPlatform == TargetPlatform.linux) {
+    await FacebookAuth.instance.webAndDesktopInitialize(
+      appId: "2016157219330688",
+      cookie: true,
+      xfbml: true,
+      version: "v15.0",
+    );
   if (kIsWeb) {
     await Firebase.initializeApp(
       options: const FirebaseOptions(
@@ -59,6 +70,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   // Base URL backend auth API — web dùng localhost, mobile emulator dùng 10.0.2.2
   static final String _apiBaseUrl = const String.fromEnvironment(
     'API_BASE_URL',
+    defaultValue: kIsWeb ? 'http://localhost:4000' : 'http://10.0.2.2:4000',
+  );
     defaultValue: '',
   ).isNotEmpty
       ? const String.fromEnvironment('API_BASE_URL')
@@ -255,6 +268,11 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
+                            _SocialButton(icon: Icons.apple, color: Colors.black87, onPressed: () => _showMessage('Apple login tapped.')),
+                            SizedBox(width: 20),
+                            _SocialButton(icon: Icons.facebook, color: Color(0xFF1877F2), onPressed: _loginWithFacebook),
+                            SizedBox(width: 20),
+                            _SocialButton(icon: Icons.email, color: Color(0xFFEA4335), onPressed: () => _showMessage('Google login tapped.')),
                             const _SocialButton(icon: Icons.apple, color: Colors.black87),
                             const SizedBox(width: 20),
                             const _SocialButton(icon: Icons.facebook, color: Color(0xFF1877F2)),
@@ -495,6 +513,54 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       }
     } catch (_) {
       _showMessage('Cannot connect to server. Check API_BASE_URL.');
+    } finally {
+      if (mounted) setState(() => isSubmitting = false);
+    }
+  }
+
+  Future<void> _loginWithFacebook() async {
+    setState(() => isSubmitting = true);
+    try {
+      final LoginResult result = await FacebookAuth.instance.login();
+
+      if (result.status == LoginStatus.success) {
+        final userData = await FacebookAuth.instance.getUserData();
+        final userLabel = userData['email']?.toString() ?? userData['name']?.toString() ?? 'fb_user';
+
+        final response = await http.post(
+          Uri.parse('$_apiBaseUrl/api/auth/facebook-login'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'facebookId': userData['id'],
+            'email': userData['email'] ?? '',
+            'name': userData['name'] ?? 'Facebook User',
+            'avatarUrl': userData['picture']?['data']?['url']
+          }),
+        ).timeout(const Duration(seconds: 15));
+
+        final body = _safeDecodeMap(response.body);
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(userEmail: userLabel),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+              ),
+            );
+          }
+        } else {
+          _showMessage(body['message']?.toString() ?? 'Failed to save Facebook user to database.');
+        }
+      } else if (result.status == LoginStatus.cancelled) {
+        _showMessage('Facebook login cancelled.');
+      } else {
+        _showMessage('Facebook login failed: ${result.message}');
+      }
+    } catch (e) {
+      _showMessage('Error during Facebook login: $e');
     } finally {
       if (mounted) setState(() => isSubmitting = false);
     }
@@ -889,6 +955,11 @@ class _PrimaryGradientButtonState extends State<_PrimaryGradientButton> with Sin
 
 // Nút Social Login bọc InkWell có hiệu ứng ripple tròn trịa
 class _SocialButton extends StatelessWidget {
+  const _SocialButton({required this.icon, required this.color, required this.onPressed});
+
+  final IconData icon;
+  final Color color;
+  final VoidCallback onPressed;
   const _SocialButton({required this.icon, required this.color, this.onPressed});
 
   final IconData icon;
@@ -900,6 +971,7 @@ class _SocialButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
+        onTap: onPressed,
         onTap: onPressed ?? () {},
         borderRadius: BorderRadius.circular(18),
         splashColor: color.withValues(alpha: 0.1),

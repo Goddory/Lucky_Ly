@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Lucky Ly Mobile</string>
+    <string name="facebook_app_id">2016157219330688</string>
+    <string name="fb_login_protocol_scheme">fb2016157219330688</string>
+    <string name="facebook_client_token">1a3931a03a4b4afb182b02f757570a8c</string>
+</resources>

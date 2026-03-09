@@ -43,3 +43,7 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    implementation("com.facebook.android:facebook-android-sdk:[4,5)")
+}
