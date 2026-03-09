@@ -1,10 +1,29 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'home_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 // Entry point khởi chạy ứng dụng Flutter.
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: 'AIzaSyC80tyTajho2-NMSc-y1UyrOCA-kcTFj5s',
+        authDomain: 'lucky-ly.firebaseapp.com',
+        projectId: 'lucky-ly',
+        storageBucket: 'lucky-ly.firebasestorage.app',
+        messagingSenderId: '301453242147',
+        appId: '1:301453242147:android:40879057464e2f0013e696',
+      ),
+    );
+  } else {
+    await Firebase.initializeApp();
+  }
   runApp(const LuckyLyAuthApp());
 }
 
@@ -37,11 +56,13 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateMixin {
-  // Base URL backend auth API, có thể override qua --dart-define.
-  static const String _apiBaseUrl = String.fromEnvironment(
+  // Base URL backend auth API — web dùng localhost, mobile emulator dùng 10.0.2.2
+  static final String _apiBaseUrl = const String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:5000',
-  );
+    defaultValue: '',
+  ).isNotEmpty
+      ? const String.fromEnvironment('API_BASE_URL')
+      : (kIsWeb ? 'http://localhost:4000' : 'http://10.0.2.2:4000');
 
   bool isSignUp = true;
   bool rememberMe = false;
@@ -233,12 +254,16 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                         const SizedBox(height: 24),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            _SocialButton(icon: Icons.apple, color: Colors.black87),
-                            SizedBox(width: 20),
-                            _SocialButton(icon: Icons.facebook, color: Color(0xFF1877F2)),
-                            SizedBox(width: 20),
-                            _SocialButton(icon: Icons.email, color: Color(0xFFEA4335)),
+                          children: [
+                            const _SocialButton(icon: Icons.apple, color: Colors.black87),
+                            const SizedBox(width: 20),
+                            const _SocialButton(icon: Icons.facebook, color: Color(0xFF1877F2)),
+                            const SizedBox(width: 20),
+                            _SocialButton(
+                              icon: Icons.email,
+                              color: const Color(0xFFEA4335),
+                              onPressed: _signInWithGoogle,
+                            ),
                           ],
                         ),
                         
@@ -484,6 +509,65 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     final decoded = jsonDecode(source);
     if (decoded is Map<String, dynamic>) return decoded;
     return <String, dynamic>{};
+  }
+
+  // Đăng nhập bằng Google: lấy idToken từ Firebase → gửi về backend.
+  Future<void> _signInWithGoogle() async {
+    if (isSubmitting) return;
+    setState(() => isSubmitting = true);
+
+    try {
+      // 1. Mở popup chọn tài khoản Google
+      final googleSignIn = kIsWeb
+          ? GoogleSignIn(
+              clientId: '301453242147-i7a769fga6fmvmbdghnguntvhfe87r1c.apps.googleusercontent.com',
+            )
+          : GoogleSignIn(
+              serverClientId: '301453242147-i7a769fga6fmvmbdghnguntvhfe87r1c.apps.googleusercontent.com',
+            );
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        // User bấm hủy
+        if (mounted) setState(() => isSubmitting = false);
+        return;
+      }
+
+      // 2. Lấy auth tokens từ Google
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      final accessToken = googleAuth.accessToken;
+
+      if (idToken == null && accessToken == null) {
+        _showMessage('Cannot get Google token.');
+        return;
+      }
+
+      // 3. Gửi token về backend (idToken cho mobile, accessToken cho web)
+      final response = await http
+          .post(
+            Uri.parse('$_apiBaseUrl/api/auth/google'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              if (idToken != null) 'idToken': idToken,
+              if (accessToken != null) 'accessToken': accessToken,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final body = _safeDecodeMap(response.body);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final user = body['user'] as Map<String, dynamic>?;
+        final userLabel = user?['email']?.toString() ?? 'user';
+        _showMessage('Welcome, $userLabel!', isError: false);
+      } else {
+        _showMessage(body['message']?.toString() ?? 'Google login failed.');
+      }
+    } catch (e) {
+      _showMessage('Google sign-in error: $e');
+    } finally {
+      if (mounted) setState(() => isSubmitting = false);
+    }
   }
 
   void _showMessage(String message, {bool isError = true}) {
@@ -805,17 +889,18 @@ class _PrimaryGradientButtonState extends State<_PrimaryGradientButton> with Sin
 
 // Nút Social Login bọc InkWell có hiệu ứng ripple tròn trịa
 class _SocialButton extends StatelessWidget {
-  const _SocialButton({required this.icon, required this.color});
+  const _SocialButton({required this.icon, required this.color, this.onPressed});
 
   final IconData icon;
   final Color color;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {},
+        onTap: onPressed ?? () {},
         borderRadius: BorderRadius.circular(18),
         splashColor: color.withValues(alpha: 0.1),
         highlightColor: color.withValues(alpha: 0.05),

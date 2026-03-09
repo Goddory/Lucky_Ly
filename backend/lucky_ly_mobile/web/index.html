@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -26,13 +27,31 @@
   <meta name="apple-mobile-web-app-title" content="lucky_ly_mobile">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
+  <!-- Google Sign-In Client ID (required for web) -->
+  <meta name="google-signin-client_id"
+    content="301453242147-i7a769fga6fmvmbdghnguntvhfe87r1c.apps.googleusercontent.com">
+
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" href="favicon.png" />
 
   <title>lucky_ly_mobile</title>
   <link rel="manifest" href="manifest.json">
 </head>
+
 <body>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyC80tyTajho2-NMSc-y1UyrOCA-kcTFj5s",
+      authDomain: "lucky-ly.firebaseapp.com",
+      projectId: "lucky-ly",
+      storageBucket: "lucky-ly.firebasestorage.app",
+      messagingSenderId: "301453242147",
+      appId: "1:301453242147:android:40879057464e2f0013e696"
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
+
 </html>

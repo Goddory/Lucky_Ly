@@ -1,8 +1,11 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import { pool } from '../../db/pool.js';
 import { env } from '../../config/env.js';
+
+const googleClient = new OAuth2Client();
 
 // Băm refresh token bằng SHA-256 trước khi lưu DB để tránh lộ token gốc.
 function hashToken(token) {
@@ -237,4 +240,100 @@ export async function revokeRefreshToken(refreshToken) {
   );
 
   return result.rowCount > 0;
+}
+
+// Nghiệp vụ đăng nhập Google: xác minh token, tìm hoặc tạo user, cấp token.
+export async function loginWithGoogle({ idToken, accessToken }) {
+  let email, name, picture, googleUid;
+
+  if (idToken) {
+    // Mobile flow: verify idToken với Google
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: env.googleClientId
+    });
+    const payload = ticket.getPayload();
+    email = payload.email;
+    name = payload.name;
+    picture = payload.picture;
+    googleUid = payload.sub;
+  } else if (accessToken) {
+    // Web flow: dùng accessToken gọi Google userinfo API
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!res.ok) {
+      const error = new Error('Invalid Google access token');
+      error.statusCode = 401;
+      throw error;
+    }
+    const payload = await res.json();
+    email = payload.email;
+    name = payload.name;
+    picture = payload.picture;
+    googleUid = payload.sub;
+  }
+
+  if (!email) {
+    const error = new Error('Google account has no email');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 2. Tìm user theo email
+    const existing = await client.query(
+      'SELECT user_id, username, email, full_name, avatar_url FROM users WHERE email = $1 LIMIT 1',
+      [email.toLowerCase()]
+    );
+
+    let user;
+
+    if (existing.rowCount > 0) {
+      // User đã tồn tại → cập nhật provider info nếu cần
+      user = existing.rows[0];
+      await client.query(
+        `UPDATE users SET auth_provider = 'google', provider_uid = $1,
+         avatar_url = COALESCE(avatar_url, $2)
+         WHERE user_id = $3`,
+        [googleUid, picture, user.user_id]
+      );
+    } else {
+      // Tạo user mới (auto-register)
+      const username = `g_${email.split('@')[0]}_${Date.now().toString(36)}`;
+      const insertResult = await client.query(
+        `INSERT INTO users (username, email, full_name, avatar_url, auth_provider, provider_uid)
+         VALUES ($1, $2, $3, $4, 'google', $5)
+         RETURNING user_id, username, email, full_name, avatar_url, created_at`,
+        [username, email.toLowerCase(), name || email.split('@')[0], picture, googleUid]
+      );
+      user = insertResult.rows[0];
+
+      // Tạo ví mặc định cho user mới
+      await client.query(
+        "INSERT INTO wallets (user_id, balance, currency, status) VALUES ($1, 0, $2, $3)",
+        [user.user_id, 'VND', 'ACTIVE']
+      );
+    }
+
+    // 3. Cấp bộ token
+    const refreshToken = generateRefreshToken();
+    await persistRefreshToken(client, user.user_id, refreshToken);
+
+    await client.query('COMMIT');
+
+    return {
+      user,
+      accessToken: buildAccessToken(user),
+      refreshToken
+    };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
