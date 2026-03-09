@@ -431,7 +431,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             body: jsonEncode({
               'username': username,
               'email': email,
-              'fullName': fullName,
+              'full_name': fullName,
               'password': password,
             }),
           )
@@ -467,7 +467,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           .post(
             Uri.parse('$_apiBaseUrl/api/auth/login'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'login': login, 'password': password}),
+            body: jsonEncode({'identifier': login, 'password': password}),
           )
           .timeout(const Duration(seconds: 15));
 
@@ -476,7 +476,20 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final user = body['user'] as Map<String, dynamic>?;
         final userLabel = user?['email']?.toString() ?? user?['username']?.toString() ?? 'user';
-        _showMessage('Welcome back, $userLabel!', isError: false);
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(userEmail: userLabel),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(
+                  opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                  child: child,
+                );
+              },
+              transitionDuration: const Duration(milliseconds: 600),
+            ),
+          );
+        }
       } else {
         _showMessage(body['message']?.toString() ?? 'Sign in failed.');
       }
