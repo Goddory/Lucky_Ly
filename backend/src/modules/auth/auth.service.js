@@ -124,6 +124,12 @@ export async function loginUser(payload) {
     throw invalidError;
   }
 
+  if (!user.password_hash) {
+    const error = new Error('This account uses social login. Please sign in with Facebook or Google.');
+    error.statusCode = 400;
+    throw error;
+  }
+
   const isPasswordValid = await bcrypt.compare(payload.password, user.password_hash);
   if (!isPasswordValid) {
     throw invalidError;
@@ -155,7 +161,7 @@ export async function loginUser(payload) {
   }
 }
 
-// Nghiệp vụ đăng nhập bằng Facebook
+// Nghiệp vụ đăng nhập bằng Facebook: tìm hoặc tạo user, cấp token.
 export async function loginFacebookUser(payload) {
   const { facebookId, email, name, avatarUrl } = payload;
   const client = await pool.connect();
@@ -180,7 +186,7 @@ export async function loginFacebookUser(payload) {
     const result = await client.query(userQuery, queryParams);
     let user = result.rows[0];
 
-    // Cập nhật facebook_id nếu tòm thấy user qua email nhưng chưa có facebook_id
+    // Cập nhật facebook_id nếu tìm thấy user qua email nhưng chưa có facebook_id
     if (user && !user.facebook_id) {
       await client.query(
         'UPDATE users SET facebook_id = $1 WHERE user_id = $2',
@@ -191,13 +197,12 @@ export async function loginFacebookUser(payload) {
 
     if (!user) {
       // Đăng ký mới nếu chưa có
-      // Tạo username ngẫu nhiên từ name
       const cleanName = name.replace(/\s+/g, '').toLowerCase().substring(0, 10);
-      let newUsername = `fb_${cleanName}_${facebookId.substring(0, 5)}`;
+      const newUsername = `fb_${cleanName}_${facebookId.substring(0, 5)}`;
 
       const insertUserQuery = `
-        INSERT INTO users (username, email, full_name, avatar_url, facebook_id)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO users (username, email, full_name, avatar_url, facebook_id, auth_provider)
+        VALUES ($1, $2, $3, $4, $5, 'facebook')
         RETURNING user_id, username, email, full_name, avatar_url, facebook_id, created_at
       `;
       const finalEmail = (email && email.trim() !== '') ? email.trim().toLowerCase() : null;
@@ -364,7 +369,6 @@ export async function loginWithGoogle({ idToken, accessToken }) {
   try {
     await client.query('BEGIN');
 
-    // 2. Tìm user theo email
     const existing = await client.query(
       'SELECT user_id, username, email, full_name, avatar_url FROM users WHERE email = $1 LIMIT 1',
       [email.toLowerCase()]
@@ -373,7 +377,6 @@ export async function loginWithGoogle({ idToken, accessToken }) {
     let user;
 
     if (existing.rowCount > 0) {
-      // User đã tồn tại → cập nhật provider info nếu cần
       user = existing.rows[0];
       await client.query(
         `UPDATE users SET auth_provider = 'google', provider_uid = $1,
@@ -382,7 +385,6 @@ export async function loginWithGoogle({ idToken, accessToken }) {
         [googleUid, picture, user.user_id]
       );
     } else {
-      // Tạo user mới (auto-register)
       const username = `g_${email.split('@')[0]}_${Date.now().toString(36)}`;
       const insertResult = await client.query(
         `INSERT INTO users (username, email, full_name, avatar_url, auth_provider, provider_uid)
@@ -392,14 +394,12 @@ export async function loginWithGoogle({ idToken, accessToken }) {
       );
       user = insertResult.rows[0];
 
-      // Tạo ví mặc định cho user mới
       await client.query(
         "INSERT INTO wallets (user_id, balance, currency, status) VALUES ($1, 0, $2, $3)",
         [user.user_id, 'VND', 'ACTIVE']
       );
     }
 
-    // 3. Cấp bộ token
     const refreshToken = generateRefreshToken();
     await persistRefreshToken(client, user.user_id, refreshToken);
 

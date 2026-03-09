@@ -27,10 +27,13 @@ $$;
 CREATE TABLE IF NOT EXISTS users (
     user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(50) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255),
+    email VARCHAR(255) UNIQUE,
     full_name VARCHAR(150) NOT NULL,
     avatar_url VARCHAR(1000),
+    facebook_id VARCHAR(255) UNIQUE,
+    auth_provider VARCHAR(20) NOT NULL DEFAULT 'local',
+    provider_uid VARCHAR(255),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

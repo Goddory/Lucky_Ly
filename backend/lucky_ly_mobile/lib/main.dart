@@ -2,18 +2,16 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-import 'home_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
-import 'package:flutter/foundation.dart' show kIsWeb;
-
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
 // Entry point khởi chạy ứng dụng Flutter.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Khởi tạo Facebook Auth cho web/desktop
   if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.macOS || defaultTargetPlatform == TargetPlatform.linux) {
     await FacebookAuth.instance.webAndDesktopInitialize(
       appId: "2016157219330688",
@@ -21,6 +19,9 @@ void main() async {
       xfbml: true,
       version: "v15.0",
     );
+  }
+
+  // Khởi tạo Firebase
   if (kIsWeb) {
     await Firebase.initializeApp(
       options: const FirebaseOptions(
@@ -35,6 +36,7 @@ void main() async {
   } else {
     await Firebase.initializeApp();
   }
+
   runApp(const LuckyLyAuthApp());
 }
 
@@ -48,10 +50,10 @@ class LuckyLyAuthApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Lucky Ly Auth',
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFFF4F7FC), // Màu nền sáng dịu nhẹ
+        scaffoldBackgroundColor: const Color(0xFFF4F7FC),
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF16B4C2)),
         useMaterial3: true,
-        fontFamily: 'Roboto', // Sử dụng font mặc định chuẩn
+        fontFamily: 'Roboto',
       ),
       home: const AuthScreen(),
     );
@@ -70,8 +72,6 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   // Base URL backend auth API — web dùng localhost, mobile emulator dùng 10.0.2.2
   static final String _apiBaseUrl = const String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: kIsWeb ? 'http://localhost:4000' : 'http://10.0.2.2:4000',
-  );
     defaultValue: '',
   ).isNotEmpty
       ? const String.fromEnvironment('API_BASE_URL')
@@ -133,14 +133,14 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           gradient: LinearGradient(
             begin: Alignment.topRight,
             end: Alignment.bottomLeft,
-            colors: [Color(0xFF0EA5D8), Color(0xFF19C6C4)], // Gradient nền mượt mà hơn
+            colors: [Color(0xFF0EA5D8), Color(0xFF19C6C4)],
           ),
         ),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              physics: const BouncingScrollPhysics(), // Scroll mượt theo chuẩn iOS/Android
+              physics: const BouncingScrollPhysics(),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: AnimatedBuilder(
@@ -268,19 +268,16 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _SocialButton(icon: Icons.apple, color: Colors.black87, onPressed: () => _showMessage('Apple login tapped.')),
-                            SizedBox(width: 20),
-                            _SocialButton(icon: Icons.facebook, color: Color(0xFF1877F2), onPressed: _loginWithFacebook),
-                            SizedBox(width: 20),
-                            _SocialButton(icon: Icons.email, color: Color(0xFFEA4335), onPressed: () => _showMessage('Google login tapped.')),
-                            const _SocialButton(icon: Icons.apple, color: Colors.black87),
-                            const SizedBox(width: 20),
-                            const _SocialButton(icon: Icons.facebook, color: Color(0xFF1877F2)),
+                            _SocialButton(
+                              icon: Icons.facebook,
+                              color: const Color(0xFF1877F2),
+                              onTap: _handleFacebookLogin,
+                            ),
                             const SizedBox(width: 20),
                             _SocialButton(
                               icon: Icons.email,
                               color: const Color(0xFFEA4335),
-                              onPressed: _signInWithGoogle,
+                              onTap: _handleGoogleLogin,
                             ),
                           ],
                         ),
@@ -449,7 +446,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             body: jsonEncode({
               'username': username,
               'email': email,
-              'full_name': fullName,
+              'fullName': fullName,
               'password': password,
             }),
           )
@@ -485,7 +482,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           .post(
             Uri.parse('$_apiBaseUrl/api/auth/login'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'identifier': login, 'password': password}),
+            body: jsonEncode({'login': login, 'password': password}),
           )
           .timeout(const Duration(seconds: 15));
 
@@ -494,20 +491,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final user = body['user'] as Map<String, dynamic>?;
         final userLabel = user?['email']?.toString() ?? user?['username']?.toString() ?? 'user';
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(userEmail: userLabel),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                return FadeTransition(
-                  opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-                  child: child,
-                );
-              },
-              transitionDuration: const Duration(milliseconds: 600),
-            ),
-          );
-        }
+        _showMessage('Welcome back, $userLabel!', isError: false);
       } else {
         _showMessage(body['message']?.toString() ?? 'Sign in failed.');
       }
@@ -518,41 +502,47 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     }
   }
 
-  Future<void> _loginWithFacebook() async {
+  // Đăng nhập bằng Facebook: gọi Facebook SDK, gửi thông tin về backend
+  Future<void> _handleFacebookLogin() async {
+    if (isSubmitting) return;
     setState(() => isSubmitting = true);
+
     try {
-      final LoginResult result = await FacebookAuth.instance.login();
+      final LoginResult result = await FacebookAuth.instance.login(
+        permissions: ['email', 'public_profile'],
+      );
 
       if (result.status == LoginStatus.success) {
-        final userData = await FacebookAuth.instance.getUserData();
-        final userLabel = userData['email']?.toString() ?? userData['name']?.toString() ?? 'fb_user';
+        final userData = await FacebookAuth.instance.getUserData(
+          fields: 'id,name,email,picture.width(200)',
+        );
 
-        final response = await http.post(
-          Uri.parse('$_apiBaseUrl/api/auth/facebook-login'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'facebookId': userData['id'],
-            'email': userData['email'] ?? '',
-            'name': userData['name'] ?? 'Facebook User',
-            'avatarUrl': userData['picture']?['data']?['url']
-          }),
-        ).timeout(const Duration(seconds: 15));
+        final facebookId = userData['id']?.toString() ?? '';
+        final name = userData['name']?.toString() ?? 'Facebook User';
+        final email = userData['email']?.toString() ?? '';
+        final picture = userData['picture']?['data']?['url']?.toString();
+
+        final response = await http
+            .post(
+              Uri.parse('$_apiBaseUrl/api/auth/facebook-login'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({
+                'facebookId': facebookId,
+                'name': name,
+                'email': email,
+                'avatarUrl': picture,
+              }),
+            )
+            .timeout(const Duration(seconds: 15));
 
         final body = _safeDecodeMap(response.body);
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
-          if (mounted) {
-            Navigator.of(context).pushReplacement(
-              PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(userEmail: userLabel),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(opacity: animation, child: child);
-                },
-              ),
-            );
-          }
+          final user = body['user'] as Map<String, dynamic>?;
+          final userLabel = user?['full_name']?.toString() ?? name;
+          _showMessage('Welcome, $userLabel!', isError: false);
         } else {
-          _showMessage(body['message']?.toString() ?? 'Failed to save Facebook user to database.');
+          _showMessage(body['message']?.toString() ?? 'Facebook login failed.');
         }
       } else if (result.status == LoginStatus.cancelled) {
         _showMessage('Facebook login cancelled.');
@@ -560,7 +550,53 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         _showMessage('Facebook login failed: ${result.message}');
       }
     } catch (e) {
-      _showMessage('Error during Facebook login: $e');
+      _showMessage('Facebook login error. Please try again.');
+    } finally {
+      if (mounted) setState(() => isSubmitting = false);
+    }
+  }
+
+  // Đăng nhập bằng Google: gọi Google Sign-In, gửi idToken về backend
+  Future<void> _handleGoogleLogin() async {
+    if (isSubmitting) return;
+    setState(() => isSubmitting = true);
+
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+      final GoogleSignInAccount? account = await googleSignIn.signIn();
+
+      if (account == null) {
+        _showMessage('Google login cancelled.');
+        if (mounted) setState(() => isSubmitting = false);
+        return;
+      }
+
+      final GoogleSignInAuthentication auth = await account.authentication;
+      final String? idToken = auth.idToken;
+      final String? accessToken = auth.accessToken;
+
+      final response = await http
+          .post(
+            Uri.parse('$_apiBaseUrl/api/auth/google'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'idToken': idToken,
+              'accessToken': accessToken,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final body = _safeDecodeMap(response.body);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final user = body['user'] as Map<String, dynamic>?;
+        final userLabel = user?['full_name']?.toString() ?? account.displayName ?? 'user';
+        _showMessage('Welcome, $userLabel!', isError: false);
+      } else {
+        _showMessage(body['message']?.toString() ?? 'Google login failed.');
+      }
+    } catch (e) {
+      _showMessage('Google login error. Please try again.');
     } finally {
       if (mounted) setState(() => isSubmitting = false);
     }
@@ -575,65 +611,6 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     final decoded = jsonDecode(source);
     if (decoded is Map<String, dynamic>) return decoded;
     return <String, dynamic>{};
-  }
-
-  // Đăng nhập bằng Google: lấy idToken từ Firebase → gửi về backend.
-  Future<void> _signInWithGoogle() async {
-    if (isSubmitting) return;
-    setState(() => isSubmitting = true);
-
-    try {
-      // 1. Mở popup chọn tài khoản Google
-      final googleSignIn = kIsWeb
-          ? GoogleSignIn(
-              clientId: '301453242147-i7a769fga6fmvmbdghnguntvhfe87r1c.apps.googleusercontent.com',
-            )
-          : GoogleSignIn(
-              serverClientId: '301453242147-i7a769fga6fmvmbdghnguntvhfe87r1c.apps.googleusercontent.com',
-            );
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      if (googleUser == null) {
-        // User bấm hủy
-        if (mounted) setState(() => isSubmitting = false);
-        return;
-      }
-
-      // 2. Lấy auth tokens từ Google
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final idToken = googleAuth.idToken;
-      final accessToken = googleAuth.accessToken;
-
-      if (idToken == null && accessToken == null) {
-        _showMessage('Cannot get Google token.');
-        return;
-      }
-
-      // 3. Gửi token về backend (idToken cho mobile, accessToken cho web)
-      final response = await http
-          .post(
-            Uri.parse('$_apiBaseUrl/api/auth/google'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              if (idToken != null) 'idToken': idToken,
-              if (accessToken != null) 'accessToken': accessToken,
-            }),
-          )
-          .timeout(const Duration(seconds: 15));
-
-      final body = _safeDecodeMap(response.body);
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final user = body['user'] as Map<String, dynamic>?;
-        final userLabel = user?['email']?.toString() ?? 'user';
-        _showMessage('Welcome, $userLabel!', isError: false);
-      } else {
-        _showMessage(body['message']?.toString() ?? 'Google login failed.');
-      }
-    } catch (e) {
-      _showMessage('Google sign-in error: $e');
-    } finally {
-      if (mounted) setState(() => isSubmitting = false);
-    }
   }
 
   void _showMessage(String message, {bool isError = true}) {
@@ -679,7 +656,7 @@ class _AuthModeSwitch extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9), // Màu xám xanh nhạt sang trọng
+        color: const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(32),
         border: Border.all(color: Colors.white, width: 2),
         boxShadow: [
@@ -955,24 +932,18 @@ class _PrimaryGradientButtonState extends State<_PrimaryGradientButton> with Sin
 
 // Nút Social Login bọc InkWell có hiệu ứng ripple tròn trịa
 class _SocialButton extends StatelessWidget {
-  const _SocialButton({required this.icon, required this.color, required this.onPressed});
+  const _SocialButton({required this.icon, required this.color, required this.onTap});
 
   final IconData icon;
   final Color color;
-  final VoidCallback onPressed;
-  const _SocialButton({required this.icon, required this.color, this.onPressed});
-
-  final IconData icon;
-  final Color color;
-  final VoidCallback? onPressed;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onPressed,
-        onTap: onPressed ?? () {},
+        onTap: onTap,
         borderRadius: BorderRadius.circular(18),
         splashColor: color.withValues(alpha: 0.1),
         highlightColor: color.withValues(alpha: 0.05),

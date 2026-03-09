@@ -1,7 +1,5 @@
-import { facebookLoginSchema, loginSchema, refreshSchema, registerSchema } from './auth.validation.js';
-import { loginFacebookUser, loginUser, registerUser, revokeRefreshToken, rotateRefreshToken } from './auth.service.js';
-import { loginSchema, refreshSchema, registerSchema, googleLoginSchema } from './auth.validation.js';
-import { loginUser, registerUser, revokeRefreshToken, rotateRefreshToken, loginWithGoogle } from './auth.service.js';
+import { facebookLoginSchema, googleLoginSchema, loginSchema, refreshSchema, registerSchema } from './auth.validation.js';
+import { loginFacebookUser, loginUser, loginWithGoogle, registerUser, revokeRefreshToken, rotateRefreshToken } from './auth.service.js';
 
 // Xử lý đăng ký tài khoản mới, validate input và trả access/refresh token.
 export async function register(req, res, next) {
@@ -37,7 +35,7 @@ export async function login(req, res, next) {
   }
 }
 
-// Xử lý đăng nhập bằng Facebook
+// Xử lý đăng nhập bằng Facebook: verify Facebook token và trả token phiên.
 export async function facebookLogin(req, res, next) {
   try {
     const payload = facebookLoginSchema.parse(req.body);
@@ -45,6 +43,23 @@ export async function facebookLogin(req, res, next) {
 
     res.status(200).json({
       message: 'Facebook login successful',
+      user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Xử lý đăng nhập bằng Google: verify idToken hoặc accessToken và trả token phiên.
+export async function googleLogin(req, res, next) {
+  try {
+    const payload = googleLoginSchema.parse(req.body);
+    const result = await loginWithGoogle(payload);
+
+    res.status(200).json({
+      message: 'Google login successful',
       user: result.user,
       accessToken: result.accessToken,
       refreshToken: result.refreshToken
@@ -78,23 +93,6 @@ export async function logout(req, res, next) {
 
     res.status(200).json({
       message: 'Logout successful'
-    });
-  } catch (err) {
-    next(err);
-  }
-}
-
-// Xử lý đăng nhập bằng Google: verify idToken hoặc accessToken và trả token phiên.
-export async function googleLogin(req, res, next) {
-  try {
-    const payload = googleLoginSchema.parse(req.body);
-    const result = await loginWithGoogle(payload);
-
-    res.status(200).json({
-      message: 'Google login successful',
-      user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken
     });
   } catch (err) {
     next(err);
