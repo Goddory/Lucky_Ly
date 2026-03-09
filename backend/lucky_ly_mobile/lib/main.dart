@@ -40,7 +40,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   // Base URL backend auth API, có thể override qua --dart-define.
   static const String _apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:4000',
+    defaultValue: 'http://localhost:5000',
   );
 
   bool isSignUp = true;
@@ -406,7 +406,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             body: jsonEncode({
               'username': username,
               'email': email,
-              'fullName': fullName,
+              'full_name': fullName,
               'password': password,
             }),
           )
@@ -442,7 +442,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           .post(
             Uri.parse('$_apiBaseUrl/api/auth/login'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'login': login, 'password': password}),
+            body: jsonEncode({'identifier': login, 'password': password}),
           )
           .timeout(const Duration(seconds: 15));
 
