@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'home_screen.dart';
 
 // Entry point khởi chạy ứng dụng Flutter.
 void main() {
@@ -450,7 +451,20 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final user = body['user'] as Map<String, dynamic>?;
         final userLabel = user?['email']?.toString() ?? user?['username']?.toString() ?? 'user';
-        _showMessage('Welcome back, $userLabel!', isError: false);
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(userEmail: userLabel),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(
+                  opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                  child: child,
+                );
+              },
+              transitionDuration: const Duration(milliseconds: 600),
+            ),
+          );
+        }
       } else {
         _showMessage(body['message']?.toString() ?? 'Sign in failed.');
       }
