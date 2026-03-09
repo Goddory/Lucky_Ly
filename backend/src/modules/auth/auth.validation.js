@@ -24,4 +24,9 @@ export const facebookLoginSchema = z.object({
   email: z.string().email().max(255).optional().or(z.literal('')),
   name: z.string().min(1).max(150),
   avatarUrl: z.string().url().max(1000).optional()
+export const googleLoginSchema = z.object({
+  idToken: z.string().min(100).max(5000).optional(),
+  accessToken: z.string().min(10).max(5000).optional()
+}).refine(data => data.idToken || data.accessToken, {
+  message: 'Either idToken or accessToken is required'
 });

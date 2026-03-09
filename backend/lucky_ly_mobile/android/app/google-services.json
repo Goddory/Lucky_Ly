@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "301453242147",
+    "project_id": "lucky-ly",
+    "storage_bucket": "lucky-ly.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:301453242147:android:40879057464e2f0013e696",
+        "android_client_info": {
+          "package_name": "com.example.lucky_ly_mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "301453242147-i7a769fga6fmvmbdghnguntvhfe87r1c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC80tyTajho2-NMSc-y1UyrOCA-kcTFj5s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "301453242147-i7a769fga6fmvmbdghnguntvhfe87r1c.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

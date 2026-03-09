@@ -27,5 +27,6 @@ export const env = {
   },
   refreshTokenTtlDays: Number(process.env.REFRESH_TOKEN_TTL_DAYS || 30),
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  bcryptRounds: Number(process.env.BCRYPT_ROUNDS || 12)
+  bcryptRounds: Number(process.env.BCRYPT_ROUNDS || 12),
+  googleClientId: process.env.GOOGLE_CLIENT_ID || ''
 };
