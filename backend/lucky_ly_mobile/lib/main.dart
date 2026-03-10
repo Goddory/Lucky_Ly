@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'home_screen.dart';
 
 // Entry point khởi chạy ứng dụng Flutter.
 void main() async {
@@ -55,8 +56,18 @@ class LuckyLyAuthApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),
-      home: const AuthScreen(),
+      home: const AuthScreenWrapper(),
     );
+  }
+}
+
+// Wrapper để logout có thể navigate về đây
+class AuthScreenWrapper extends StatelessWidget {
+  const AuthScreenWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const AuthScreen();
   }
 }
 
@@ -455,8 +466,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       final body = _safeDecodeMap(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        _showMessage('Sign up successful! Please sign in.', isError: false);
-        setState(() => isSignUp = false);
+        _navigateToHome(body);
       } else {
         _showMessage(body['message']?.toString() ?? 'Sign up failed.');
       }
@@ -489,9 +499,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       final body = _safeDecodeMap(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final user = body['user'] as Map<String, dynamic>?;
-        final userLabel = user?['email']?.toString() ?? user?['username']?.toString() ?? 'user';
-        _showMessage('Welcome back, $userLabel!', isError: false);
+        _navigateToHome(body);
       } else {
         _showMessage(body['message']?.toString() ?? 'Sign in failed.');
       }
@@ -538,9 +546,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         final body = _safeDecodeMap(response.body);
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
-          final user = body['user'] as Map<String, dynamic>?;
-          final userLabel = user?['full_name']?.toString() ?? name;
-          _showMessage('Welcome, $userLabel!', isError: false);
+          _navigateToHome(body);
         } else {
           _showMessage(body['message']?.toString() ?? 'Facebook login failed.');
         }
@@ -589,9 +595,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       final body = _safeDecodeMap(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final user = body['user'] as Map<String, dynamic>?;
-        final userLabel = user?['full_name']?.toString() ?? account.displayName ?? 'user';
-        _showMessage('Welcome, $userLabel!', isError: false);
+        _navigateToHome(body);
       } else {
         _showMessage(body['message']?.toString() ?? 'Google login failed.');
       }
@@ -600,6 +604,23 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     } finally {
       if (mounted) setState(() => isSubmitting = false);
     }
+  }
+
+  void _navigateToHome(Map<String, dynamic> responseBody) {
+    if (!mounted) return;
+    final user = responseBody['user'] as Map<String, dynamic>? ?? {};
+    final userEmail = user['email']?.toString() ?? '';
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => HomeScreen(
+          userEmail: userEmail,
+          userData: user,
+          accessToken: responseBody['accessToken']?.toString() ?? '',
+          refreshToken: responseBody['refreshToken']?.toString() ?? '',
+          apiBaseUrl: _apiBaseUrl,
+        ),
+      ),
+    );
   }
 
   bool _looksLikeEmail(String value) {

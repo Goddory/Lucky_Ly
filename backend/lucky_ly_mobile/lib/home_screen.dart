@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'profile_screen.dart';
 
 // Màu sắc chủ đạo teal/cyan giống giao diện auth
 class _C {
@@ -18,9 +19,20 @@ class _C {
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.userEmail});
+  const HomeScreen({
+    super.key,
+    required this.userEmail,
+    this.userData = const {},
+    this.accessToken = '',
+    this.refreshToken = '',
+    this.apiBaseUrl = '',
+  });
 
   final String userEmail;
+  final Map<String, dynamic> userData;
+  final String accessToken;
+  final String refreshToken;
+  final String apiBaseUrl;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -52,22 +64,29 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _C.bg,
-      body: FadeTransition(
-        opacity: _fadeIn,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            _buildSliverHeader(context),
-            SliverToBoxAdapter(child: _buildQuickActions()),
-            SliverToBoxAdapter(child: _buildWalletCard()),
-            SliverToBoxAdapter(child: _buildFinancialCenter()),
-            SliverToBoxAdapter(child: _buildNotificationCard()),
-            SliverToBoxAdapter(child: _buildServiceGrid()),
-            SliverToBoxAdapter(child: _buildEventsSection()),
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
-          ],
-        ),
-      ),
+      body: _currentTab == 4
+          ? ProfileScreen(
+              userData: widget.userData,
+              accessToken: widget.accessToken,
+              refreshToken: widget.refreshToken,
+              apiBaseUrl: widget.apiBaseUrl,
+            )
+          : FadeTransition(
+              opacity: _fadeIn,
+              child: CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  _buildSliverHeader(context),
+                  SliverToBoxAdapter(child: _buildQuickActions()),
+                  SliverToBoxAdapter(child: _buildWalletCard()),
+                  SliverToBoxAdapter(child: _buildFinancialCenter()),
+                  SliverToBoxAdapter(child: _buildNotificationCard()),
+                  SliverToBoxAdapter(child: _buildServiceGrid()),
+                  SliverToBoxAdapter(child: _buildEventsSection()),
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                ],
+              ),
+            ),
       bottomNavigationBar: _buildBottomNav(),
       floatingActionButton: _buildQrFab(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
