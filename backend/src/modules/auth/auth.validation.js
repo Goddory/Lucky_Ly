@@ -21,9 +21,9 @@ export const refreshSchema = z.object({
 
 export const facebookLoginSchema = z.object({
   facebookId: z.string().min(1).max(255),
-  email: z.string().email().max(255).optional().or(z.literal('')),
+  email: z.union([z.string().email().max(255), z.literal('')]).optional(),
   name: z.string().min(1).max(150),
-  avatarUrl: z.string().url().max(1000).optional()
+  avatarUrl: z.string().url().max(1000).nullable().optional()
 });
 
 export const googleLoginSchema = z.object({
