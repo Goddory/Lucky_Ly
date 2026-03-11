@@ -1,4 +1,6 @@
+import bcrypt from 'bcrypt';
 import { pool } from '../../db/pool.js';
+import { env } from '../../config/env.js';
 
 // Lấy profile user hiện tại từ DB.
 export async function getUserProfile(userId) {
@@ -67,4 +69,59 @@ export async function updateUserProfile(userId, payload) {
   }
 
   return result.rows[0];
+}
+
+// Đổi mật khẩu: kiểm tra mật khẩu cũ, hash mật khẩu mới, cập nhật DB và thu hồi refresh token
+export async function changeUserPassword(userId, currentPassword, newPassword) {
+  const userResult = await pool.query(
+    'SELECT password_hash, auth_provider FROM users WHERE user_id = $1 LIMIT 1',
+    [userId]
+  );
+
+  if (userResult.rowCount === 0) {
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const user = userResult.rows[0];
+
+  if (user.auth_provider !== 'local' || !user.password_hash) {
+    const error = new Error('Cannot change password for social login accounts');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const isPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
+  if (!isPasswordValid) {
+    const error = new Error('Current password is incorrect');
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const newPasswordHash = await bcrypt.hash(newPassword, env.bcryptRounds);
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Update password
+    await client.query(
+      'UPDATE users SET password_hash = $1 WHERE user_id = $2',
+      [newPasswordHash, userId]
+    );
+
+    // Revoke all existing active refresh tokens to force re-login on other devices
+    await client.query(
+      'UPDATE auth_refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL',
+      [userId]
+    );
+
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
