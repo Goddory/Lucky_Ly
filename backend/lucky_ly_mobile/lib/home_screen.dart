@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'profile_screen.dart';
+import 'gift_center_screen.dart';
+import 'design_selection_screen.dart';
+import 'celebrate_screen.dart';
+import 'offers_screen.dart';
+import 'history_screen.dart';
 
 // Màu sắc chủ đạo teal/cyan giống giao diện auth
 class _C {
@@ -64,20 +69,24 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _C.bg,
-      body: _currentTab == 4
-          ? ProfileScreen(
-              userData: widget.userData,
-              accessToken: widget.accessToken,
-              refreshToken: widget.refreshToken,
-              apiBaseUrl: widget.apiBaseUrl,
-            )
-          : FadeTransition(
-              opacity: _fadeIn,
-              child: CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  _buildSliverHeader(context),
-                  SliverToBoxAdapter(child: _buildQuickActions()),
+      body: _currentTab == 1
+          ? const OffersScreen()
+          : _currentTab == 3
+              ? const HistoryScreen()
+              : _currentTab == 4
+                  ? ProfileScreen(
+                      userData: widget.userData,
+                      accessToken: widget.accessToken,
+                      refreshToken: widget.refreshToken,
+                      apiBaseUrl: widget.apiBaseUrl,
+                    )
+                  : FadeTransition(
+                      opacity: _fadeIn,
+                      child: CustomScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        slivers: [
+                          _buildSliverHeader(context),
+                          SliverToBoxAdapter(child: _buildQuickActions()),
                   SliverToBoxAdapter(child: _buildWalletCard()),
                   SliverToBoxAdapter(child: _buildFinancialCenter()),
                   SliverToBoxAdapter(child: _buildNotificationCard()),
@@ -172,14 +181,32 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget _buildQuickActions() {
     return Container(
       decoration: const BoxDecoration(gradient: _C.gradient),
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.symmetric(vertical: 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: const [
-          _QuickAction(icon: Icons.swap_horiz, label: 'Nạp/Rút'),
-          _QuickAction(icon: Icons.call_received, label: 'Nhận tiền'),
-          _QuickAction(icon: Icons.qr_code_scanner, label: 'QR\nThanh toán'),
-          _QuickAction(icon: Icons.widgets_outlined, label: 'Tiện ích'),
+        children: [
+          _QuickAction(
+            icon: Icons.swap_horiz, 
+            label: 'Nạp/Rút'
+          ),
+          _QuickAction(
+            icon: Icons.call_received, 
+            label: 'Nhận tiền'
+          ),
+          _QuickAction(
+            icon: Icons.card_giftcard, 
+            label: 'Tặng Quà',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GiftCenterScreen())),
+          ),
+          _QuickAction(
+            icon: Icons.auto_awesome_mosaic_outlined, 
+            label: 'Xưởng Studio',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DesignSelectionScreen(type: 'item'))),
+          ),
+          _QuickAction(
+            icon: Icons.widgets_outlined, 
+            label: 'Tiện ích'
+          ),
         ],
       ),
     );
@@ -204,38 +231,44 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ),
             ],
           ),
-          child: Column(
-            children: [
-              // Ví số dư
-              Row(
-                children: [
-                  _WalletItem(
-                    label: 'Ví Lucky Ly',
-                    amount: '4.901đ',
-                    icon: Icons.account_balance_wallet,
-                    iconColor: _C.primary,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: [
+                _WalletItem(
+                  label: 'Ví Lucky Ly',
+                  amount: '4.901đ',
+                  icon: Icons.account_balance_wallet,
+                  iconColor: _C.primary,
+                ),
+                _WalletDivider(),
+                _WalletItem(
+                  label: 'Ví Trả Sau',
+                  amount: '18.951.000đ',
+                  icon: Icons.credit_card,
+                  iconColor: _C.accent,
+                ),
+                _WalletDivider(),
+                _WalletItem(
+                  label: 'Túi Thần Tài',
+                  amount: '0đ',
+                  icon: Icons.savings,
+                  iconColor: const Color(0xFFE8A317),
+                ),
+                _WalletDivider(),
+                GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CelebrateScreen())),
+                  behavior: HitTestBehavior.opaque,
+                  child: _WalletItem(
+                    label: 'Celebrate',
+                    amount: 'Mẫu Lễ Hội',
+                    icon: Icons.celebration,
+                    iconColor: Colors.pinkAccent,
                   ),
-                  const SizedBox(width: 12),
-                  Container(width: 1, height: 30, color: _C.divider),
-                  const SizedBox(width: 12),
-                  _WalletItem(
-                    label: 'Ví Trả Sau',
-                    amount: '18.951.000đ',
-                    icon: Icons.credit_card,
-                    iconColor: _C.accent,
-                  ),
-                  const SizedBox(width: 12),
-                  Container(width: 1, height: 30, color: _C.divider),
-                  const SizedBox(width: 12),
-                  _WalletItem(
-                    label: 'Túi Thần Tài',
-                    amount: '0đ',
-                    icon: Icons.savings,
-                    iconColor: const Color(0xFFE8A317),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -629,15 +662,16 @@ class _HeaderIconBtn extends StatelessWidget {
 }
 
 class _QuickAction extends StatelessWidget {
-  const _QuickAction({required this.icon, required this.label});
+  const _QuickAction({required this.icon, required this.label, this.onTap});
 
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {},
+      onTap: onTap ?? () {},
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -677,7 +711,9 @@ class _WalletItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
+    return Container(
+      width: 110,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -688,7 +724,11 @@ class _WalletItem extends StatelessWidget {
               Flexible(
                 child: Text(
                   label,
-                  style: TextStyle(color: _C.textMuted, fontSize: 11, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: _C.textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -700,7 +740,11 @@ class _WalletItem extends StatelessWidget {
               Flexible(
                 child: Text(
                   amount,
-                  style: const TextStyle(color: _C.textDark, fontSize: 14, fontWeight: FontWeight.w800),
+                  style: const TextStyle(
+                    color: _C.textDark,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -710,6 +754,18 @@ class _WalletItem extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _WalletDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 30,
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      color: _C.divider,
     );
   }
 }

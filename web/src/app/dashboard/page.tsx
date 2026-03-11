@@ -4,6 +4,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
+import DashboardWallet from '@/components/dashboard/DashboardWallet';
+import QuickActions from '@/components/dashboard/QuickActions';
+import BottomNav from '@/components/layout/BottomNav';
+
 export default function DashboardPage() {
     const { user, loading, logout } = useAuth();
     const router = useRouter();
@@ -17,7 +21,7 @@ export default function DashboardPage() {
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-zinc-950">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-emerald-500"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-teal"></div>
             </div>
         );
     }
@@ -25,36 +29,48 @@ export default function DashboardPage() {
     if (!user) return null;
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-white p-8">
-            <div className="max-w-4xl mx-auto">
-                <header className="flex justify-between items-center mb-12">
+        <div className="min-h-screen bg-zinc-950 text-white pb-32">
+            <div className="max-w-md mx-auto pt-12 px-6">
+                <header className="flex justify-between items-center mb-10">
                     <div>
-                        <h1 className="text-4xl font-bold tracking-tight">Trang quản trị</h1>
-                        <p className="text-zinc-400 mt-1">Chào mừng quay lại, {user.fullName}!</p>
+                        <p className="text-zinc-500 text-sm font-medium">Chào buổi tối,</p>
+                        <h1 className="text-2xl font-bold tracking-tight text-glow-teal">{user.fullName} 👋</h1>
                     </div>
                     <button
                         onClick={() => logout()}
-                        className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-white/5 rounded-lg transition-colors"
+                        className="p-2 bg-zinc-900 border border-white/5 rounded-full hover:bg-zinc-800 transition-all hover:scale-105"
+                        title="Đăng xuất"
                     >
-                        Đăng xuất
+                        <User size={20} className="text-zinc-400" />
                     </button>
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="p-6 bg-zinc-900/50 border border-white/5 rounded-2xl">
-                        <h3 className="text-lg font-semibold mb-2">Thông tin tài khoản</h3>
-                        <div className="space-y-1 text-zinc-400">
-                            <p>Username: {user.username}</p>
-                            <p>Email: {user.email}</p>
-                        </div>
+                <main className="space-y-8">
+                    {/* Wallet Section */}
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+                        <DashboardWallet />
                     </div>
 
-                    <div className="p-6 bg-emerald-900/10 border border-emerald-500/20 rounded-2xl">
-                        <h3 className="text-lg font-semibold text-emerald-400 mb-2">Trạng thái</h3>
-                        <p className="text-zinc-400">Tài khoản của bạn đã được xác thực bảo mật thông qua JWT Cookie.</p>
+                    {/* Quick Actions Grid */}
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+                        <QuickActions />
                     </div>
-                </div>
+
+                    {/* Promo Card Example */}
+                    <div className="glass p-6 rounded-3xl relative overflow-hidden group cursor-pointer animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <Sparkles size={80} className="text-gold" />
+                        </div>
+                        <h3 className="text-lg font-bold mb-2">Sự kiện Tết Nguyên Đán</h3>
+                        <p className="text-sm text-zinc-400 mb-4">Mở lì xì AR ngay - Nhận quà cực khủng!</p>
+                        <button className="px-5 py-2 bg-white text-black text-xs font-bold rounded-full hover:bg-gold hover:text-white transition-all">
+                            KHÁM PHÁ NGAY
+                        </button>
+                    </div>
+                </main>
             </div>
+
+            <BottomNav />
         </div>
     );
 }
