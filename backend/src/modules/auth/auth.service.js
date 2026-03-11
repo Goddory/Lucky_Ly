@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import { pool } from '../../db/pool.js';
 import { env } from '../../config/env.js';
+import { sendPasswordResetEmail } from '../../utils/mailer.js';
 
 const googleClient = new OAuth2Client();
 
@@ -414,6 +415,169 @@ export async function loginWithGoogle({ idToken, accessToken }) {
       accessToken: buildAccessToken(user),
       refreshToken
     };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+// ============================================
+// FORGOT PASSWORD
+// ============================================
+
+// Yêu cầu đổi mật khẩu: Sinh OTP 6 chữ số, lưu vào DB và gửi email.
+export async function requestPasswordReset(email) {
+  const result = await pool.query(
+    'SELECT user_id, full_name, auth_provider FROM users WHERE email = $1 LIMIT 1',
+    [email.toLowerCase()]
+  );
+  
+  if (result.rowCount === 0) {
+    // Để bảo mật, không trả về lỗi rõ ràng nếu email không tồn tại.
+    return;
+  }
+  const user = result.rows[0];
+
+  if (user.auth_provider !== 'local') {
+    const error = new Error('This account uses social login.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Generate 6-digit OTP
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const otpHash = await bcrypt.hash(otpCode, 10);
+
+  // Lưu OTP hash vào database với hiệu lực 15 phút
+  await pool.query(
+    `INSERT INTO password_reset_otps (user_id, otp_hash, expires_at) 
+     VALUES ($1, $2, NOW() + interval '15 minutes')`,
+    [user.user_id, otpHash]
+  );
+
+  // Gửi OTP qua email
+  await sendPasswordResetEmail(email.toLowerCase(), otpCode, user.full_name);
+}
+
+// Xác thực OTP
+export async function verifyPasswordResetOtp(email, otp) {
+  const userResult = await pool.query(
+    'SELECT user_id FROM users WHERE email = $1 AND auth_provider = $2 LIMIT 1',
+    [email.toLowerCase(), 'local']
+  );
+  if (userResult.rowCount === 0) {
+    const error = new Error('Invalid or expired OTP');
+    error.statusCode = 400;
+    throw error;
+  }
+  const userId = userResult.rows[0].user_id;
+
+  // Lấy các OTP đang chờ
+  const otpResult = await pool.query(
+    `SELECT id, otp_hash FROM password_reset_otps 
+     WHERE user_id = $1 AND expires_at > NOW() AND status = 'PENDING'
+     ORDER BY created_at DESC`,
+    [userId]
+  );
+
+  if (otpResult.rowCount === 0) {
+    const error = new Error('Invalid or expired OTP');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Compare OTP
+  let validOtpId = null;
+  for (const row of otpResult.rows) {
+    const isValid = await bcrypt.compare(otp, row.otp_hash);
+    if (isValid) {
+      validOtpId = row.id;
+      break;
+    }
+  }
+
+  if (!validOtpId) {
+    const error = new Error('Invalid or expired OTP');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Mark status as VERIFIED
+  await pool.query(
+    "UPDATE password_reset_otps SET status = 'VERIFIED' WHERE id = $1",
+    [validOtpId]
+  );
+}
+
+// Đổi mật khẩu sau khi có OTP xác thực
+export async function resetPasswordWithOtp(email, otp, newPassword) {
+  const userResult = await pool.query(
+    'SELECT user_id FROM users WHERE email = $1 AND auth_provider = $2 LIMIT 1',
+    [email.toLowerCase(), 'local']
+  );
+  if (userResult.rowCount === 0) {
+    const error = new Error('Invalid request');
+    error.statusCode = 400;
+    throw error;
+  }
+  const userId = userResult.rows[0].user_id;
+
+  // Verify OTP is still valid AND status = 'VERIFIED'
+  const otpResult = await pool.query(
+    `SELECT id, otp_hash FROM password_reset_otps 
+     WHERE user_id = $1 AND expires_at > NOW() AND status = 'VERIFIED'
+     ORDER BY created_at DESC`,
+    [userId]
+  );
+
+  if (otpResult.rowCount === 0) {
+    const error = new Error('No verified OTP session found. Please request a new OTP.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  let finalOtpId = null;
+  for (const row of otpResult.rows) {
+    const isValid = await bcrypt.compare(otp, row.otp_hash);
+    if (isValid) {
+      finalOtpId = row.id;
+      break;
+    }
+  }
+
+  if (!finalOtpId) {
+    const error = new Error('Invalid OTP');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const newPasswordHash = await bcrypt.hash(newPassword, env.bcryptRounds);
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Update new password
+    await client.query(
+      'UPDATE users SET password_hash = $1 WHERE user_id = $2',
+      [newPasswordHash, userId]
+    );
+
+    // Xóa record OTP (đã hoàn thành)
+    await client.query(
+      'DELETE FROM password_reset_otps WHERE user_id = $1',
+      [userId]
+    );
+
+    // Xóa tất cả các session cũ
+    await client.query(
+      'UPDATE auth_refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL',
+      [userId]
+    );
+
+    await client.query('COMMIT');
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;

@@ -1,5 +1,5 @@
-import { facebookLoginSchema, googleLoginSchema, loginSchema, refreshSchema, registerSchema } from './auth.validation.js';
-import { loginFacebookUser, loginUser, loginWithGoogle, registerUser, revokeRefreshToken, rotateRefreshToken } from './auth.service.js';
+import { facebookLoginSchema, googleLoginSchema, loginSchema, refreshSchema, registerSchema, forgotPasswordSchema, verifyOtpSchema, resetPasswordSchema } from './auth.validation.js';
+import { loginFacebookUser, loginUser, loginWithGoogle, registerUser, revokeRefreshToken, rotateRefreshToken, requestPasswordReset, verifyPasswordResetOtp, resetPasswordWithOtp } from './auth.service.js';
 
 // Xử lý đăng ký tài khoản mới, validate input và trả access/refresh token.
 export async function register(req, res, next) {
@@ -93,6 +93,45 @@ export async function logout(req, res, next) {
 
     res.status(200).json({
       message: 'Logout successful'
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Yêu cầu quên mật khẩu
+export async function forgotPassword(req, res, next) {
+  try {
+    const payload = forgotPasswordSchema.parse(req.body);
+    await requestPasswordReset(payload.email);
+    res.status(200).json({
+      message: 'If the email exists, an OTP has been sent.'
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Xác thực OTP
+export async function verifyOtp(req, res, next) {
+  try {
+    const payload = verifyOtpSchema.parse(req.body);
+    await verifyPasswordResetOtp(payload.email, payload.otp);
+    res.status(200).json({
+      message: 'OTP verified successfully'
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Đổi mật khẩu
+export async function resetPassword(req, res, next) {
+  try {
+    const payload = resetPasswordSchema.parse(req.body);
+    await resetPasswordWithOtp(payload.email, payload.otp, payload.newPassword);
+    res.status(200).json({
+      message: 'Password has been reset successfully'
     });
   } catch (err) {
     next(err);

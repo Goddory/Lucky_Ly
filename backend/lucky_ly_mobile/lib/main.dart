@@ -393,7 +393,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           alignment: Alignment.centerRight,
           child: TextButton(
             onPressed: () {
-              _showMessage('Forgot password tapped.');
+              _showForgotPasswordSheet(context);
             },
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -605,6 +605,242 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     } finally {
       if (mounted) setState(() => isSubmitting = false);
     }
+  }
+
+  // Chức năng quên mật khẩu: Flow 3 bước (Nhập Email -> Nhập OTP -> Đổi Pass)
+  void _showForgotPasswordSheet(BuildContext context) {
+    int step = 1; // 1: Email, 2: OTP, 3: New Password
+    String userEmail = '';
+    String resetOtp = '';
+    bool isLoading = false;
+
+    final emailController = TextEditingController();
+    final otpController = TextEditingController();
+    final newPassController = TextEditingController();
+    final confirmPassController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (BuildContext ctx, StateSetter setModalState) {
+            final bottomInset = MediaQuery.of(ctx).viewInsets.bottom;
+            
+            Widget buildStepContent() {
+              if (step == 1) {
+                return Column(
+                  children: [
+                    Text(
+                      'Quên mật khẩu',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF1392B1)),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Vui lòng nhập email đăng ký. Chúng tôi sẽ gửi mã OTP cho bạn.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    ),
+                    const SizedBox(height: 24),
+                    _PillInput(
+                      controller: emailController,
+                      hint: 'Nhập email của bạn',
+                      icon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                  ],
+                );
+              } else if (step == 2) {
+                return Column(
+                  children: [
+                    Text(
+                      'Xác thực OTP',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF1392B1)),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Mã 6 số đã được gửi tới:\n$userEmail',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    ),
+                    const SizedBox(height: 24),
+                    _PillInput(
+                      controller: otpController,
+                      hint: 'Nhập mã 6 số',
+                      icon: Icons.security,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    Text(
+                      'Tạo mật khẩu mới',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF1392B1)),
+                    ),
+                    const SizedBox(height: 24),
+                    _PillInput(
+                      controller: newPassController,
+                      hint: 'Mật khẩu mới',
+                      icon: Icons.lock_outline,
+                      obscureText: true,
+                    ),
+                    const SizedBox(height: 16),
+                    _PillInput(
+                      controller: confirmPassController,
+                      hint: 'Nhập lại mật khẩu',
+                      icon: Icons.lock_reset_outlined,
+                      obscureText: true,
+                    ),
+                  ],
+                );
+              }
+            }
+
+            return Container(
+              padding: EdgeInsets.only(left: 24, right: 24, top: 32, bottom: bottomInset + 32),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: buildStepContent(),
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton(
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            final navigator = Navigator.of(ctx);
+                            
+                            if (step == 1) {
+                              final email = emailController.text.trim();
+                              if (email.isEmpty || !_looksLikeEmail(email)) {
+                                _showMessage('Vui lòng nhập email hợp lệ');
+                                return;
+                              }
+                              setModalState(() => isLoading = true);
+                              
+                              try {
+                                final res = await http.post(
+                                  Uri.parse('$_apiBaseUrl/api/auth/forgot-password'),
+                                  headers: {'Content-Type': 'application/json'},
+                                  body: jsonEncode({'email': email})
+                                ).timeout(const Duration(seconds: 15));
+
+                                if (res.statusCode >= 200 && res.statusCode < 300) {
+                                  userEmail = email;
+                                  setModalState(() {
+                                    isLoading = false;
+                                    step = 2; // Chuyển sang bước nhập OTP
+                                  });
+                                  _showMessage('Mã OTP đã được gửi!', isError: false);
+                                } else {
+                                  final body = _safeDecodeMap(res.body);
+                                  _showMessage(body['message']?.toString() ?? 'Gửi OTP thất bại');
+                                  setModalState(() => isLoading = false);
+                                }
+                              } catch (e) {
+                                _showMessage('Lỗi mạng. Vui lòng thử lại.');
+                                setModalState(() => isLoading = false);
+                              }
+                            } else if (step == 2) {
+                              final otp = otpController.text.trim();
+                              if (otp.length != 6) {
+                                _showMessage('OTP phải gồm 6 chữ số');
+                                return;
+                              }
+                              
+                              setModalState(() => isLoading = true);
+                              try {
+                                final res = await http.post(
+                                  Uri.parse('$_apiBaseUrl/api/auth/verify-reset-otp'),
+                                  headers: {'Content-Type': 'application/json'},
+                                  body: jsonEncode({'email': userEmail, 'otp': otp})
+                                ).timeout(const Duration(seconds: 15));
+
+                                if (res.statusCode >= 200 && res.statusCode < 300) {
+                                  resetOtp = otp;
+                                  setModalState(() {
+                                    isLoading = false;
+                                    step = 3; // Chuyển sang bước đổi mật khẩu
+                                  });
+                                } else {
+                                  final body = _safeDecodeMap(res.body);
+                                  _showMessage(body['message']?.toString() ?? 'OTP không hợp lệ');
+                                  setModalState(() => isLoading = false);
+                                }
+                              } catch (e) {
+                                _showMessage('Lỗi mạng. Vui lòng thử lại.');
+                                setModalState(() => isLoading = false);
+                              }
+                            } else if (step == 3) {
+                              final newPass = newPassController.text;
+                              final confirmPass = confirmPassController.text;
+                              
+                              if (newPass.isEmpty || confirmPass.isEmpty) {
+                                _showMessage('Vui lòng điền đủ mật khẩu');
+                                return;
+                              }
+                              if (newPass != confirmPass) {
+                                _showMessage('Mật khẩu nhập lại không khớp');
+                                return;
+                              }
+                              
+                              setModalState(() => isLoading = true);
+                              try {
+                                final res = await http.post(
+                                  Uri.parse('$_apiBaseUrl/api/auth/reset-password'),
+                                  headers: {'Content-Type': 'application/json'},
+                                  body: jsonEncode({'email': userEmail, 'otp': resetOtp, 'newPassword': newPass})
+                                ).timeout(const Duration(seconds: 15));
+
+                                if (res.statusCode >= 200 && res.statusCode < 300) {
+                                  if (!ctx.mounted) return;
+                                  if (navigator.canPop()) navigator.pop();
+                                  _showMessage('Đặt lại mật khẩu thành công! Bạn có thể đăng nhập.', isError: false);
+                                } else {
+                                  final body = _safeDecodeMap(res.body);
+                                  _showMessage(body['message']?.toString() ?? 'Đặt lại thất bại');
+                                  setModalState(() => isLoading = false);
+                                }
+                              } catch (e) {
+                                _showMessage('Lỗi kết nối. Thử lại sau.');
+                                setModalState(() => isLoading = false);
+                              }
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      backgroundColor: const Color(0xFF10B981),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      elevation: 4,
+                    ),
+                    child: isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                          )
+                        : Text(
+                            step == 1 ? 'Gửi mã xác nhận' : (step == 2 ? 'Xác thực OTP' : 'Xác nhận tạo mới'),
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _navigateToHome(Map<String, dynamic> responseBody) {
