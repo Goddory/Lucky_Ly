@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'profile_screen.dart';
+import 'package:camera/camera.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 // Màu sắc chủ đạo teal/cyan giống giao diện auth
 class _C {
@@ -178,7 +180,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         children: const [
           _QuickAction(icon: Icons.swap_horiz, label: 'Nạp/Rút'),
           _QuickAction(icon: Icons.call_received, label: 'Nhận tiền'),
-          _QuickAction(icon: Icons.qr_code_scanner, label: 'QR\nThanh toán'),
+          _QuickAction(icon: Icons.camera_alt_outlined, label: 'Máy ảnh'),
           _QuickAction(icon: Icons.widgets_outlined, label: 'Tiện ích'),
         ],
       ),
@@ -570,14 +572,146 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       child: FloatingActionButton(
         elevation: 0,
         backgroundColor: Colors.transparent,
-        onPressed: () {},
+        onPressed: () => _handleCameraAccess(context),
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.qr_code_scanner, color: Colors.white, size: 26),
-            Text('QR', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+            Icon(Icons.camera_alt, color: Colors.white, size: 26),
+            Text('Camera', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
           ],
         ),
+      ),
+    );
+  }
+
+  // Logic xử lý quyền và mở Camera
+  Future<void> _handleCameraAccess(BuildContext context) async {
+    // 1. Xin quyền Camera
+    var status = await Permission.camera.request();
+    
+    if (status.isGranted) {
+      // 2. Lấy danh sách camera khả dụng
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        if (mounted) _showSimpleMessage('Không tìm thấy camera trên thiết bị.');
+        return;
+      }
+      
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => CameraScreen(cameras: cameras)),
+        );
+      }
+    } else if (status.isPermanentlyDenied) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Quyền truy cập Camera'),
+            content: const Text('Ứng dụng cần quyền Camera để chụp ảnh. Vui lòng cấp quyền trong Cài đặt.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+              TextButton(onPressed: () => openAppSettings(), child: const Text('Cài đặt')),
+            ],
+          ),
+        );
+      }
+    }
+  }
+
+  void _showSimpleMessage(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+}
+
+// ─── MÀN HÌNH CAMERA ──────────────────────────────────────────
+class CameraScreen extends StatefulWidget {
+  final List<CameraDescription> cameras;
+  const CameraScreen({super.key, required this.cameras});
+
+  @override
+  State<CameraScreen> createState() => _CameraScreenState();
+}
+
+class _CameraScreenState extends State<CameraScreen> {
+  late CameraController _controller;
+  int _cameraIndex = 0; // 0 thường là cam sau, 1 là cam trước
+
+  @override
+  void initState() {
+    super.initState();
+    _initCamera(widget.cameras[_cameraIndex]);
+  }
+
+  Future<void> _initCamera(CameraDescription description) async {
+    _controller = CameraController(description, ResolutionPreset.high);
+    try {
+      await _controller.initialize();
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('Camera Error: $e');
+    }
+  }
+
+  void _toggleCamera() {
+    if (widget.cameras.length < 2) return;
+    _cameraIndex = (_cameraIndex + 1) % widget.cameras.length;
+    _initCamera(widget.cameras[_cameraIndex]);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_controller.value.isInitialized) {
+      return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
+    }
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Positioned.fill(child: CameraPreview(_controller)),
+          // Nút chụp & Đổi Camera
+          Positioned(
+            bottom: 40,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.flip_camera_ios, color: Colors.white, size: 32),
+                  onPressed: _toggleCamera,
+                ),
+                GestureDetector(
+                  onTap: () async {
+                    try {
+                      await _controller.takePicture();
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã chụp ảnh!')));
+                    } catch (e) {
+                      debugPrint('Lỗi chụp ảnh: $e');
+                    }
+                  },
+                  child: Container(
+                    height: 80,
+                    width: 80,
+                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 4)),
+                    child: const Center(child: Icon(Icons.camera, color: Colors.white, size: 40)),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 32),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
