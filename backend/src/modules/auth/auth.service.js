@@ -384,6 +384,10 @@ export async function loginWithGoogle({ idToken, accessToken }) {
          WHERE user_id = $3`,
         [googleUid, picture, user.user_id]
       );
+      // Sync avatar_url so the response includes the Google picture
+      if (!user.avatar_url && picture) {
+        user.avatar_url = picture;
+      }
     } else {
       const username = `g_${email.split('@')[0]}_${Date.now().toString(36)}`;
       const insertResult = await client.query(

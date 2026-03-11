@@ -429,18 +429,49 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     if (isSaving) return;
     setState(() => isSaving = true);
 
-    // TODO: Gọi API cập nhật thông tin user khi backend có endpoint PUT /api/users/me
-    await Future.delayed(const Duration(milliseconds: 800));
+    try {
+      final response = await http.put(
+        Uri.parse('${widget.apiBaseUrl}/api/users/me'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.accessToken}',
+        },
+        body: jsonEncode({
+          'fullName': fullNameController.text.trim(),
+          'email': emailController.text.trim(),
+          'avatarUrl': avatarUrlController.text.trim().isEmpty
+              ? null
+              : avatarUrlController.text.trim(),
+        }),
+      ).timeout(const Duration(seconds: 15));
 
-    setState(() {
-      fullName = fullNameController.text.trim();
-      email = emailController.text.trim();
-      avatarUrl = avatarUrlController.text.trim();
-      isEditing = false;
-      isSaving = false;
-    });
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final body = jsonDecode(response.body);
+        final updatedUser = body['user'] as Map<String, dynamic>? ?? {};
 
-    _showSnack('Đã cập nhật thông tin!', isError: false);
+        setState(() {
+          fullName = updatedUser['full_name']?.toString() ?? fullNameController.text.trim();
+          email = updatedUser['email']?.toString() ?? emailController.text.trim();
+          avatarUrl = updatedUser['avatar_url']?.toString() ?? avatarUrlController.text.trim();
+          isEditing = false;
+          isSaving = false;
+        });
+
+        // Update widget.userData so other screens also see the changes
+        widget.userData['full_name'] = fullName;
+        widget.userData['email'] = email;
+        widget.userData['avatar_url'] = avatarUrl;
+
+        _showSnack('Đã cập nhật thông tin!', isError: false);
+      } else {
+        final body = jsonDecode(response.body);
+        _showSnack(body['message']?.toString() ?? 'Cập nhật thất bại.');
+        setState(() => isSaving = false);
+      }
+    } catch (e) {
+      _showSnack('Không thể kết nối server. Thử lại sau.');
+      setState(() => isSaving = false);
+    }
   }
 
   Future<void> _handleLogout() async {
