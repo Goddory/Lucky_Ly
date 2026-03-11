@@ -45,5 +45,5 @@ flutter {
 }
 
 dependencies {
-    implementation("com.facebook.android:facebook-android-sdk:[4,5)")
+    implementation("com.facebook.android:facebook-android-sdk:17.0.1")
 }

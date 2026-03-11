@@ -553,10 +553,12 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       } else if (result.status == LoginStatus.cancelled) {
         _showMessage('Facebook login cancelled.');
       } else {
-        _showMessage('Facebook login failed: ${result.message}');
+        _showMessage('Facebook login failed: ${result.message ?? "Unknown error"}');
+        debugPrint('[Facebook] Error Result: ${result.message}');
       }
     } catch (e) {
-      _showMessage('Facebook login error. Please try again.');
+      debugPrint('[Facebook] Exception during login: $e');
+      _showMessage('Facebook login error: $e');
     } finally {
       if (mounted) setState(() => isSubmitting = false);
     }
