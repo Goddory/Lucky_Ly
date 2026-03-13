@@ -12,6 +12,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'wallet_status') THEN
         CREATE TYPE wallet_status AS ENUM ('ACTIVE', 'LOCKED');
     END IF;
+    
 
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'transaction_status') THEN
         CREATE TYPE transaction_status AS ENUM ('ESCROW', 'CLAIMED', 'REFUNDED', 'FAILED');

@@ -1,13 +1,5 @@
 import 'package:flutter/material.dart';
-
-class _C {
-  static const primary = Color(0xFF0EA5D8);
-  static const accent = Color(0xFF19C6C4);
-  static const bg = Color(0xFFF2F6FA);
-  static const card = Colors.white;
-  static const textDark = Color(0xFF1E293B);
-  static const textMuted = Color(0xFF64748B);
-}
+import 'app_theme.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -28,10 +20,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _fetchHistory() async {
-    // Giả lập gọi API từ Database
     await Future.delayed(const Duration(seconds: 1));
     setState(() {
-      _transactions = []; // Xóa mock data, chuẩn bị nhận dữ liệu thật
+      _transactions = [];
       _isLoading = false;
     });
   }
@@ -39,10 +30,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _C.bg,
+      backgroundColor: AppTheme.bg,
       appBar: AppBar(
         title: const Text('Lịch sử giao dịch', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: _C.primary,
+        flexibleSpace: Container(decoration: const BoxDecoration(gradient: AppTheme.primaryGradient)),
         elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
@@ -54,7 +45,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           _buildFilterBar(),
           Expanded(
             child: _isLoading 
-              ? const Center(child: CircularProgressIndicator(color: _C.primary))
+              ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
               : _transactions.isEmpty 
                 ? _buildEmptyState()
                 : ListView.builder(
@@ -76,9 +67,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.history_toggle_off, size: 80, color: _C.textMuted.withValues(alpha: 0.3)),
-          const SizedBox(height: 16),
-          const Text('Chưa có giao dịch nào', style: TextStyle(color: _C.textMuted, fontSize: 16)),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.05),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.history_toggle_off, size: 64, color: AppTheme.primary.withValues(alpha: 0.3)),
+          ),
+          const SizedBox(height: 24),
+          Text('Chưa có giao dịch nào', style: TextStyle(color: AppTheme.textMuted, fontSize: 16, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -86,11 +84,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildFilterBar() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text('Giao dịch gần đây', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _C.textDark)),
+          Text('Giao dịch gần đây', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppTheme.textDark, letterSpacing: -0.5)),
           _buildFilterChip(),
         ],
       ),
@@ -106,16 +104,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
         const PopupMenuItem(value: 'Tháng này', child: Text('Tháng này')),
       ],
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: _C.primary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
+          color: AppTheme.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.1)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.filter_list, size: 16, color: _C.primary),
-            const SizedBox(width: 4),
-            Text(_filter, style: const TextStyle(color: _C.primary, fontWeight: FontWeight.bold)),
+            const Icon(Icons.filter_list, size: 16, color: AppTheme.primary),
+            const SizedBox(width: 6),
+            Text(_filter, style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w800, fontSize: 12)),
           ],
         ),
       ),
@@ -123,7 +122,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildTransactionItem(dynamic tx) {
-    // Logic hiển thị item giao dịch khi có data thật
     return const SizedBox.shrink();
   }
 }

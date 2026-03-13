@@ -1,13 +1,5 @@
 import 'package:flutter/material.dart';
-
-class _C {
-  static const primary = Color(0xFF0EA5D8);
-  static const accent = Color(0xFF19C6C4);
-  static const bg = Color(0xFFF2F6FA);
-  static const card = Colors.white;
-  static const textDark = Color(0xFF1E293B);
-  static const textMuted = Color(0xFF64748B);
-}
+import 'app_theme.dart';
 
 class OffersScreen extends StatefulWidget {
   const OffersScreen({super.key});
@@ -29,7 +21,7 @@ class _OffersScreenState extends State<OffersScreen> {
   Future<void> _fetchOffers() async {
     await Future.delayed(const Duration(seconds: 1));
     setState(() {
-      _offers = []; // Xóa mock data
+      _offers = [];
       _isLoading = false;
     });
   }
@@ -37,15 +29,15 @@ class _OffersScreenState extends State<OffersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _C.bg,
+      backgroundColor: AppTheme.bg,
       appBar: AppBar(
         title: const Text('Ưu đãi & Khuyến mãi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: _C.primary,
+        flexibleSpace: Container(decoration: const BoxDecoration(gradient: AppTheme.primaryGradient)),
         elevation: 0,
         automaticallyImplyLeading: false,
       ),
       body: _isLoading 
-          ? const Center(child: CircularProgressIndicator(color: _C.primary))
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
           : _offers.isEmpty 
               ? _buildEmptyState()
               : ListView.builder(
@@ -63,9 +55,16 @@ class _OffersScreenState extends State<OffersScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.local_offer_outlined, size: 80, color: _C.textMuted.withValues(alpha: 0.3)),
-          const SizedBox(height: 16),
-          const Text('Hiện chưa có ưu đãi nào dành cho bạn', style: TextStyle(color: _C.textMuted, fontSize: 16)),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.05),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.local_offer_outlined, size: 64, color: AppTheme.primary.withValues(alpha: 0.3)),
+          ),
+          const SizedBox(height: 24),
+          Text('Hiện chưa có ưu đãi nào', style: TextStyle(color: AppTheme.textMuted, fontSize: 16, fontWeight: FontWeight.w600)),
         ],
       ),
     );
