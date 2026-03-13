@@ -327,14 +327,57 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           controller: signUpPasswordController,
           hint: 'Password',
           icon: Icons.lock_outline,
-          obscureText: true,
+          isPassword: true,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: signUpPasswordController,
+          builder: (context, value, child) {
+            final pass = value.text;
+            if (pass.isEmpty) return const SizedBox.shrink();
+
+            final List<String> errors = [];
+            if (pass.length < 8) errors.add('Ít nhất 8 ký tự');
+            if (!RegExp(r'[A-Z]').hasMatch(pass)) errors.add('Cần ít nhất 1 chữ hoa');
+            if (!RegExp(r'[a-z]').hasMatch(pass)) errors.add('Cần ít nhất 1 chữ thường');
+            if (!RegExp(r'[0-9]').hasMatch(pass)) errors.add('Cần ít nhất 1 số');
+            if (!RegExp(r'[!@#\$%^&*(),.?":{}|<>]').hasMatch(pass)) errors.add('Cần 1 ký tự đặc biệt');
+
+            if (errors.isEmpty) return const SizedBox.shrink();
+
+            return Padding(
+              padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
+              child: Text(
+                'Mật khẩu chưa đạt: ${errors.join(", ")}',
+                style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 8),
         _PillInput(
           controller: signUpRepeatPasswordController,
           hint: 'Repeat Password',
           icon: Icons.lock_reset_outlined,
-          obscureText: true,
+          isPassword: true,
+        ),
+        const SizedBox(height: 8),
+        AnimatedBuilder(
+          animation: Listenable.merge([signUpPasswordController, signUpRepeatPasswordController]),
+          builder: (context, child) {
+            final pass = signUpPasswordController.text;
+            final repeatPass = signUpRepeatPasswordController.text;
+            
+            if (repeatPass.isEmpty || pass == repeatPass) return const SizedBox.shrink();
+
+            return const Padding(
+              padding: EdgeInsets.only(left: 12.0, bottom: 8.0),
+              child: Text(
+                'Mật khẩu nhập lại không khớp',
+                style: TextStyle(color: Color(0xFFEF4444), fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+            );
+          },
         ),
         const SizedBox(height: 16),
         Row(
@@ -386,7 +429,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           controller: signInPasswordController,
           hint: 'Password',
           icon: Icons.lock_outline,
-          obscureText: true,
+          isPassword: true,
         ),
         const SizedBox(height: 12),
         Align(
@@ -685,14 +728,14 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                       controller: newPassController,
                       hint: 'Mật khẩu mới',
                       icon: Icons.lock_outline,
-                      obscureText: true,
+                      isPassword: true,
                     ),
                     const SizedBox(height: 16),
                     _PillInput(
                       controller: confirmPassController,
                       hint: 'Nhập lại mật khẩu',
                       icon: Icons.lock_reset_outlined,
-                      obscureText: true,
+                      isPassword: true,
                     ),
                   ],
                 );
@@ -995,14 +1038,14 @@ class _PillInput extends StatefulWidget {
     required this.controller,
     required this.hint,
     required this.icon,
-    this.obscureText = false,
+    this.isPassword = false,
     this.keyboardType,
   });
 
   final TextEditingController controller;
   final String hint;
   final IconData icon;
-  final bool obscureText;
+  final bool isPassword;
   final TextInputType? keyboardType;
 
   @override
@@ -1012,10 +1055,12 @@ class _PillInput extends StatefulWidget {
 class _PillInputState extends State<_PillInput> {
   final FocusNode _focusNode = FocusNode();
   bool _isFocused = false;
+  bool _obscureText = true;
 
   @override
   void initState() {
     super.initState();
+    _obscureText = widget.isPassword;
     _focusNode.addListener(() {
       setState(() {
         _isFocused = _focusNode.hasFocus;
@@ -1067,7 +1112,7 @@ class _PillInputState extends State<_PillInput> {
             child: TextField(
               controller: widget.controller,
               focusNode: _focusNode,
-              obscureText: widget.obscureText,
+              obscureText: _obscureText,
               keyboardType: widget.keyboardType,
               style: const TextStyle(
                 color: Color(0xFF1E293B),
@@ -1083,10 +1128,23 @@ class _PillInputState extends State<_PillInput> {
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                suffixIcon: widget.isPassword
+                    ? IconButton(
+                        icon: Icon(
+                          _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          color: _isFocused ? const Color(0xFF16B4C2) : const Color(0xFFA0AEC0),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureText = !_obscureText;
+                          });
+                        },
+                      )
+                    : null,
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          if (!widget.isPassword) const SizedBox(width: 16),
         ],
       ),
     );
@@ -1230,3 +1288,4 @@ class _SocialButton extends StatelessWidget {
     );
   }
 }
+
