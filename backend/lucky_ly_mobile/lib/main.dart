@@ -5,6 +5,7 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
 
 // Entry point khởi chạy ứng dụng Flutter.
@@ -91,6 +92,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   bool rememberMe = false;
   bool isSubmitting = false;
 
+  List<Map<String, String>> _savedAccounts = [];
+
   final signUpEmailController = TextEditingController();
   final signUpPasswordController = TextEditingController();
   final signUpRepeatPasswordController = TextEditingController();
@@ -105,6 +108,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
+    _loadSavedAccounts();
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -129,6 +133,51 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     signInLoginController.dispose();
     signInPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadSavedAccounts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? savedData = prefs.getString('saved_accounts');
+      if (savedData != null) {
+        final List<dynamic> decoded = jsonDecode(savedData);
+        setState(() {
+          _savedAccounts = decoded.map((e) => Map<String, String>.from(e)).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading saved accounts: $e');
+    }
+  }
+
+  Future<void> _saveAccount(String email, String password) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      // Loại bỏ tài khoản cũ nếu bị trùng số email
+      _savedAccounts.removeWhere((acc) => acc['email'] == email);
+      // Thêm lên đầu danh sách
+      _savedAccounts.insert(0, {'email': email, 'password': password});
+      // Chỉ giữ tối đa 5 tài khoản
+      if (_savedAccounts.length > 5) {
+        _savedAccounts = _savedAccounts.sublist(0, 5);
+      }
+      await prefs.setString('saved_accounts', jsonEncode(_savedAccounts));
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('Error saving account: $e');
+    }
+  }
+
+  Future<void> _removeAccount(String email) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _savedAccounts.removeWhere((acc) => acc['email'] == email);
+      });
+      await prefs.setString('saved_accounts', jsonEncode(_savedAccounts));
+    } catch (e) {
+      debugPrint('Error removing account: $e');
+    }
   }
 
   @override
@@ -432,28 +481,139 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           isPassword: true,
         ),
         const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () {
-              _showForgotPasswordSheet(context);
-            },
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: const Text(
-              'Forgot password?',
-              style: TextStyle(
-                color: Color(0xFF16B4C2),
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (_savedAccounts.isNotEmpty)
+              TextButton(
+                onPressed: () => _showSavedAccountsSheet(context),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.bolt, color: Color(0xFFF59E0B), size: 18),
+                    SizedBox(width: 4),
+                    Text(
+                      'Đăng nhập nhanh',
+                      style: TextStyle(
+                        color: Color(0xFF16B4C2),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              const SizedBox.shrink(),
+            TextButton(
+              onPressed: () {
+                _showForgotPasswordSheet(context);
+              },
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'Forgot password?',
+                style: TextStyle(
+                  color: Color(0xFF16B4C2),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ],
+    );
+  }
+
+  void _showSavedAccountsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              padding: const EdgeInsets.only(left: 24, right: 24, top: 32, bottom: 32),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Chọn tài khoản',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF1392B1)),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Chọn một tài khoản bạn đã lưu trước đó để tiếp tục.',
+                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                  const SizedBox(height: 24),
+                  if (_savedAccounts.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: Text('Không có tài khoản nào được lưu.')),
+                    )
+                  else
+                    ..._savedAccounts.map((acc) {
+                      final email = acc['email'] ?? '';
+                      final password = acc['password'] ?? '';
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: InkWell(
+                          onTap: () {
+                            signInLoginController.text = email;
+                            signInPasswordController.text = password;
+                            Navigator.pop(ctx);
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.account_circle, color: Color(0xFF16B4C2), size: 36),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    email,
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: Colors.grey),
+                                  onPressed: () {
+                                    _removeAccount(email);
+                                    setModalState(() {});
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -508,6 +668,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       final body = _safeDecodeMap(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        await _saveAccount(email, password); // Lưu tài khoản sau khi đăng ký thành công
         _navigateToHome(body);
       } else {
         _showMessage(body['message']?.toString() ?? 'Sign up failed.');
@@ -541,6 +702,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       final body = _safeDecodeMap(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        await _saveAccount(login, password); // Lưu cập nhật mật khẩu mới nhất
         _navigateToHome(body);
       } else {
         _showMessage(body['message']?.toString() ?? 'Sign in failed.');
