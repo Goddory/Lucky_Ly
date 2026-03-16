@@ -7,6 +7,8 @@ import { useEffect } from 'react';
 import DashboardWallet from '@/components/dashboard/DashboardWallet';
 import QuickActions from '@/components/dashboard/QuickActions';
 import BottomNav from '@/components/layout/BottomNav';
+import { User, Sparkles, ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
 
 export default function DashboardPage() {
     const { user, loading, logout } = useAuth();
@@ -36,13 +38,24 @@ export default function DashboardPage() {
                         <p className="text-zinc-500 text-sm font-medium">Chào buổi tối,</p>
                         <h1 className="text-2xl font-bold tracking-tight text-glow-teal">{user.fullName} 👋</h1>
                     </div>
-                    <button
-                        onClick={() => logout()}
-                        className="p-2 bg-zinc-900 border border-white/5 rounded-full hover:bg-zinc-800 transition-all hover:scale-105"
-                        title="Đăng xuất"
-                    >
-                        <User size={20} className="text-zinc-400" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {user.role === 'ADMIN' && (
+                            <Link
+                                href="/admin"
+                                className="p-2 bg-teal/10 border border-teal/20 rounded-full hover:bg-teal/20 transition-all group"
+                                title="Admin Panel"
+                            >
+                                <ShieldCheck size={20} className="text-teal group-hover:scale-110 transition-transform" />
+                            </Link>
+                        )}
+                        <button
+                            onClick={() => logout()}
+                            className="p-2 bg-zinc-900 border border-white/5 rounded-full hover:bg-zinc-800 transition-all hover:scale-105"
+                            title="Đăng xuất"
+                        >
+                            <User size={20} className="text-zinc-400" />
+                        </button>
+                    </div>
                 </header>
 
                 <main className="space-y-8">

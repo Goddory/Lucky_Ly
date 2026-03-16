@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -9,6 +10,7 @@ class DatabaseHelper {
   DatabaseHelper._init();
 
   Future<Database> get database async {
+    if (kIsWeb) throw UnsupportedError('sqflite is not supported on web');
     if (_database != null) return _database!;
     _database = await _initDB('luckyly_local.db');
     return _database!;
@@ -105,6 +107,7 @@ CREATE TABLE designs (
 
   /// Đánh dấu mảng localId là đã sync
   Future<void> markAsSynced(String table, String idColumn, List<String> ids) async {
+    if (kIsWeb) return;
     final db = await instance.database;
     for (String id in ids) {
       await db.update(

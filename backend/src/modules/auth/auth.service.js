@@ -18,13 +18,14 @@ function generateRefreshToken() {
   return crypto.randomBytes(48).toString('base64url');
 }
 
-// Tạo JWT access token ngắn hạn chứa định danh người dùng.
+// Tạo JWT access token ngắn hạn chứa định danh người dùng và quyền hạn.
 function buildAccessToken(user) {
   return jwt.sign(
     {
       sub: user.user_id,
       username: user.username,
-      email: user.email
+      email: user.email,
+      role: user.role || 'USER'
     },
     env.jwt.accessSecret,
     { expiresIn: env.jwt.accessExpiresIn }
@@ -66,9 +67,9 @@ export async function registerUser(payload) {
     const passwordHash = await bcrypt.hash(payload.password, env.bcryptRounds);
 
     const insertUserQuery = `
-      INSERT INTO users (username, password_hash, email, full_name, avatar_url)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING user_id, username, email, full_name, avatar_url, created_at
+      INSERT INTO users (username, password_hash, email, full_name, avatar_url, role)
+      VALUES ($1, $2, $3, $4, $5, 'USER')
+      RETURNING user_id, username, email, full_name, avatar_url, role, created_at
     `;
 
     const userResult = await client.query(insertUserQuery, [
@@ -109,9 +110,9 @@ export async function registerUser(payload) {
 export async function loginUser(payload) {
   const loginValue = payload.login.trim();
   const query = `
-    SELECT user_id, username, email, full_name, avatar_url, password_hash
+    SELECT user_id, username, email, full_name, avatar_url, password_hash, role
     FROM users
-    WHERE username = $1 OR email = $2
+    WHERE (username = $1 OR email = $2)
     LIMIT 1
   `;
 
@@ -149,7 +150,8 @@ export async function loginUser(payload) {
         username: user.username,
         email: user.email,
         full_name: user.full_name,
-        avatar_url: user.avatar_url
+        avatar_url: user.avatar_url,
+        role: user.role
       },
       accessToken: buildAccessToken(user),
       refreshToken
@@ -172,7 +174,7 @@ export async function loginFacebookUser(payload) {
 
     // Tìm user: Ưu tiên facebook_id, sau đó tìm theo email (nếu có email)
     let userQuery = `
-      SELECT user_id, username, email, full_name, avatar_url, facebook_id
+      SELECT user_id, username, email, full_name, avatar_url, facebook_id, role
       FROM users
       WHERE facebook_id = $1
     `;
@@ -202,9 +204,9 @@ export async function loginFacebookUser(payload) {
       const newUsername = `fb_${cleanName}_${facebookId.substring(0, 5)}`;
 
       const insertUserQuery = `
-        INSERT INTO users (username, email, full_name, avatar_url, facebook_id, auth_provider)
-        VALUES ($1, $2, $3, $4, $5, 'facebook')
-        RETURNING user_id, username, email, full_name, avatar_url, facebook_id, created_at
+        INSERT INTO users (username, email, full_name, avatar_url, facebook_id, auth_provider, role)
+        VALUES ($1, $2, $3, $4, $5, 'facebook', 'USER')
+        RETURNING user_id, username, email, full_name, avatar_url, facebook_id, role, created_at
       `;
       const finalEmail = (email && email.trim() !== '') ? email.trim().toLowerCase() : null;
 
@@ -228,7 +230,8 @@ export async function loginFacebookUser(payload) {
         username: user.username,
         email: user.email,
         full_name: user.full_name,
-        avatar_url: user.avatar_url
+        avatar_url: user.avatar_url,
+        role: user.role
       },
       accessToken: buildAccessToken(user),
       refreshToken
@@ -371,7 +374,7 @@ export async function loginWithGoogle({ idToken, accessToken }) {
     await client.query('BEGIN');
 
     const existing = await client.query(
-      'SELECT user_id, username, email, full_name, avatar_url FROM users WHERE email = $1 LIMIT 1',
+      'SELECT user_id, username, email, full_name, avatar_url, role FROM users WHERE email = $1 LIMIT 1',
       [email.toLowerCase()]
     );
 
@@ -392,9 +395,9 @@ export async function loginWithGoogle({ idToken, accessToken }) {
     } else {
       const username = `g_${email.split('@')[0]}_${Date.now().toString(36)}`;
       const insertResult = await client.query(
-        `INSERT INTO users (username, email, full_name, avatar_url, auth_provider, provider_uid)
-         VALUES ($1, $2, $3, $4, 'google', $5)
-         RETURNING user_id, username, email, full_name, avatar_url, created_at`,
+        `INSERT INTO users (username, email, full_name, avatar_url, auth_provider, provider_uid, role)
+         VALUES ($1, $2, $3, $4, 'google', $5, 'USER')
+         RETURNING user_id, username, email, full_name, avatar_url, role, created_at`,
         [username, email.toLowerCase(), name || email.split('@')[0], picture, googleUid]
       );
       user = insertResult.rows[0];

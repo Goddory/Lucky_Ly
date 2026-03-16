@@ -59,33 +59,251 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       backgroundColor: AppTheme.bg,
       body: _currentTab == 1
           ? const OffersScreen()
-          : _currentTab == 3
-              ? const HistoryScreen()
-              : _currentTab == 4
-                  ? ProfileScreen(
-                      userData: widget.userData,
-                      accessToken: widget.accessToken,
-                      refreshToken: widget.refreshToken,
-                      apiBaseUrl: widget.apiBaseUrl,
-                    )
-                  : FadeTransition(
-                      opacity: _fadeIn,
-                      child: CustomScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        slivers: [
-                          _buildSliverHeader(context),
-                          SliverToBoxAdapter(child: _buildQuickActions()),
-                          SliverToBoxAdapter(child: _buildWalletCard()),
-                          const SliverToBoxAdapter(child: SizedBox(height: 8)),
-                          _buildPremiumServiceGrid(),
-                          SliverToBoxAdapter(child: _buildEventsSection()),
-                          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-                        ],
-                      ),
-                    ),
+          : _currentTab == 2 && widget.userData['role'] == 'ADMIN'
+              ? _buildAdminDashboard()
+              : _currentTab == 3
+                  ? const HistoryScreen()
+                  : _currentTab == 4
+                      ? ProfileScreen(
+                          userData: widget.userData,
+                          accessToken: widget.accessToken,
+                          refreshToken: widget.refreshToken,
+                          apiBaseUrl: widget.apiBaseUrl,
+                        )
+                      : FadeTransition(
+                          opacity: _fadeIn,
+                          child: CustomScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            slivers: [
+                              _buildSliverHeader(context),
+                              SliverToBoxAdapter(child: _buildQuickActions()),
+                              SliverToBoxAdapter(child: _buildWalletCard()),
+                              const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                              _buildPremiumServiceGrid(),
+                              SliverToBoxAdapter(child: _buildEventsSection()),
+                              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                            ],
+                          ),
+                        ),
       bottomNavigationBar: _buildBottomNav(),
       floatingActionButton: _buildQrFab(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+    );
+  }
+
+  Widget _buildAdminDashboard() {
+    return FadeTransition(
+      opacity: _fadeIn,
+      child: Container(
+        color: AppTheme.bg,
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            _buildAdminHeader(),
+            SliverToBoxAdapter(child: _buildAdminStatsSection()),
+            SliverToBoxAdapter(child: _buildThemeSelectionSection()),
+            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdminHeader() {
+    return SliverAppBar(
+      expandedHeight: 120,
+      pinned: true,
+      backgroundColor: Colors.transparent,
+      flexibleSpace: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1E293B), Color(0xFF334155)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: const FlexibleSpaceBar(
+          title: Text(
+            'Admin Dashboard',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+          ),
+          centerTitle: true,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdminStatsSection() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Thống kê hệ thống',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textDark),
+              ),
+              DropdownButton<String>(
+                value: 'Tháng này',
+                underline: const SizedBox(),
+                items: ['Hôm nay', 'Tháng này', 'Năm nay'].map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  );
+                }).toList(),
+                onChanged: (_) {},
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Người dùng',
+                  '1,280',
+                  Icons.people_alt_outlined,
+                  const Color(0xFF3B82F6),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  'Doanh thu',
+                  '45.2M',
+                  Icons.payments_outlined,
+                  const Color(0xFF10B981),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppTheme.textDark),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 13, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemeSelectionSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Quản lý giao diện',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textDark),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: AppTheme.softShadow,
+            ),
+            child: Column(
+              children: [
+                _buildThemeItem('Mặc định', AppTheme.primary, true),
+                const Divider(height: 32),
+                _buildThemeItem('Chủ đề Tết', const Color(0xFFDC2626), false),
+                const Divider(height: 32),
+                _buildThemeItem('Chủ đề Mùa hè', const Color(0xFFF59E0B), false),
+                const Divider(height: 32),
+                _buildThemeItem('Chủ đề Biển', const Color(0xFF0EA5E9), false),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemeItem(String name, Color color, bool isActive) {
+    return Row(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: isActive ? const Icon(Icons.check, color: Colors.white) : null,
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textDark),
+              ),
+              if (isActive)
+                Text(
+                  'Đang sử dụng',
+                  style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600),
+                ),
+            ],
+          ),
+        ),
+        if (!isActive)
+          ElevatedButton(
+            onPressed: () {},
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF1F5F9),
+              foregroundColor: AppTheme.textDark,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Áp dụng', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          ),
+      ],
     );
   }
 
@@ -170,6 +388,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   // ─── QUICK ACTIONS ROW ────────────────────────────────────
   Widget _buildQuickActions() {
+    final bool isAdmin = widget.userData['role'] == 'ADMIN';
     return Container(
       decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -181,13 +400,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             label: 'Máy ảnh',
             onTap: () => _handleCameraAccess(context),
           ),
+          if (isAdmin)
+            _QuickAction(
+              icon: Icons.dashboard_customize_outlined, 
+              label: 'Dashboard',
+              onTap: () => setState(() => _currentTab = 2),
+            ),
           _QuickAction(
             icon: Icons.swap_horiz, 
             label: 'Nạp/Rút'
-          ),
-          _QuickAction(
-            icon: Icons.call_received, 
-            label: 'Nhận tiền'
           ),
           _QuickAction(
             icon: Icons.card_giftcard, 
@@ -196,7 +417,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ),
           _QuickAction(
             icon: Icons.auto_awesome_mosaic_outlined, 
-            label: 'Xưởng Studio',
+            label: isAdmin ? 'Đổi Giao diện' : 'Xưởng Studio',
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DesignSelectionScreen(type: 'item'))),
           ),
         ],
@@ -491,6 +712,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   // ─── BOTTOM NAV ───────────────────────────────────────────
   Widget _buildBottomNav() {
+    final bool isAdmin = widget.userData['role'] == 'ADMIN';
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.card,
@@ -512,7 +734,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               _NavItem(icon: Icons.home_filled, label: 'Trang chủ', isActive: _currentTab == 0, onTap: () => setState(() => _currentTab = 0)),
               _NavItem(icon: Icons.local_offer_outlined, label: 'Ưu đãi', isActive: _currentTab == 1, onTap: () => setState(() => _currentTab = 1)),
               const SizedBox(width: 56), // space for FAB
-              _NavItem(icon: Icons.history, label: 'Lịch sử GD', isActive: _currentTab == 3, onTap: () => setState(() => _currentTab = 3)),
+              if (isAdmin)
+                _NavItem(icon: Icons.admin_panel_settings_outlined, label: 'Admin', isActive: _currentTab == 2, onTap: () => setState(() => _currentTab = 2)),
+              _NavItem(icon: Icons.history, label: 'Lịch sử GD', isActive: isAdmin ? false : _currentTab == 3, onTap: () => setState(() => _currentTab = 3)),
               _NavItem(icon: Icons.person_outline, label: 'Tôi', isActive: _currentTab == 4, onTap: () => setState(() => _currentTab = 4)),
             ],
           ),

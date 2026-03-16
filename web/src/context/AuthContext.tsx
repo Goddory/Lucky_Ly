@@ -3,7 +3,25 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
-const AuthContext = createContext();
+interface User {
+    user_id: string;
+    username: string;
+    email: string;
+    fullName: string;
+    avatar_url?: string;
+    role: 'USER' | 'ADMIN';
+}
+
+interface AuthContextType {
+    user: User | null;
+    loading: boolean;
+    login: (identifier: string, password: string) => Promise<any>;
+    register: (userData: any) => Promise<any>;
+    logout: (refreshToken?: string) => Promise<void>;
+    checkAuth: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
@@ -17,6 +35,7 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
         try {
             const response = await axios.get(`${API_URL}/auth/me`);
+            // role is expected to be in response.data.user
             setUser(response.data.user);
         } catch (error) {
             setUser(null);
@@ -52,4 +71,10 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};

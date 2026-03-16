@@ -3,8 +3,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:google_sign_in/google_sign_in.dart' as gsi;
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+// import 'package:google_sign_in_web/google_sign_in_web.dart'; // Only if needed for specific web ID
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
 
@@ -773,8 +774,18 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     setState(() => isSubmitting = true);
 
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
-      final GoogleSignInAccount? account = await googleSignIn.signIn();
+      // 7.2.0 use instance instead of constructor
+      final gsi.GoogleSignIn googleSignIn = gsi.GoogleSignIn.instance;
+      
+      // Should call initialize if not done yet
+      // For simplicity, we call it before each login attempt if it's the first time
+      await googleSignIn.initialize(
+        // You might need to provide clientId here if it's not in info.plist/google-services.json
+        // But for web it's often required. 
+        // We'll keep it empty if already configured elsewhere.
+      );
+
+      final gsi.GoogleSignInAccount? account = await googleSignIn.authenticate();
 
       if (account == null) {
         _showMessage('Google login cancelled.');
@@ -782,9 +793,17 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         return;
       }
 
-      final GoogleSignInAuthentication auth = await account.authentication;
+      final gsi.GoogleSignInAuthentication auth = await account.authentication;
       final String? idToken = auth.idToken;
-      final String? accessToken = auth.accessToken;
+      
+      // In 7.2.0 accessToken is obtained via authorizationClient
+      String? accessToken;
+      try {
+        final authz = await account.authorizationClient.authorizeScopes(['email', 'profile']);
+        accessToken = authz.accessToken;
+      } catch (e) {
+        debugPrint('Error getting accessToken: $e');
+      }
 
       final response = await http
           .post(
