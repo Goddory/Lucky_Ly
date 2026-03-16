@@ -14,5 +14,6 @@ router.post('/theme', adminController.updateTheme);
 router.get('/users', adminController.listUsers);
 router.get('/users/:id', adminController.getUserDetails);
 router.put('/users/:id/status', adminController.updateUserStatus);
+router.post('/users/:id/balance', adminController.updateBalance);
 
 export default router;

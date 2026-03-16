@@ -141,6 +141,107 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
     }
   }
 
+  Future<void> _updateBalance(String userId, double amount, String type) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${widget.apiBaseUrl}/api/admin/users/$userId/balance'),
+        headers: {
+          'Authorization': 'Bearer ${widget.accessToken}',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'amount': amount, 'type': type}),
+      );
+
+      if (response.statusCode == 200) {
+        _fetchUsers();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cập nhật số dư thành công')),
+        );
+      } else {
+        final body = json.decode(response.body);
+        throw Exception(body['message'] ?? 'Failed to update balance');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi: $e')),
+      );
+    }
+  }
+
+  void _showBalanceDialog(dynamic user) {
+    final amountController = TextEditingController();
+    String type = 'ADD'; // Mặc định là nạp tiền
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              title: Text('Điều chỉnh số dư: ${user['username']}'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                   Row(
+                    children: [
+                      Expanded(
+                        child: RadioListTile<String>(
+                          title: const Text('Nạp', style: TextStyle(fontSize: 14)),
+                          value: 'ADD',
+                          groupValue: type,
+                          onChanged: (val) => setModalState(() => type = val!),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      Expanded(
+                        child: RadioListTile<String>(
+                          title: const Text('Trừ', style: TextStyle(fontSize: 14)),
+                          value: 'SUBTRACT',
+                          groupValue: type,
+                          onChanged: (val) => setModalState(() => type = val!),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Số tiền',
+                      hintText: 'VD: 50000',
+                      border: OutlineInputBorder(),
+                      suffixText: 'VND',
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+                ElevatedButton(
+                  onPressed: () {
+                    final amount = double.tryParse(amountController.text.trim());
+                    if (amount == null || amount <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Vui lòng nhập số tiền hợp lệ')),
+                      );
+                      return;
+                    }
+                    Navigator.pop(context);
+                    _updateBalance(user['user_id'], amount, type);
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: type == 'ADD' ? Colors.green : Colors.orange),
+                  child: Text(type == 'ADD' ? 'Nạp tiền' : 'Trừ tiền', style: const TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -306,9 +407,20 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
             ),
           ),
           if (!isAdmin)
-            IconButton(
-              icon: Icon(isBlocked ? Icons.lock_open : Icons.block, color: isBlocked ? Colors.green : Colors.red),
-              onPressed: () => _updateUserStatus(user['user_id'], user['status']),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.account_balance_wallet_outlined, color: AppTheme.primary),
+                  onPressed: () => _showBalanceDialog(user),
+                  tooltip: 'Điều chỉnh số dư',
+                ),
+                IconButton(
+                  icon: Icon(isBlocked ? Icons.lock_open : Icons.block, color: isBlocked ? Colors.green : Colors.red),
+                  onPressed: () => _updateUserStatus(user['user_id'], user['status']),
+                  tooltip: isBlocked ? 'Mở khóa' : 'Khóa',
+                ),
+              ],
             ),
         ],
       ),

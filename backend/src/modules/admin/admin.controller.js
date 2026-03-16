@@ -70,3 +70,23 @@ export const updateUserStatus = async (req, res, next) => {
         next(err);
     }
 };
+
+export async function updateBalance(req, res, next) {
+    try {
+        const { id } = req.params;
+        const { amount, type } = req.body; // type: 'ADD' or 'SUBTRACT'
+
+        if (!amount || isNaN(amount) || amount <= 0) {
+            return res.status(400).json({ message: 'Số tiền không hợp lệ' });
+        }
+
+        if (!['ADD', 'SUBTRACT'].includes(type)) {
+            return res.status(400).json({ message: 'Loại thao tác không hợp lệ' });
+        }
+
+        const result = await adminService.updateUserBalance(id, amount, type);
+        res.json({ message: 'Cập nhật số dư thành công', balance: result.balance });
+    } catch (err) {
+        next(err);
+    }
+}

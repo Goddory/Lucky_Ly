@@ -46,6 +46,58 @@ export const getStats = async (period = 'month') => {
     };
 };
 
+export const updateUserBalance = async (userId, amount, type) => {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        
+        // 1. Lấy ví hiện tại
+        const walletResult = await client.query('SELECT balance FROM wallets WHERE user_id = $1 FOR UPDATE', [userId]);
+        if (walletResult.rowCount === 0) {
+            throw new Error('Wallet not found');
+        }
+
+        const currentBalance = parseFloat(walletResult.rows[0].balance);
+        const adjustAmount = parseFloat(amount);
+        let newBalance = currentBalance;
+
+        if (type === 'ADD') {
+            newBalance += adjustAmount;
+        } else if (type === 'SUBTRACT') {
+            newBalance -= adjustAmount;
+            if (newBalance < 0) newBalance = 0; // Không cho âm
+        } else {
+            throw new Error('Invalid operation type');
+        }
+
+        // 2. Cập nhật số dư
+        const updateResult = await client.query(
+            'UPDATE wallets SET balance = $1, updated_at = NOW() WHERE user_id = $2 RETURNING balance',
+            [newBalance, userId]
+        );
+
+        // 3. Ghi log giao dịch (Tùy chọn, nhưng nên có)
+        // types: 'ADMIN_ADJUST_ADD', 'ADMIN_ADJUST_SUB'
+        try {
+            await client.query(
+                `INSERT INTO transactions (user_id, amount, type, status, description) 
+                 VALUES ($1, $2, $3, 'SUCCESS', $4)`,
+                [userId, adjustAmount, type === 'ADD' ? 'ADMIN_DEPOSIT' : 'ADMIN_WITHDRAW', `Admin adjusted balance (${type})`]
+            );
+        } catch (err) {
+            // Nếu bảng transactions chưa có hoặc lỗi thì bỏ qua để không break flow chính
+        }
+
+        await client.query('COMMIT');
+        return updateResult.rows[0];
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
+};
+
 export const updateSystemTheme = async (themeConfig) => {
     const query = `
         INSERT INTO system_config (key, value)
