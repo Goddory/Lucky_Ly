@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
 
 // Entry point khởi chạy ứng dụng Flutter.
@@ -92,6 +92,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   bool rememberMe = false;
   bool isSubmitting = false;
 
+  List<Map<String, String>> _savedAccounts = [];
+
   final signUpEmailController = TextEditingController();
   final signUpPasswordController = TextEditingController();
   final signUpRepeatPasswordController = TextEditingController();
@@ -106,6 +108,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
+    _loadSavedAccounts();
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -130,6 +133,51 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     signInLoginController.dispose();
     signInPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadSavedAccounts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? savedData = prefs.getString('saved_accounts');
+      if (savedData != null) {
+        final List<dynamic> decoded = jsonDecode(savedData);
+        setState(() {
+          _savedAccounts = decoded.map((e) => Map<String, String>.from(e)).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading saved accounts: $e');
+    }
+  }
+
+  Future<void> _saveAccount(String email, String password) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      // Loại bỏ tài khoản cũ nếu bị trùng số email
+      _savedAccounts.removeWhere((acc) => acc['email'] == email);
+      // Thêm lên đầu danh sách
+      _savedAccounts.insert(0, {'email': email, 'password': password});
+      // Chỉ giữ tối đa 5 tài khoản
+      if (_savedAccounts.length > 5) {
+        _savedAccounts = _savedAccounts.sublist(0, 5);
+      }
+      await prefs.setString('saved_accounts', jsonEncode(_savedAccounts));
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('Error saving account: $e');
+    }
+  }
+
+  Future<void> _removeAccount(String email) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _savedAccounts.removeWhere((acc) => acc['email'] == email);
+      });
+      await prefs.setString('saved_accounts', jsonEncode(_savedAccounts));
+    } catch (e) {
+      debugPrint('Error removing account: $e');
+    }
   }
 
   @override
@@ -328,14 +376,57 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           controller: signUpPasswordController,
           hint: 'Password',
           icon: Icons.lock_outline,
-          obscureText: true,
+          isPassword: true,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: signUpPasswordController,
+          builder: (context, value, child) {
+            final pass = value.text;
+            if (pass.isEmpty) return const SizedBox.shrink();
+
+            final List<String> errors = [];
+            if (pass.length < 8) errors.add('Ít nhất 8 ký tự');
+            if (!RegExp(r'[A-Z]').hasMatch(pass)) errors.add('Cần ít nhất 1 chữ hoa');
+            if (!RegExp(r'[a-z]').hasMatch(pass)) errors.add('Cần ít nhất 1 chữ thường');
+            if (!RegExp(r'[0-9]').hasMatch(pass)) errors.add('Cần ít nhất 1 số');
+            if (!RegExp(r'[!@#\$%^&*(),.?":{}|<>]').hasMatch(pass)) errors.add('Cần 1 ký tự đặc biệt');
+
+            if (errors.isEmpty) return const SizedBox.shrink();
+
+            return Padding(
+              padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
+              child: Text(
+                'Mật khẩu chưa đạt: ${errors.join(", ")}',
+                style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 8),
         _PillInput(
           controller: signUpRepeatPasswordController,
           hint: 'Repeat Password',
           icon: Icons.lock_reset_outlined,
-          obscureText: true,
+          isPassword: true,
+        ),
+        const SizedBox(height: 8),
+        AnimatedBuilder(
+          animation: Listenable.merge([signUpPasswordController, signUpRepeatPasswordController]),
+          builder: (context, child) {
+            final pass = signUpPasswordController.text;
+            final repeatPass = signUpRepeatPasswordController.text;
+            
+            if (repeatPass.isEmpty || pass == repeatPass) return const SizedBox.shrink();
+
+            return const Padding(
+              padding: EdgeInsets.only(left: 12.0, bottom: 8.0),
+              child: Text(
+                'Mật khẩu nhập lại không khớp',
+                style: TextStyle(color: Color(0xFFEF4444), fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+            );
+          },
         ),
         const SizedBox(height: 16),
         Row(
@@ -387,31 +478,142 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           controller: signInPasswordController,
           hint: 'Password',
           icon: Icons.lock_outline,
-          obscureText: true,
+          isPassword: true,
         ),
         const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () {
-              _showMessage('Forgot password tapped.');
-            },
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: const Text(
-              'Forgot password?',
-              style: TextStyle(
-                color: Color(0xFF16B4C2),
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (_savedAccounts.isNotEmpty)
+              TextButton(
+                onPressed: () => _showSavedAccountsSheet(context),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.bolt, color: Color(0xFFF59E0B), size: 18),
+                    SizedBox(width: 4),
+                    Text(
+                      'Đăng nhập nhanh',
+                      style: TextStyle(
+                        color: Color(0xFF16B4C2),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              const SizedBox.shrink(),
+            TextButton(
+              onPressed: () {
+                _showForgotPasswordSheet(context);
+              },
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'Forgot password?',
+                style: TextStyle(
+                  color: Color(0xFF16B4C2),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ],
+    );
+  }
+
+  void _showSavedAccountsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              padding: const EdgeInsets.only(left: 24, right: 24, top: 32, bottom: 32),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Chọn tài khoản',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF1392B1)),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Chọn một tài khoản bạn đã lưu trước đó để tiếp tục.',
+                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                  const SizedBox(height: 24),
+                  if (_savedAccounts.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: Text('Không có tài khoản nào được lưu.')),
+                    )
+                  else
+                    ..._savedAccounts.map((acc) {
+                      final email = acc['email'] ?? '';
+                      final password = acc['password'] ?? '';
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: InkWell(
+                          onTap: () {
+                            signInLoginController.text = email;
+                            signInPasswordController.text = password;
+                            Navigator.pop(ctx);
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.account_circle, color: Color(0xFF16B4C2), size: 36),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    email,
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: Colors.grey),
+                                  onPressed: () {
+                                    _removeAccount(email);
+                                    setModalState(() {});
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -466,6 +668,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       final body = _safeDecodeMap(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        await _saveAccount(email, password); // Lưu tài khoản sau khi đăng ký thành công
         _navigateToHome(body);
       } else {
         _showMessage(body['message']?.toString() ?? 'Sign up failed.');
@@ -499,6 +702,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       final body = _safeDecodeMap(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        await _saveAccount(login, password); // Lưu cập nhật mật khẩu mới nhất
         _navigateToHome(body);
       } else {
         _showMessage(body['message']?.toString() ?? 'Sign in failed.');
@@ -606,6 +810,242 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     } finally {
       if (mounted) setState(() => isSubmitting = false);
     }
+  }
+
+  // Chức năng quên mật khẩu: Flow 3 bước (Nhập Email -> Nhập OTP -> Đổi Pass)
+  void _showForgotPasswordSheet(BuildContext context) {
+    int step = 1; // 1: Email, 2: OTP, 3: New Password
+    String userEmail = '';
+    String resetOtp = '';
+    bool isLoading = false;
+
+    final emailController = TextEditingController();
+    final otpController = TextEditingController();
+    final newPassController = TextEditingController();
+    final confirmPassController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (BuildContext ctx, StateSetter setModalState) {
+            final bottomInset = MediaQuery.of(ctx).viewInsets.bottom;
+            
+            Widget buildStepContent() {
+              if (step == 1) {
+                return Column(
+                  children: [
+                    Text(
+                      'Quên mật khẩu',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF1392B1)),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Vui lòng nhập email đăng ký. Chúng tôi sẽ gửi mã OTP cho bạn.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    ),
+                    const SizedBox(height: 24),
+                    _PillInput(
+                      controller: emailController,
+                      hint: 'Nhập email của bạn',
+                      icon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                  ],
+                );
+              } else if (step == 2) {
+                return Column(
+                  children: [
+                    Text(
+                      'Xác thực OTP',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF1392B1)),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Mã 6 số đã được gửi tới:\n$userEmail',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    ),
+                    const SizedBox(height: 24),
+                    _PillInput(
+                      controller: otpController,
+                      hint: 'Nhập mã 6 số',
+                      icon: Icons.security,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    Text(
+                      'Tạo mật khẩu mới',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF1392B1)),
+                    ),
+                    const SizedBox(height: 24),
+                    _PillInput(
+                      controller: newPassController,
+                      hint: 'Mật khẩu mới',
+                      icon: Icons.lock_outline,
+                      isPassword: true,
+                    ),
+                    const SizedBox(height: 16),
+                    _PillInput(
+                      controller: confirmPassController,
+                      hint: 'Nhập lại mật khẩu',
+                      icon: Icons.lock_reset_outlined,
+                      isPassword: true,
+                    ),
+                  ],
+                );
+              }
+            }
+
+            return Container(
+              padding: EdgeInsets.only(left: 24, right: 24, top: 32, bottom: bottomInset + 32),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: buildStepContent(),
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton(
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            final navigator = Navigator.of(ctx);
+                            
+                            if (step == 1) {
+                              final email = emailController.text.trim();
+                              if (email.isEmpty || !_looksLikeEmail(email)) {
+                                _showMessage('Vui lòng nhập email hợp lệ');
+                                return;
+                              }
+                              setModalState(() => isLoading = true);
+                              
+                              try {
+                                final res = await http.post(
+                                  Uri.parse('$_apiBaseUrl/api/auth/forgot-password'),
+                                  headers: {'Content-Type': 'application/json'},
+                                  body: jsonEncode({'email': email})
+                                ).timeout(const Duration(seconds: 15));
+
+                                if (res.statusCode >= 200 && res.statusCode < 300) {
+                                  userEmail = email;
+                                  setModalState(() {
+                                    isLoading = false;
+                                    step = 2; // Chuyển sang bước nhập OTP
+                                  });
+                                  _showMessage('Mã OTP đã được gửi!', isError: false);
+                                } else {
+                                  final body = _safeDecodeMap(res.body);
+                                  _showMessage(body['message']?.toString() ?? 'Gửi OTP thất bại');
+                                  setModalState(() => isLoading = false);
+                                }
+                              } catch (e) {
+                                _showMessage('Lỗi mạng. Vui lòng thử lại.');
+                                setModalState(() => isLoading = false);
+                              }
+                            } else if (step == 2) {
+                              final otp = otpController.text.trim();
+                              if (otp.length != 6) {
+                                _showMessage('OTP phải gồm 6 chữ số');
+                                return;
+                              }
+                              
+                              setModalState(() => isLoading = true);
+                              try {
+                                final res = await http.post(
+                                  Uri.parse('$_apiBaseUrl/api/auth/verify-reset-otp'),
+                                  headers: {'Content-Type': 'application/json'},
+                                  body: jsonEncode({'email': userEmail, 'otp': otp})
+                                ).timeout(const Duration(seconds: 15));
+
+                                if (res.statusCode >= 200 && res.statusCode < 300) {
+                                  resetOtp = otp;
+                                  setModalState(() {
+                                    isLoading = false;
+                                    step = 3; // Chuyển sang bước đổi mật khẩu
+                                  });
+                                } else {
+                                  final body = _safeDecodeMap(res.body);
+                                  _showMessage(body['message']?.toString() ?? 'OTP không hợp lệ');
+                                  setModalState(() => isLoading = false);
+                                }
+                              } catch (e) {
+                                _showMessage('Lỗi mạng. Vui lòng thử lại.');
+                                setModalState(() => isLoading = false);
+                              }
+                            } else if (step == 3) {
+                              final newPass = newPassController.text;
+                              final confirmPass = confirmPassController.text;
+                              
+                              if (newPass.isEmpty || confirmPass.isEmpty) {
+                                _showMessage('Vui lòng điền đủ mật khẩu');
+                                return;
+                              }
+                              if (newPass != confirmPass) {
+                                _showMessage('Mật khẩu nhập lại không khớp');
+                                return;
+                              }
+                              
+                              setModalState(() => isLoading = true);
+                              try {
+                                final res = await http.post(
+                                  Uri.parse('$_apiBaseUrl/api/auth/reset-password'),
+                                  headers: {'Content-Type': 'application/json'},
+                                  body: jsonEncode({'email': userEmail, 'otp': resetOtp, 'newPassword': newPass})
+                                ).timeout(const Duration(seconds: 15));
+
+                                if (res.statusCode >= 200 && res.statusCode < 300) {
+                                  if (!ctx.mounted) return;
+                                  if (navigator.canPop()) navigator.pop();
+                                  _showMessage('Đặt lại mật khẩu thành công! Bạn có thể đăng nhập.', isError: false);
+                                } else {
+                                  final body = _safeDecodeMap(res.body);
+                                  _showMessage(body['message']?.toString() ?? 'Đặt lại thất bại');
+                                  setModalState(() => isLoading = false);
+                                }
+                              } catch (e) {
+                                _showMessage('Lỗi kết nối. Thử lại sau.');
+                                setModalState(() => isLoading = false);
+                              }
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      backgroundColor: const Color(0xFF10B981),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      elevation: 4,
+                    ),
+                    child: isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                          )
+                        : Text(
+                            step == 1 ? 'Gửi mã xác nhận' : (step == 2 ? 'Xác thực OTP' : 'Xác nhận tạo mới'),
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _navigateToHome(Map<String, dynamic> responseBody) {
@@ -760,14 +1200,14 @@ class _PillInput extends StatefulWidget {
     required this.controller,
     required this.hint,
     required this.icon,
-    this.obscureText = false,
+    this.isPassword = false,
     this.keyboardType,
   });
 
   final TextEditingController controller;
   final String hint;
   final IconData icon;
-  final bool obscureText;
+  final bool isPassword;
   final TextInputType? keyboardType;
 
   @override
@@ -777,10 +1217,12 @@ class _PillInput extends StatefulWidget {
 class _PillInputState extends State<_PillInput> {
   final FocusNode _focusNode = FocusNode();
   bool _isFocused = false;
+  bool _obscureText = true;
 
   @override
   void initState() {
     super.initState();
+    _obscureText = widget.isPassword;
     _focusNode.addListener(() {
       setState(() {
         _isFocused = _focusNode.hasFocus;
@@ -832,7 +1274,7 @@ class _PillInputState extends State<_PillInput> {
             child: TextField(
               controller: widget.controller,
               focusNode: _focusNode,
-              obscureText: widget.obscureText,
+              obscureText: _obscureText,
               keyboardType: widget.keyboardType,
               style: const TextStyle(
                 color: Color(0xFF1E293B),
@@ -848,10 +1290,23 @@ class _PillInputState extends State<_PillInput> {
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                suffixIcon: widget.isPassword
+                    ? IconButton(
+                        icon: Icon(
+                          _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          color: _isFocused ? const Color(0xFF16B4C2) : const Color(0xFFA0AEC0),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureText = !_obscureText;
+                          });
+                        },
+                      )
+                    : null,
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          if (!widget.isPassword) const SizedBox(width: 16),
         ],
       ),
     );
@@ -995,3 +1450,4 @@ class _SocialButton extends StatelessWidget {
     );
   }
 }
+

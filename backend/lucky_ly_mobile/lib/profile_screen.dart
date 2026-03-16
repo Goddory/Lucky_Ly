@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'main.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -352,7 +351,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               icon: Icons.lock_outline,
               label: 'Đổi mật khẩu',
               color: const Color(0xFF0EA5D8),
-              onTap: () => _showSnack('Chức năng đang phát triển'),
+              onTap: _showChangePasswordSheet,
               enabled: authProvider == 'local',
             ),
             Divider(height: 1, indent: 56, color: Colors.grey.shade100),
@@ -425,54 +424,246 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     return Divider(height: 1, indent: 40, color: Colors.grey.shade100);
   }
 
+  void _showChangePasswordSheet() {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    bool isLoading = false;
+    bool obscureCurrent = true;
+    bool obscureNew = true;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (BuildContext context, StateSetter setModalState) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Đổi mật khẩu',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Color(0xFF94A3B8)),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildPasswordField(
+                    controller: currentPasswordController,
+                    label: 'Mật khẩu hiện tại',
+                    obscure: obscureCurrent,
+                    onToggle: () => setModalState(() => obscureCurrent = !obscureCurrent),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildPasswordField(
+                    controller: newPasswordController,
+                    label: 'Mật khẩu mới',
+                    obscure: obscureNew,
+                    onToggle: () => setModalState(() => obscureNew = !obscureNew),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildPasswordField(
+                    controller: confirmPasswordController,
+                    label: 'Xác nhận mật khẩu mới',
+                    obscure: obscureNew,
+                    onToggle: () => setModalState(() => obscureNew = !obscureNew),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            final current = currentPasswordController.text;
+                            final newPass = newPasswordController.text;
+                            final confirm = confirmPasswordController.text;
+
+                            if (current.isEmpty || newPass.isEmpty || confirm.isEmpty) {
+                              _showSnack('Vui lòng nhập đầy đủ thông tin');
+                              return;
+                            }
+                            if (newPass != confirm) {
+                              _showSnack('Mật khẩu xác nhận không khớp');
+                              return;
+                            }
+
+                            setModalState(() => isLoading = true);
+
+                            try {
+                              final navigator = Navigator.of(ctx);
+                              final response = await http.put(
+                                Uri.parse('${widget.apiBaseUrl}/api/users/me/password'),
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Authorization': 'Bearer ${widget.accessToken}',
+                                },
+                                body: jsonEncode({
+                                  'currentPassword': current,
+                                  'newPassword': newPass,
+                                }),
+                              ).timeout(const Duration(seconds: 15));
+
+                              if (response.statusCode >= 200 && response.statusCode < 300) {
+                                if (!ctx.mounted) return;
+                                if (navigator.canPop()) {
+                                  navigator.pop();
+                                }
+                                _showSnack('Đổi mật khẩu thành công. Vui lòng đăng nhập lại.', isError: false);
+                                // Force logout sau khi đổi pass thành công do refresh token bị revoke
+                                await Future.delayed(const Duration(seconds: 2));
+                                if (mounted) {
+                                  _handleLogout(force: true);
+                                }
+                              } else {
+                                final body = jsonDecode(response.body);
+                                _showSnack(body['message']?.toString() ?? 'Đổi mật khẩu thất bại.');
+                                setModalState(() => isLoading = false);
+                              }
+                            } catch (e) {
+                              _showSnack('Lỗi kết nối server.');
+                              setModalState(() => isLoading = false);
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: const Color(0xFF10B981),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    child: isLoading
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('Xác nhận đổi mật khẩu', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String label,
+    required bool obscure,
+    required VoidCallback onToggle,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+        filled: true,
+        fillColor: const Color(0xFFF8FAFC),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF0EA5D8), width: 2)),
+        suffixIcon: IconButton(
+          icon: Icon(obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: const Color(0xFF94A3B8)),
+          onPressed: onToggle,
+        ),
+      ),
+    );
+  }
+
   Future<void> _saveProfile() async {
     if (isSaving) return;
     setState(() => isSaving = true);
 
-    // TODO: Gọi API cập nhật thông tin user khi backend có endpoint PUT /api/users/me
-    await Future.delayed(const Duration(milliseconds: 800));
+    try {
+      final response = await http.put(
+        Uri.parse('${widget.apiBaseUrl}/api/users/me'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.accessToken}',
+        },
+        body: jsonEncode({
+          'fullName': fullNameController.text.trim(),
+          'email': emailController.text.trim(),
+          'avatarUrl': avatarUrlController.text.trim().isEmpty
+              ? null
+              : avatarUrlController.text.trim(),
+        }),
+      ).timeout(const Duration(seconds: 15));
 
-    setState(() {
-      fullName = fullNameController.text.trim();
-      email = emailController.text.trim();
-      avatarUrl = avatarUrlController.text.trim();
-      isEditing = false;
-      isSaving = false;
-    });
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final body = jsonDecode(response.body);
+        final updatedUser = body['user'] as Map<String, dynamic>? ?? {};
 
-    _showSnack('Đã cập nhật thông tin!', isError: false);
+        setState(() {
+          fullName = updatedUser['full_name']?.toString() ?? fullNameController.text.trim();
+          email = updatedUser['email']?.toString() ?? emailController.text.trim();
+          avatarUrl = updatedUser['avatar_url']?.toString() ?? avatarUrlController.text.trim();
+          isEditing = false;
+          isSaving = false;
+        });
+
+        // Update widget.userData so other screens also see the changes
+        widget.userData['full_name'] = fullName;
+        widget.userData['email'] = email;
+        widget.userData['avatar_url'] = avatarUrl;
+
+        _showSnack('Đã cập nhật thông tin!', isError: false);
+      } else {
+        final body = jsonDecode(response.body);
+        _showSnack(body['message']?.toString() ?? 'Cập nhật thất bại.');
+        setState(() => isSaving = false);
+      }
+    } catch (e) {
+      _showSnack('Không thể kết nối server. Thử lại sau.');
+      setState(() => isSaving = false);
+    }
   }
 
-  Future<void> _handleLogout() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Đăng xuất',
-          style: TextStyle(fontWeight: FontWeight.w800),
+  Future<void> _handleLogout({bool force = false}) async {
+    if (!force) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            'Đăng xuất',
+            style: TextStyle(fontWeight: FontWeight.w800),
+          ),
+          content: const Text('Bạn có chắc muốn đăng xuất không?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text(
+                'Hủy',
+                style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text(
+                'Đăng xuất',
+                style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
         ),
-        content: const Text('Bạn có chắc muốn đăng xuất không?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(
-              'Hủy',
-              style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Đăng xuất',
-              style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
+      );
 
-    if (confirmed != true || !mounted) return;
+      if (confirmed != true || !mounted) return;
+    }
 
     // Gọi API logout
     try {

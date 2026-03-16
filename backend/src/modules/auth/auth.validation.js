@@ -20,10 +20,25 @@ export const refreshSchema = z.object({
 });
 
 export const facebookLoginSchema = z.object({
-  facebookId: z.string().min(1).max(255),
-  email: z.union([z.string().email().max(255), z.literal('')]).optional(),
-  name: z.string().min(1).max(150),
-  avatarUrl: z.string().url().max(1000).nullable().optional()
+  facebookId: z.string().min(1, 'Facebook ID is required'),
+  email: z.string().trim().email('Invalid email address').or(z.literal('')),
+  name: z.string().min(1, 'Name is required'),
+  avatarUrl: z.string().url('Invalid avatar URL').nullable().optional()
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().email('Invalid email format')
+});
+
+export const verifyOtpSchema = z.object({
+  email: z.string().trim().email('Invalid email format'),
+  otp: z.string().length(6, 'OTP must be exactly 6 digits').regex(/^\d+$/, 'OTP must contain only numbers')
+});
+
+export const resetPasswordSchema = z.object({
+  email: z.string().trim().email('Invalid email format'),
+  otp: z.string().length(6, 'OTP must be exactly 6 digits'),
+  newPassword: z.string().regex(passwordRule, 'Password must be 8-72 chars and include upper, lower, number, special char')
 });
 
 export const googleLoginSchema = z.object({
