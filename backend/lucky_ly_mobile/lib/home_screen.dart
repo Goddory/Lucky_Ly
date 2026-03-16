@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'profile_screen.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'gift_center_screen.dart';
@@ -37,6 +39,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   int _currentTab = 0;
   late AnimationController _entryController;
   late Animation<double> _fadeIn;
+  
+  // Admin Stats
+  Map<String, dynamic> _adminStats = {
+    'userCount': 0,
+    'totalVolume': 0.0,
+    'totalBalance': 0.0,
+    'pendingAppeals': 0,
+    'activeUsers': 0,
+    'transactionCount': 0,
+  };
+  bool _isLoadingStats = false;
+  String _selectedPeriod = 'month';
 
   @override
   void initState() {
@@ -47,6 +61,44 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
     _fadeIn = CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic);
     _entryController.forward();
+    
+    if (widget.userData['role'] == 'ADMIN') {
+      _fetchAdminStats();
+    }
+  }
+
+  Future<void> _fetchAdminStats() async {
+    if (_isLoadingStats) return;
+    setState(() => _isLoadingStats = true);
+
+    try {
+      final response = await http.get(
+        Uri.parse('${widget.apiBaseUrl}/api/admin/stats?period=$_selectedPeriod'),
+        headers: {
+          'Authorization': 'Bearer ${widget.accessToken}',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (mounted) {
+          setState(() {
+            _adminStats = data;
+            _isLoadingStats = false;
+          });
+        }
+      } else {
+        throw Exception('Failed to load stats');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingStats = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi tải thống kê: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -149,16 +201,31 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 'Thống kê hệ thống',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textDark),
               ),
-              DropdownButton<String>(
-                value: 'Tháng này',
-                underline: const SizedBox(),
-                items: ['Hôm nay', 'Tháng này', 'Năm nay'].map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                  );
-                }).toList(),
-                onChanged: (_) {},
+              Row(
+                children: [
+                  if (_isLoadingStats)
+                    const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                  const SizedBox(width: 8),
+                  DropdownButton<String>(
+                    value: _selectedPeriod == 'day' ? 'Hôm nay' : (_selectedPeriod == 'month' ? 'Tháng này' : 'Năm nay'),
+                    underline: const SizedBox(),
+                    items: ['Hôm nay', 'Tháng này', 'Năm nay'].map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val == null) return;
+                      setState(() {
+                        if (val == 'Hôm nay') _selectedPeriod = 'day';
+                        else if (val == 'Tháng này') _selectedPeriod = 'month';
+                        else _selectedPeriod = 'year';
+                      });
+                      _fetchAdminStats();
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -167,8 +234,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             children: [
               Expanded(
                 child: _buildStatCard(
-                  'Người dùng',
-                  '1,280',
+                  'Tổng User',
+                  '${_adminStats['userCount']}',
                   Icons.people_alt_outlined,
                   const Color(0xFF3B82F6),
                 ),
@@ -176,10 +243,32 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
-                  'Doanh thu',
-                  '45.2M',
-                  Icons.payments_outlined,
+                  'Số dư ví',
+                  '${(_adminStats['totalBalance'] as num?)?.toStringAsFixed(0)}đ',
+                  Icons.account_balance_wallet_outlined,
                   const Color(0xFF10B981),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Đang hoạt động',
+                  '${_adminStats['activeUsers']}',
+                  Icons.person_pin_circle_outlined,
+                  const Color(0xFF6366F1),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  'Kháng cáo',
+                  '${_adminStats['pendingAppeals']}',
+                  Icons.gavel_outlined,
+                  const Color(0xFFEF4444),
                 ),
               ),
             ],

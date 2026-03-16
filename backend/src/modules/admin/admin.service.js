@@ -1,12 +1,17 @@
 import { pool } from '../../db/pool.js';
 
-export const getStats = async (period) => {
+export const getStats = async (period = 'month') => {
     let dateFilter = '';
     if (period === 'day') dateFilter = "AND created_at >= NOW() - INTERVAL '1 day'";
     else if (period === 'month') dateFilter = "AND created_at >= NOW() - INTERVAL '1 month'";
     else if (period === 'year') dateFilter = "AND created_at >= NOW() - INTERVAL '1 year'";
 
-    const userCountQuery = `SELECT COUNT(*) FROM users WHERE 1=1 ${dateFilter}`;
+    const userCountQuery = `SELECT COUNT(*) FROM users WHERE role = 'USER' ${dateFilter}`;
+    const activeUsersQuery = `SELECT COUNT(*) FROM users WHERE status = 'ACTIVE' AND role = 'USER'`;
+    const totalBalanceQuery = `SELECT SUM(balance) FROM wallets`;
+    const pendingAppealsQuery = `SELECT COUNT(*) FROM user_appeals WHERE status = 'PENDING'`;
+    
+    // Giữ lại tx stats nếu cần
     const txStatsQuery = `
         SELECT 
             COUNT(*) as total_transactions,
@@ -15,15 +20,29 @@ export const getStats = async (period) => {
         WHERE 1=1 ${dateFilter}
     `;
 
-    const [userRes, txRes] = await Promise.all([
+    // Chúng ta sử dụng try/catch cho txStats vì bảng transactions có thể chưa có hoặc có cấu trúc khác
+    let txRes = { rows: [{ total_transactions: 0, total_volume: 0 }] };
+    try {
+        txRes = await pool.query(txStatsQuery);
+    } catch (e) {
+        // Table might not exist or other issues
+    }
+
+    const [userRes, activeRes, balanceRes, appealRes] = await Promise.all([
         pool.query(userCountQuery),
-        pool.query(txStatsQuery)
+        pool.query(activeUsersQuery),
+        pool.query(totalBalanceQuery),
+        pool.query(pendingAppealsQuery)
     ]);
 
     return {
         userCount: parseInt(userRes.rows[0].count),
+        activeUsers: parseInt(activeRes.rows[0].count),
+        totalBalance: parseFloat(balanceRes.rows[0].sum || 0),
+        pendingAppeals: parseInt(appealRes.rows[0].count),
         transactionCount: parseInt(txRes.rows[0].total_transactions),
-        totalVolume: parseFloat(txRes.rows[0].total_volume)
+        totalVolume: parseFloat(txRes.rows[0].total_volume),
+        period
     };
 };
 
