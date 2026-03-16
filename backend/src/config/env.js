@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const required = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'JWT_ACCESS_SECRET'];
+const required = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'JWT_ACCESS_SECRET', 'SENDGRID_API_KEY'];
 
 for (const key of required) {
   if (!process.env[key]) {
@@ -28,5 +28,6 @@ export const env = {
   refreshTokenTtlDays: Number(process.env.REFRESH_TOKEN_TTL_DAYS || 30),
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   bcryptRounds: Number(process.env.BCRYPT_ROUNDS || 12),
-  googleClientId: process.env.GOOGLE_CLIENT_ID || ''
+  googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+  sendgridApiKey: process.env.SENDGRID_API_KEY
 };
