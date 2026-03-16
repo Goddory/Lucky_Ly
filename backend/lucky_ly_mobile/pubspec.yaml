@@ -43,6 +43,10 @@ dependencies:
   cupertino_icons: ^1.0.8
   google_fonts: ^8.0.2
   shared_preferences: ^2.5.4
+  sqflite: ^2.4.2
+  path_provider: ^2.1.5
+  webview_flutter: ^4.13.1
+  flutter_unity_widget: ^2022.2.1
 
 dev_dependencies:
   flutter_test:

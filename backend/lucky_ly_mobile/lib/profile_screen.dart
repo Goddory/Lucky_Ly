@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'main.dart';
+import 'core/database/database_helper.dart';
+import 'core/services/sync_manager.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -57,6 +59,26 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     fullNameController = TextEditingController(text: fullName);
     emailController = TextEditingController(text: email);
     avatarUrlController = TextEditingController(text: avatarUrl);
+    
+    _loadLocalUser();
+  }
+
+  Future<void> _loadLocalUser() async {
+    final dbHelper = DatabaseHelper.instance;
+    final user = await dbHelper.getUser(widget.userData['id']?.toString() ?? '1');
+    if (user != null) {
+      if (mounted) {
+        setState(() {
+          fullName = user['fullName']?.toString() ?? fullName;
+          email = user['email']?.toString() ?? email;
+          avatarUrl = user['avatarUrl']?.toString() ?? avatarUrl;
+
+          fullNameController.text = fullName;
+          emailController.text = email;
+          avatarUrlController.text = avatarUrl;
+        });
+      }
+    }
   }
 
   @override
@@ -588,46 +610,43 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     setState(() => isSaving = true);
 
     try {
-      final response = await http.put(
-        Uri.parse('${widget.apiBaseUrl}/api/users/me'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.accessToken}',
-        },
-        body: jsonEncode({
-          'fullName': fullNameController.text.trim(),
-          'email': emailController.text.trim(),
-          'avatarUrl': avatarUrlController.text.trim().isEmpty
-              ? null
-              : avatarUrlController.text.trim(),
-        }),
-      ).timeout(const Duration(seconds: 15));
+      final String currentId = widget.userData['id']?.toString() ?? '1';
+      final newFullName = fullNameController.text.trim();
+      final newEmail = emailController.text.trim();
+      final newAvatarUrl = avatarUrlController.text.trim();
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final body = jsonDecode(response.body);
-        final updatedUser = body['user'] as Map<String, dynamic>? ?? {};
+      // Lưu offline SQLite (isSync = 0 dirty)
+      final userRecord = {
+        'userId': currentId,
+        'fullName': newFullName,
+        'email': newEmail,
+        'avatarUrl': newAvatarUrl,
+        'clientUpdatedAt': DateTime.now().toIso8601String(),
+        'isSync': 0, // Cần được push
+      };
+      
+      await DatabaseHelper.instance.insertUser(userRecord);
 
-        setState(() {
-          fullName = updatedUser['full_name']?.toString() ?? fullNameController.text.trim();
-          email = updatedUser['email']?.toString() ?? emailController.text.trim();
-          avatarUrl = updatedUser['avatar_url']?.toString() ?? avatarUrlController.text.trim();
-          isEditing = false;
-          isSaving = false;
-        });
+      setState(() {
+        fullName = newFullName;
+        email = newEmail;
+        avatarUrl = newAvatarUrl;
+        isEditing = false;
+        isSaving = false;
+      });
 
-        // Update widget.userData so other screens also see the changes
-        widget.userData['full_name'] = fullName;
-        widget.userData['email'] = email;
-        widget.userData['avatar_url'] = avatarUrl;
+      // Update widget.userData
+      widget.userData['full_name'] = fullName;
+      widget.userData['email'] = email;
+      widget.userData['avatar_url'] = avatarUrl;
 
-        _showSnack('Đã cập nhật thông tin!', isError: false);
-      } else {
-        final body = jsonDecode(response.body);
-        _showSnack(body['message']?.toString() ?? 'Cập nhật thất bại.');
-        setState(() => isSaving = false);
-      }
+      _showSnack('Đã cập nhật lưu cục bộ. Nhấn Đồng bộ để cập nhật lên Cloud.', isError: false);
+      
+      // Auto-trigger sync optionally
+      // SyncManager.pushData();
+      
     } catch (e) {
-      _showSnack('Không thể kết nối server. Thử lại sau.');
+      _showSnack('Lưu offline thất bại.');
       setState(() => isSaving = false);
     }
   }
