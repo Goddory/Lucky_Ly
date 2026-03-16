@@ -8,6 +8,7 @@ import 'celebrate_screen.dart';
 import 'offers_screen.dart';
 import 'history_screen.dart';
 import 'app_theme.dart';
+import 'admin_user_management_screen.dart';
 
 // Constants moved to app_theme.dart
 
@@ -101,6 +102,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           slivers: [
             _buildAdminHeader(),
             SliverToBoxAdapter(child: _buildAdminStatsSection()),
+            SliverToBoxAdapter(child: _buildAdminActionsSection()),
             SliverToBoxAdapter(child: _buildThemeSelectionSection()),
             const SliverToBoxAdapter(child: SizedBox(height: 120)),
           ],
@@ -216,6 +218,90 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             style: const TextStyle(fontSize: 13, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAdminActionsSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Thao tác quản trị',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textDark),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildActionButton(
+                  'Người dùng',
+                  Icons.manage_accounts_outlined,
+                  const Color(0xFF6366F1),
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminUserManagementScreen(
+                          userData: widget.userData,
+                          accessToken: widget.accessToken,
+                          apiBaseUrl: widget.apiBaseUrl,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionButton(
+                  'Giao dịch',
+                  Icons.account_balance_wallet_outlined,
+                  const Color(0xFFEC4899),
+                  () {},
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton(String label, IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: AppTheme.softShadow,
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textDark,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

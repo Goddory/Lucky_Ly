@@ -1,7 +1,11 @@
 import * as authUtils from '../utils/authUtils.js';
 
 export const authenticateToken = (req, res, next) => {
-    const token = req.cookies.accessToken;
+    // Ưu tiên Header Authorization (cho mobile), sau đó là cookies (cho web)
+    const authHeader = req.headers['authorization'];
+    const token = (authHeader && authHeader.startsWith('Bearer ')) 
+        ? authHeader.split(' ')[1] 
+        : req.cookies.accessToken;
 
     if (!token) {
         return res.status(401).json({ message: 'Access denied. No token provided.' });

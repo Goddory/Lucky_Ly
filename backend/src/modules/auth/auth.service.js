@@ -110,7 +110,7 @@ export async function registerUser(payload) {
 export async function loginUser(payload) {
   const loginValue = payload.login.trim();
   const query = `
-    SELECT user_id, username, email, full_name, avatar_url, password_hash, role
+    SELECT user_id, username, email, full_name, avatar_url, password_hash, role, status
     FROM users
     WHERE (username = $1 OR email = $2)
     LIMIT 1
@@ -124,6 +124,12 @@ export async function loginUser(payload) {
 
   if (!user) {
     throw invalidError;
+  }
+
+  if (user.status === 'BLOCKED') {
+    const error = new Error('Your account has been blocked. Please contact admin.');
+    error.statusCode = 403;
+    throw error;
   }
 
   if (!user.password_hash) {
@@ -174,7 +180,7 @@ export async function loginFacebookUser(payload) {
 
     // Tìm user: Ưu tiên facebook_id, sau đó tìm theo email (nếu có email)
     let userQuery = `
-      SELECT user_id, username, email, full_name, avatar_url, facebook_id, role
+      SELECT user_id, username, email, full_name, avatar_url, facebook_id, role, status
       FROM users
       WHERE facebook_id = $1
     `;
@@ -196,6 +202,12 @@ export async function loginFacebookUser(payload) {
         [facebookId, user.user_id]
       );
       user.facebook_id = facebookId;
+    }
+
+    if (user && user.status === 'BLOCKED') {
+      const error = new Error('Your account has been blocked. Please contact admin.');
+      error.statusCode = 403;
+      throw error;
     }
 
     if (!user) {
@@ -374,7 +386,7 @@ export async function loginWithGoogle({ idToken, accessToken }) {
     await client.query('BEGIN');
 
     const existing = await client.query(
-      'SELECT user_id, username, email, full_name, avatar_url, role FROM users WHERE email = $1 LIMIT 1',
+      'SELECT user_id, username, email, full_name, avatar_url, role, status FROM users WHERE email = $1 LIMIT 1',
       [email.toLowerCase()]
     );
 
@@ -382,6 +394,13 @@ export async function loginWithGoogle({ idToken, accessToken }) {
 
     if (existing.rowCount > 0) {
       user = existing.rows[0];
+
+      if (user.status === 'BLOCKED') {
+        const error = new Error('Your account has been blocked. Please contact admin.');
+        error.statusCode = 403;
+        throw error;
+      }
+
       await client.query(
         `UPDATE users SET auth_provider = 'google', provider_uid = $1,
          avatar_url = COALESCE(avatar_url, $2)

@@ -10,4 +10,9 @@ router.use(authenticateToken, isAdmin);
 router.get('/stats', adminController.getStats);
 router.post('/theme', adminController.updateTheme);
 
+// User Management
+router.get('/users', adminController.listUsers);
+router.get('/users/:id', adminController.getUserDetails);
+router.put('/users/:id/status', adminController.updateUserStatus);
+
 export default router;
