@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, Tar
 // import 'package:google_sign_in_web/google_sign_in_web.dart'; // Only if needed for specific web ID
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
+import 'appeal_screen.dart';
 
 // Entry point khởi chạy ứng dụng Flutter.
 void main() async {
@@ -702,8 +703,22 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       final body = _safeDecodeMap(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        await _saveAccount(login, password); // Lưu cập nhật mật khẩu mới nhất
-        _navigateToHome(body);
+        if (body['isBlocked'] == true) {
+          // Nếu bị khóa, chuyển hướng sang màn hình kháng cáo
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AppealScreen(
+                userData: body,
+                apiBaseUrl: _apiBaseUrl,
+              ),
+            ),
+          );
+          _showMessage(body['message']?.toString() ?? 'Tài khoản đã bị khóa.');
+        } else {
+          await _saveAccount(login, password); // Lưu cập nhật mật khẩu mới nhất
+          _navigateToHome(body);
+        }
       } else {
         _showMessage(body['message']?.toString() ?? 'Sign in failed.');
       }

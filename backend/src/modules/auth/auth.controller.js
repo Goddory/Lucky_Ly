@@ -25,10 +25,8 @@ export async function login(req, res, next) {
     const result = await loginUser(payload);
 
     res.status(200).json({
-      message: 'Login successful',
-      user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken
+      message: result.message || 'Login successful',
+      ...result
     });
   } catch (err) {
     next(err);
@@ -42,10 +40,8 @@ export async function facebookLogin(req, res, next) {
     const result = await loginFacebookUser(payload);
 
     res.status(200).json({
-      message: 'Facebook login successful',
-      user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken
+      message: result.message || 'Facebook login successful',
+      ...result
     });
   } catch (err) {
     next(err);
@@ -59,10 +55,8 @@ export async function googleLogin(req, res, next) {
     const result = await loginWithGoogle(payload);
 
     res.status(200).json({
-      message: 'Google login successful',
-      user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken
+      message: result.message || 'Google login successful',
+      ...result
     });
   } catch (err) {
     next(err);

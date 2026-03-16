@@ -9,6 +9,7 @@ import authRoutes from './modules/auth/auth.routes.js';
 import userRoutes from './modules/user/user.routes.js';
 import designRoutes from './modules/designs/designs.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
+import appealRoutes from './modules/appeal/appeal.routes.js';
 import syncRoutes from './routes/sync.routes.js';
 
 const app = express();
@@ -40,6 +41,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/designs', designRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/appeals', appealRoutes);
 app.use('/api/sync', syncRoutes);
 
 app.use(notFoundHandler);

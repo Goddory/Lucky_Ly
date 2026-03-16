@@ -110,7 +110,7 @@ export async function registerUser(payload) {
 export async function loginUser(payload) {
   const loginValue = payload.login.trim();
   const query = `
-    SELECT user_id, username, email, full_name, avatar_url, password_hash, role, status
+    SELECT user_id, username, email, full_name, avatar_url, password_hash, role, status, block_reason
     FROM users
     WHERE (username = $1 OR email = $2)
     LIMIT 1
@@ -127,9 +127,34 @@ export async function loginUser(payload) {
   }
 
   if (user.status === 'BLOCKED') {
-    const error = new Error('Your account has been blocked. Please contact admin.');
-    error.statusCode = 403;
-    throw error;
+    const accessToken = buildAccessToken(user);
+    const refreshToken = generateRefreshToken();
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await persistRefreshToken(client, user.user_id, refreshToken);
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+
+    return {
+      message: `Tài khoản của bạn đã bị khóa.${user.block_reason ? ' Lý do: ' + user.block_reason : ''}`,
+      isBlocked: true,
+      user: {
+        user_id: user.user_id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        block_reason: user.block_reason
+      },
+      accessToken,
+      refreshToken
+    };
   }
 
   if (!user.password_hash) {
@@ -205,9 +230,25 @@ export async function loginFacebookUser(payload) {
     }
 
     if (user && user.status === 'BLOCKED') {
-      const error = new Error('Your account has been blocked. Please contact admin.');
-      error.statusCode = 403;
-      throw error;
+      const accessToken = buildAccessToken(user);
+      const refreshToken = generateRefreshToken();
+      await persistRefreshToken(client, user.user_id, refreshToken);
+      await client.query('COMMIT');
+      client.release();
+      return {
+        message: `Tài khoản của bạn đã bị khóa.${user.block_reason ? ' Lý do: ' + user.block_reason : ''}`,
+        isBlocked: true,
+        user: {
+          user_id: user.user_id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          block_reason: user.block_reason
+        },
+        accessToken,
+        refreshToken
+      };
     }
 
     if (!user) {
@@ -286,6 +327,12 @@ export async function rotateRefreshToken(currentRefreshToken) {
     if (tokenRow.revoked_at || new Date(tokenRow.expires_at) <= new Date()) {
       const error = new Error('Refresh token expired or revoked');
       error.statusCode = 401;
+      throw error;
+    }
+
+    if (tokenRow.status === 'BLOCKED') {
+      const error = new Error('Your account is blocked. Please submit an appeal.');
+      error.statusCode = 403;
       throw error;
     }
 
@@ -396,9 +443,25 @@ export async function loginWithGoogle({ idToken, accessToken }) {
       user = existing.rows[0];
 
       if (user.status === 'BLOCKED') {
-        const error = new Error('Your account has been blocked. Please contact admin.');
-        error.statusCode = 403;
-        throw error;
+        const accessToken = buildAccessToken(user);
+        const refreshToken = generateRefreshToken();
+        await persistRefreshToken(client, user.user_id, refreshToken);
+        await client.query('COMMIT');
+        client.release();
+        return {
+          message: `Tài khoản của bạn đã bị khóa.${user.block_reason ? ' Lý do: ' + user.block_reason : ''}`,
+          isBlocked: true,
+          user: {
+            user_id: user.user_id,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            block_reason: user.block_reason
+          },
+          accessToken,
+          refreshToken
+        };
       }
 
       await client.query(

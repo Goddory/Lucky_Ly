@@ -9,6 +9,7 @@ import 'offers_screen.dart';
 import 'history_screen.dart';
 import 'app_theme.dart';
 import 'admin_user_management_screen.dart';
+import 'admin_appeals_screen.dart';
 
 // Constants moved to app_theme.dart
 
@@ -246,6 +247,25 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       MaterialPageRoute(
                         builder: (context) => AdminUserManagementScreen(
                           userData: widget.userData,
+                          accessToken: widget.accessToken,
+                          apiBaseUrl: widget.apiBaseUrl,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionButton(
+                  'Kháng cáo',
+                  Icons.report_problem_outlined,
+                  const Color(0xFFF59E0B),
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AdminAppealsScreen(
                           accessToken: widget.accessToken,
                           apiBaseUrl: widget.apiBaseUrl,
                         ),

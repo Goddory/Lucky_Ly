@@ -38,29 +38,39 @@ export const updateSystemTheme = async (themeConfig) => {
     return rows[0].value;
 };
 
-export const listUsers = async ({ search = '', limit = 10, offset = 0 }) => {
+export const listUsers = async ({ search = '', status = '', limit = 10, offset = 0 }) => {
     const safeSearch = search || '';
     const safeLimit = parseInt(limit) || 10;
     const safeOffset = parseInt(offset) || 0;
     const searchPattern = `%${safeSearch}%`;
+    
+    let whereClause = '(u.email ILIKE $1::text OR u.username ILIKE $1::text OR u.full_name ILIKE $1::text)';
+    const queryParams = [searchPattern];
+    
+    if (status && ['ACTIVE', 'BLOCKED'].includes(status)) {
+        queryParams.push(status);
+        whereClause += ` AND u.status = $${queryParams.length}::text`;
+    }
+
     const query = `
         SELECT 
-            u.user_id, u.username, u.email, u.full_name, u.avatar_url, u.role, u.status, u.created_at,
+            u.user_id, u.username, u.email, u.full_name, u.avatar_url, u.role, u.status, u.block_reason, u.created_at,
             w.balance, w.currency
         FROM users u
         LEFT JOIN wallets w ON u.user_id = w.user_id
-        WHERE u.email ILIKE $1 OR u.username ILIKE $1 OR u.full_name ILIKE $1
+        WHERE ${whereClause}
         ORDER BY u.created_at DESC
-        LIMIT $2 OFFSET $3
+        LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
     `;
+    
     const countQuery = `
-        SELECT COUNT(*) FROM users 
-        WHERE email ILIKE $1 OR username ILIKE $1 OR full_name ILIKE $1
+        SELECT COUNT(*) FROM users u
+        WHERE ${whereClause}
     `;
     
     const [rowsRes, countRes] = await Promise.all([
-        pool.query(query, [searchPattern, safeLimit, safeOffset]),
-        pool.query(countQuery, [searchPattern])
+        pool.query(query, [...queryParams, safeLimit, safeOffset]),
+        pool.query(countQuery, queryParams)
     ]);
 
     return {
@@ -84,13 +94,21 @@ export const getUserDetails = async (userId) => {
     return rows[0];
 };
 
-export const updateUserStatus = async (userId, status) => {
+export const updateUserStatus = async (userId, status, blockReason = null) => {
     const query = `
         UPDATE users 
-        SET status = $1 
-        WHERE user_id = $2 
-        RETURNING user_id, email, status
+        SET status = $1, block_reason = $2 
+        WHERE user_id = $3 
+        RETURNING user_id, email, status, block_reason
     `;
-    const { rows } = await pool.query(query, [status, userId]);
+    const { rows } = await pool.query(query, [status, blockReason, userId]);
+    
+    if (status === 'BLOCKED') {
+        await pool.query(
+            'UPDATE auth_refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL',
+            [userId]
+        );
+    }
+    
     return rows[0];
 };

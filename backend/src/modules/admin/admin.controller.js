@@ -22,9 +22,10 @@ export const updateTheme = async (req, res, next) => {
 
 export const listUsers = async (req, res, next) => {
     try {
-        const { search, limit, offset } = req.query;
+        const { search, status, limit, offset } = req.query;
         const result = await adminService.listUsers({ 
             search: search || '', 
+            status: status || '',
             limit: limit || 10, 
             offset: offset || 0 
         });
@@ -50,13 +51,17 @@ export const getUserDetails = async (req, res, next) => {
 export const updateUserStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
+        const { status, reason } = req.body;
         
         if (!['ACTIVE', 'BLOCKED'].includes(status)) {
             return res.status(400).json({ message: 'Invalid status' });
         }
 
-        const result = await adminService.updateUserStatus(id, status);
+        if (status === 'BLOCKED' && (!reason || reason.trim() === '')) {
+            return res.status(400).json({ message: 'Lý do khóa tài khoản là bắt buộc' });
+        }
+
+        const result = await adminService.updateUserStatus(id, status, status === 'BLOCKED' ? reason : null);
         if (!result) {
             return res.status(404).json({ message: 'User not found' });
         }

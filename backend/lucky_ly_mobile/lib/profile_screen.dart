@@ -110,24 +110,23 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
   Widget _buildHeader() {
     return SliverAppBar(
-      expandedHeight: 220,
-      floating: false,
-      pinned: true,
-      automaticallyImplyLeading: false,
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0EA5D8), Color(0xFF19C6C4)],
+      expandedHeight: 240,
+      pinned: false,
+      elevation: 0,
+      backgroundColor: const Color(0xFF0EA5D8),
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF0EA5D8), Color(0xFF19C6C4)],
+            ),
           ),
-        ),
-        child: SafeArea(
-          bottom: false,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(height: 16),
+              const SizedBox(height: 40),
               // Avatar
               Container(
                 width: 88,
