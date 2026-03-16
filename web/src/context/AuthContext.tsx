@@ -5,7 +5,7 @@ import axios from 'axios';
 
 const AuthContext = createContext();
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 // Configure axios to include credentials (cookies) in every request
 axios.defaults.withCredentials = true;

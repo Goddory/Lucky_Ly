@@ -37,47 +37,54 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4">
-            <div className="w-full max-w-md p-8 space-y-8 bg-zinc-900/50 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
-                <div className="text-center">
-                    <h2 className="text-3xl font-bold text-white tracking-tight">Chào mừng quay lại</h2>
-                    <p className="mt-2 text-zinc-400">Đăng nhập vào hệ thống Lucky Ly</p>
+        <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4 scroll-smooth">
+            <div className="w-full max-w-sm p-8 space-y-10 glass rounded-[40px] relative overflow-hidden group">
+                {/* Decorative background elements */}
+                <div className="absolute top-[-50px] right-[-50px] w-32 h-32 bg-teal/10 blur-[80px] rounded-full" />
+                <div className="absolute bottom-[-50px] left-[-50px] w-32 h-32 bg-gold/10 blur-[80px] rounded-full" />
+
+                <div className="text-center relative z-10">
+                    <div className="w-16 h-16 bg-teal shadow-glow-teal rounded-2xl flex items-center justify-center mx-auto mb-6 transform transition-transform group-hover:rotate-12 duration-500">
+                        <span className="text-2xl font-bold text-white">L</span>
+                    </div>
+                    <h2 className="text-2xl font-bold text-white tracking-tight text-glow-teal uppercase">Lucky Ly</h2>
+                    <p className="mt-2 text-zinc-500 text-sm">Chào mừng bạn gia nhập Lucky Ly Studio</p>
                 </div>
 
                 {registered && (
-                    <div className="p-3 text-sm text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded-lg">
+                    <div className="p-3 text-xs text-teal bg-teal/10 border border-teal/20 rounded-2xl animate-in fade-in slide-in-from-top-2">
                         Đăng ký thành công! Hãy đăng nhập để bắt đầu.
                     </div>
                 )}
 
-                <form className="space-y-6" onSubmit={handleSubmit}>
+                <form className="space-y-6 relative z-10" onSubmit={handleSubmit}>
                     {error && (
-                        <div className="p-3 text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg">
+                        <div className="p-3 text-xs text-red-festive bg-red-festive/10 border border-red-festive/20 rounded-2xl animate-shake">
                             {error}
                         </div>
                     )}
 
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-300 ml-1 mb-1.5">Username hoặc Email</label>
+                    <div className="space-y-5">
+                        <div className="group/field">
+                            <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1 mb-2">Username / Email</label>
                             <input
                                 name="identifier"
                                 type="text"
                                 required
-                                className="w-full px-4 py-3 bg-zinc-800/50 border border-white/5 text-white rounded-xl focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all placeholder:text-zinc-600"
-                                placeholder="example@gmail.com"
+                                className="w-full px-5 py-3 bg-white/5 border border-white/5 text-white rounded-2xl focus:bg-white/10 focus:border-teal/30 focus:shadow-glow-teal outline-none transition-all placeholder:text-zinc-700 text-sm"
+                                placeholder="Tên đăng nhập hoặc email"
                                 value={formData.identifier}
                                 onChange={handleChange}
                             />
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-300 ml-1 mb-1.5">Mật khẩu</label>
+                        <div className="group/field">
+                            <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1 mb-2">Mật khẩu</label>
                             <input
                                 name="password"
                                 type="password"
                                 required
-                                className="w-full px-4 py-3 bg-zinc-800/50 border border-white/5 text-white rounded-xl focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all placeholder:text-zinc-600"
+                                className="w-full px-5 py-3 bg-white/5 border border-white/5 text-white rounded-2xl focus:bg-white/10 focus:border-teal/30 focus:shadow-glow-teal outline-none transition-all placeholder:text-zinc-700 text-sm"
                                 placeholder="••••••••"
                                 value={formData.password}
                                 onChange={handleChange}
@@ -88,15 +95,15 @@ export default function LoginPage() {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full py-4 px-4 bg-teal hover:bg-[#00c5d1] text-white font-bold rounded-2xl shadow-glow-teal active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm tracking-widest"
                     >
-                        {isLoading ? 'Đang xử lý...' : 'Đăng nhập'}
+                        {isLoading ? 'ĐANG XỬ LÝ...' : 'ĐĂNG NHẬP'}
                     </button>
                 </form>
 
-                <p className="text-center text-zinc-500 text-sm">
+                <p className="text-center text-zinc-500 text-xs relative z-10 font-medium">
                     Chưa có tài khoản?{' '}
-                    <Link href="/register" className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors">
+                    <Link href="/register" className="text-gold hover:text-white transition-colors">
                         Đăng ký ngay
                     </Link>
                 </p>
