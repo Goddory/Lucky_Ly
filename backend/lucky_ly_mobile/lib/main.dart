@@ -334,8 +334,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                             ),
                             const SizedBox(width: 20),
                             _SocialButton(
-                              icon: Icons.email,
-                              color: const Color(0xFFEA4335),
+                              imagePath: 'assets/images/google_logo.png',
                               onTap: _handleGoogleLogin,
                             ),
                           ],
@@ -1410,10 +1409,11 @@ class _PrimaryGradientButtonState extends State<_PrimaryGradientButton> with Sin
 
 // Nút Social Login bọc InkWell có hiệu ứng ripple tròn trịa
 class _SocialButton extends StatelessWidget {
-  const _SocialButton({required this.icon, required this.color, required this.onTap});
+  const _SocialButton({this.icon, this.imagePath, this.color, required this.onTap});
 
-  final IconData icon;
-  final Color color;
+  final IconData? icon;
+  final String? imagePath;
+  final Color? color;
   final VoidCallback onTap;
 
   @override
@@ -1423,8 +1423,8 @@ class _SocialButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
-        splashColor: color.withValues(alpha: 0.1),
-        highlightColor: color.withValues(alpha: 0.05),
+        splashColor: (color ?? Colors.grey).withValues(alpha: 0.1),
+        highlightColor: (color ?? Colors.grey).withValues(alpha: 0.05),
         child: Container(
           height: 60,
           width: 60,
@@ -1440,11 +1440,13 @@ class _SocialButton extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(
-            icon,
-            color: color,
-            size: 30,
-          ),
+          child: imagePath != null
+              ? Center(child: Image.asset(imagePath!, width: 30, height: 30))
+              : Icon(
+                  icon,
+                  color: color,
+                  size: 30,
+                ),
         ),
       ),
     );

@@ -175,11 +175,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: const [
-          
-          _QuickAction(icon: Icons.camera_alt_outlined, label: 'Máy ảnh'),
-         
         children: [
+          _QuickAction(
+            icon: Icons.camera_alt_outlined, 
+            label: 'Máy ảnh',
+            onTap: () => _handleCameraAccess(context),
+          ),
           _QuickAction(
             icon: Icons.swap_horiz, 
             label: 'Nạp/Rút'
@@ -197,10 +198,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             icon: Icons.auto_awesome_mosaic_outlined, 
             label: 'Xưởng Studio',
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DesignSelectionScreen(type: 'item'))),
-          ),
-          _QuickAction(
-            icon: Icons.widgets_outlined, 
-            label: 'Tiện ích'
           ),
         ],
       ),
