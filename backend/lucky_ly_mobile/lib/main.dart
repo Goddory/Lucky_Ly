@@ -773,18 +773,19 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     setState(() => isSubmitting = true);
 
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
-      final GoogleSignInAccount? account = await googleSignIn.signIn();
+      final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+      await googleSignIn.initialize();
+      final GoogleSignInAccount account = await googleSignIn.authenticate(
+        scopeHint: const ['email', 'profile'],
+      );
 
-      if (account == null) {
-        _showMessage('Google login cancelled.');
-        if (mounted) setState(() => isSubmitting = false);
+      final GoogleSignInAuthentication auth = account.authentication;
+      final String? idToken = auth.idToken;
+
+      if (idToken == null || idToken.isEmpty) {
+        _showMessage('Google login failed: Missing idToken.');
         return;
       }
-
-      final GoogleSignInAuthentication auth = await account.authentication;
-      final String? idToken = auth.idToken;
-      final String? accessToken = auth.accessToken;
 
       final response = await http
           .post(
@@ -792,7 +793,6 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'idToken': idToken,
-              'accessToken': accessToken,
             }),
           )
           .timeout(const Duration(seconds: 15));
@@ -803,6 +803,12 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         _navigateToHome(body);
       } else {
         _showMessage(body['message']?.toString() ?? 'Google login failed.');
+      }
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        _showMessage('Google login cancelled.');
+      } else {
+        _showMessage('Google login failed. Please try again.');
       }
     } catch (e) {
       _showMessage('Google login error. Please try again.');

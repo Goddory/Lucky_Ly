@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'main.dart';
 import 'core/database/database_helper.dart';
 import 'core/services/sync_manager.dart';
+import 'screens/avaturn_screen.dart' as screens;
+import 'screens/avatar_3d_screen.dart' as screens;
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -375,6 +377,47 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               color: const Color(0xFF0EA5D8),
               onTap: _showChangePasswordSheet,
               enabled: authProvider == 'local',
+            ),
+            Divider(height: 1, indent: 56, color: Colors.grey.shade100),
+            _SettingsTile(
+              icon: Icons.camera_front,
+              label: 'Tạo Model 3D (Avaturn)',
+              color: const Color(0xFFE11D48),
+              onTap: () {
+                // Điều hướng tới AvaturnScreen
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const screens.AvaturnScreen(avaturnSubdomain: 'https://luckyly.avaturn.dev/')),
+                );
+              },
+            ),
+            Divider(height: 1, indent: 56, color: Colors.grey.shade100),
+            _SettingsTile(
+              icon: Icons.view_in_ar,
+              label: 'Xem Model 3D của tôi',
+              color: const Color(0xFF8B5CF6),
+              onTap: () {
+                // Điều hướng tới Avatar3DScreen chứa UnityWidget
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const screens.Avatar3DScreen()),
+                );
+              },
+            ),
+            Divider(height: 1, indent: 56, color: Colors.grey.shade100),
+            _SettingsTile(
+              icon: Icons.sync,
+              label: 'Đồng bộ Đám mây',
+              color: const Color(0xFF10B981),
+              onTap: () async {
+                _showSnack('Đang đồng bộ...', isError: false);
+                bool success = await SyncManager.manualSync();
+                if (success) {
+                  // Reload user sau khi đồng bộ
+                  await _loadLocalUser();
+                  _showSnack('Đồng bộ thành công!', isError: false);
+                } else {
+                  _showSnack('Đồng bộ thất bại, hãy tải lại.');
+                }
+              },
             ),
             Divider(height: 1, indent: 56, color: Colors.grey.shade100),
             _SettingsTile(

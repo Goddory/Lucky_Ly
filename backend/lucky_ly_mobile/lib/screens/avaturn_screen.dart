@@ -4,7 +4,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import '../database/database_helper.dart';
+import '../core/database/database_helper.dart';
 
 class AvaturnScreen extends StatefulWidget {
   // Thay subdomain của bạn tại đây, ví dụ: 'https://demo.avaturn.me' hoặc link riêng từ Avaturn
