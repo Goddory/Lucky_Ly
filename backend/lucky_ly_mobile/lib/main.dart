@@ -773,8 +773,19 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     setState(() => isSubmitting = true);
 
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
-      final GoogleSignInAccount? account = await googleSignIn.signIn();
+      try {
+        await GoogleSignIn.instance.initialize();
+      } catch (e) {
+        debugPrint('GoogleSignIn init error: $e');
+      }
+      
+      GoogleSignInAccount? account;
+      try {
+        account = await GoogleSignIn.instance.authenticate(scopeHint: ['email', 'profile']);
+      } catch (e) {
+        debugPrint('GoogleSignIn auth error: $e');
+        account = null;
+      }
 
       if (account == null) {
         _showMessage('Google login cancelled.');
@@ -782,9 +793,16 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         return;
       }
 
-      final GoogleSignInAuthentication auth = await account.authentication;
+      final auth = account.authentication;
       final String? idToken = auth.idToken;
-      final String? accessToken = auth.accessToken;
+      
+      String? accessToken;
+      try {
+        final clientAuth = await account.authorizationClient.authorizeScopes(['email', 'profile']);
+        accessToken = clientAuth.accessToken;
+      } catch (e) {
+        debugPrint('GoogleSignIn scopes error: $e');
+      }
 
       final response = await http
           .post(
