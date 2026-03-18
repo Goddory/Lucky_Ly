@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'database_helper.dart';
+import '../database/database_helper.dart';
 
 class SyncManager {
   static const String _syncApiUrl = 'http://10.0.2.2:4000/api/sync'; 

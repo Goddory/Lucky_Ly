@@ -9,8 +9,13 @@ async function start() {
     await pool.query('SELECT 1');
     console.log('✅ Connected to Neon PostgreSQL successfully');
     
-    // Khởi tạo MongoDB
-    await connectMongo();
+    // Khởi tạo MongoDB (Không bắt buộc để chạy ứng dụng chính)
+    try {
+      await connectMongo();
+      console.log('✅ Connected to MongoDB successfully');
+    } catch (e) {
+      console.error('⚠️ MongoDB Connection Failed (Proceeding without Mongo):', e.message);
+    }
     
     app.listen(env.port, () => {
       console.log(`Auth API running on port ${env.port}`);

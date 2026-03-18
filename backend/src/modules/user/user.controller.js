@@ -1,5 +1,5 @@
 import { updateProfileSchema, changePasswordSchema } from './user.validation.js';
-import { getUserProfile, updateUserProfile, changeUserPassword } from './user.service.js';
+import { getUserProfile, updateUserProfile, changeUserPassword, getAllUsersService, toggleUserStatusService } from './user.service.js';
 
 // GET /api/users/me — Lấy thông tin profile user hiện tại.
 export async function getMe(req, res, next) {
@@ -35,6 +35,28 @@ export async function updatePassword(req, res, next) {
     res.status(200).json({
       message: 'Password changed successfully. Please log in again on other devices if needed.'
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Lấy danh sách tài khoản
+export async function getAllUsers(req, res, next) {
+  try {
+    const users = await getAllUsersService();
+    res.status(200).json({ users });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Thay đổi trạng thái tài khoản
+export async function toggleUserStatus(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+    const user = await toggleUserStatusService(id, isActive);
+    res.status(200).json({ message: 'User status updated', user });
   } catch (err) {
     next(err);
   }

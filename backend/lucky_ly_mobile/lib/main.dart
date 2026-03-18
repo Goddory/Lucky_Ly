@@ -773,8 +773,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     setState(() => isSubmitting = true);
 
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
-      final GoogleSignInAccount? account = await googleSignIn.signIn();
+      await GoogleSignIn.instance.initialize();
+      final GoogleSignInAccount? account = await GoogleSignIn.instance.authenticate(
+        scopeHint: ['email', 'profile'],
+      );
 
       if (account == null) {
         _showMessage('Google login cancelled.');
@@ -782,9 +784,19 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         return;
       }
 
-      final GoogleSignInAuthentication auth = await account.authentication;
+      final GoogleSignInAuthentication auth = account.authentication;
       final String? idToken = auth.idToken;
-      final String? accessToken = auth.accessToken;
+      
+      // In v7.x, accessToken is separated. We can get it via authorizationClient, 
+      // but usually the backend only needs idToken for identity verification.
+      // If the backend strictly requires accessToken, we fetch it:
+      String? accessToken;
+      try {
+        final authz = await account.authorizationClient.authorizationForScopes(['email', 'profile']);
+        accessToken = authz?.accessToken;
+      } catch (e) {
+        // Fallback or ignore if authorization fails
+      }
 
       final response = await http
           .post(
@@ -805,6 +817,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         _showMessage(body['message']?.toString() ?? 'Google login failed.');
       }
     } catch (e) {
+      debugPrint('[Google] Login error: $e');
       _showMessage('Google login error. Please try again.');
     } finally {
       if (mounted) setState(() => isSubmitting = false);
