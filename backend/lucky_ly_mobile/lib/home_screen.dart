@@ -8,6 +8,7 @@ import 'celebrate_screen.dart';
 import 'offers_screen.dart';
 import 'history_screen.dart';
 import 'app_theme.dart';
+import 'screens/avaturn_screen.dart';
 
 // Constants moved to app_theme.dart
 
@@ -271,7 +272,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       _ServiceItem('Data 4G/5G', Icons.signal_cellular_alt, AppTheme.primary),
       _ServiceItem('Lắc Xì', Icons.casino, const Color(0xFFE85D3A)),
       _ServiceItem('Vay Nhanh', Icons.flash_on, const Color(0xFF14B8A6)),
-      _ServiceItem('Ví Trả Sau', Icons.credit_score, AppTheme.accent),
+      _ServiceItem('Tạo Avatar', Icons.person_add_alt_1, Colors.purpleAccent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AvaturnScreen()))),
       _ServiceItem('Thanh toán', Icons.money_off, AppTheme.primary),
       _ServiceItem('Vé phim', Icons.movie_outlined, const Color(0xFFE85D3A)),
       _ServiceItem('Du lịch', Icons.flight_takeoff, AppTheme.primary),
@@ -848,8 +849,9 @@ class _ServiceItem {
   final String label;
   final IconData icon;
   final Color color;
+  final VoidCallback? onTap;
 
-  const _ServiceItem(this.label, this.icon, this.color);
+  const _ServiceItem(this.label, this.icon, this.color, {this.onTap});
 }
 
 class _ServiceGridTile extends StatelessWidget {
@@ -860,7 +862,7 @@ class _ServiceGridTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedInteractiveScale(
-      onTap: () {},
+      onTap: service.onTap ?? () {},
       child: Container(
         decoration: BoxDecoration(
           color: AppTheme.card,

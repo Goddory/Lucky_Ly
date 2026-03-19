@@ -4,3 +4,15 @@ node_modules/
 antigravity-doc
 tests
 others
+
+# IDE/workspace artifacts
+.vs/
+.idea/
+**/.idea/
+
+# Flutter/Android generated build artifacts
+backend/lucky_ly_mobile/android/build/
+backend/lucky_ly_mobile/build/
+backend/lucky_ly_mobile/.dart_tool/
+backend/lucky_ly_mobile/.flutter-plugins
+backend/lucky_ly_mobile/.flutter-plugins-dependencies

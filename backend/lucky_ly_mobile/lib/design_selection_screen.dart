@@ -3,7 +3,6 @@ import 'mobile_studio_screen.dart';
 
 class _C {
   static const primary = Color(0xFF0EA5D8);
-  static const accent = Color(0xFF19C6C4);
   static const bg = Color(0xFFF2F6FA);
   static const card = Colors.white;
   static const textDark = Color(0xFF1E293B);
@@ -20,7 +19,10 @@ class DesignSelectionScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: _C.bg,
       appBar: AppBar(
-        title: const Text('Chọn thiết kế', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Chọn thiết kế',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: _C.primary,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -32,14 +34,21 @@ class DesignSelectionScreen extends StatelessWidget {
           children: [
             Text(
               type == 'both' ? 'Gửi vật phẩm kèm tiền' : 'Gửi vật phẩm',
-              style: const TextStyle(color: _C.textDark, fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: _C.textDark,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 24),
             _buildOption(
               context,
               icon: Icons.add_circle_outline,
               title: 'Tạo thiết kế mới',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MobileStudioScreen())),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MobileStudioScreen()),
+              ),
             ),
             const SizedBox(height: 12),
             _buildOption(
@@ -68,7 +77,8 @@ class DesignSelectionScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOption(BuildContext context, {
+  Widget _buildOption(
+    BuildContext context, {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
@@ -89,7 +99,11 @@ class DesignSelectionScreen extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(color: _C.textDark, fontSize: 15, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: _C.textDark,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const Icon(Icons.keyboard_arrow_right, color: _C.textMuted),
