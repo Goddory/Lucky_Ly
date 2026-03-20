@@ -1,7 +1,100 @@
-# Ignore
-node_modules/
+# --- Global / IDEs ---
+.DS_Store
+*.swp
+*.lock
+.idea/
+.vscode/
+*.suo
+*.sln
+*.slnx
+*.vsconfig
+*.sw?
+.vs/
+.agent/
+**/.DS_Store
+**/Thumbs.db
+
+# --- Generic Builds & Caches (Catch all depths) ---
+**/node_modules/
+**/build/
+**/bin/
+**/obj/
+**/temp/
+**/Temp/
+**/logs/
+**/Logs/
+**/[Bb]uild/
+**/[Bb]uilds/
+**/[Tt]emp/
+**/[Oo]bj/
+**/[Ll]ogs/
+**/.dart_tool/
+**/.pub-cache/
+**/.pub/
+**/.gradle/
+**/.cxx/
+
+# --- Backend (Node.js) ---
+backend/.env
+backend/npm-debug.log*
+
+# --- Flutter (lucky_ly_mobile) ---
+backend/lucky_ly_mobile/.flutter-plugins
+backend/lucky_ly_mobile/.flutter-plugins-dependencies
+backend/lucky_ly_mobile/android/local.properties
+backend/lucky_ly_mobile/android/key.properties
+backend/lucky_ly_mobile/ios/.generated/
+backend/lucky_ly_mobile/ios/Flutter/Generated.xcconfig
+backend/lucky_ly_mobile/ios/Flutter/flutter_export_environment.sh
+backend/lucky_ly_mobile/ios/Flutter/ephemeral/
+backend/lucky_ly_mobile/ios/Pods/
+backend/lucky_ly_mobile/ios/Runner/GeneratedPluginRegistrant.h
+backend/lucky_ly_mobile/ios/Runner/GeneratedPluginRegistrant.m
+
+# --- Unity Project Source ---
+# Giữ lại Assets, ProjectSettings, Packages. Ignore mọi thứ khác.
+lucky_ly_unity/lucky_ly_unity/Library/
+lucky_ly_unity/lucky_ly_unity/Temp/
+lucky_ly_unity/lucky_ly_unity/Logs/
+lucky_ly_unity/lucky_ly_unity/UserSettings/
+lucky_ly_unity/lucky_ly_unity/Build/
+lucky_ly_unity/lucky_ly_unity/Builds/
+lucky_ly_unity/lucky_ly_unity/MemoryCaptures/
+lucky_ly_unity/lucky_ly_unity/Artifacts/
+lucky_ly_unity/lucky_ly_unity/*.csproj
+lucky_ly_unity/lucky_ly_unity/*.sln
+lucky_ly_unity/lucky_ly_unity/*.userprefs
+lucky_ly_unity/lucky_ly_unity/*.unitypackage
+
+# --- UaaL (Unity as a Library) - Exported Folder in Flutter ---
+# Ignore các folder sinh ra cực nặng khi build Il2Cpp/Gradle
+android/unityLibrary/
+**/unityLibrary/build/
+**/unityLibrary/.cxx/
+**/unityLibrary/.gradle/
+**/unityLibrary/symbols/
+**/unityLibrary/src/main/jniLibs/**/libil2cpp.so
+
+# --- Unity export archives / app packages ---
+**/*.unitypackage
+**/*.apk
+**/*.aab
+**/*.ipa
+
+# --- Antigravity / Agent tools ---
 .temp_ag_kit/
 antigravity-doc
 tests
 others
+
+# IDE/workspace artifacts
 .vs/
+.idea/
+**/.idea/
+
+# Flutter/Android generated build artifacts
+backend/lucky_ly_mobile/android/build/
+backend/lucky_ly_mobile/build/
+backend/lucky_ly_mobile/.dart_tool/
+backend/lucky_ly_mobile/.flutter-plugins
+backend/lucky_ly_mobile/.flutter-plugins-dependencies

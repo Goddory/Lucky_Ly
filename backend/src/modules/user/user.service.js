@@ -125,3 +125,35 @@ export async function changeUserPassword(userId, currentPassword, newPassword) {
     client.release();
   }
 }
+
+// Lấy danh sách tất cả users (Dành cho Admin)
+export async function getAllUsersService() {
+  const result = await pool.query(
+    `SELECT user_id as id, username, email, full_name as name, avatar_url, auth_provider, created_at, is_active as "isActive", role
+     FROM users ORDER BY created_at DESC`
+  );
+  return result.rows;
+}
+
+// Khóa/Mở Khóa tài khoản
+export async function toggleUserStatusService(userId, isActive) {
+  const result = await pool.query(
+    `UPDATE users SET is_active = $1 WHERE user_id = $2 AND role != 'admin' RETURNING user_id, is_active`,
+    [isActive, userId]
+  );
+  
+  if (result.rowCount === 0) {
+    const error = new Error('User not found or cannot modify an admin account');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (isActive === false) {
+    await pool.query(
+      'UPDATE auth_refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL',
+      [userId]
+    );
+  }
+
+  return result.rows[0];
+}

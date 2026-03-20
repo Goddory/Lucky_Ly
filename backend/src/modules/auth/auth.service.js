@@ -109,7 +109,7 @@ export async function registerUser(payload) {
 export async function loginUser(payload) {
   const loginValue = payload.login.trim();
   const query = `
-    SELECT user_id, username, email, full_name, avatar_url, password_hash
+    SELECT user_id, username, email, full_name, avatar_url, password_hash, is_active
     FROM users
     WHERE username = $1 OR email = $2
     LIMIT 1
@@ -123,6 +123,12 @@ export async function loginUser(payload) {
 
   if (!user) {
     throw invalidError;
+  }
+
+  if (user.is_active === false) {
+    const error = new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.');
+    error.statusCode = 403;
+    throw error;
   }
 
   if (!user.password_hash) {
@@ -172,7 +178,7 @@ export async function loginFacebookUser(payload) {
 
     // Tìm user: Ưu tiên facebook_id, sau đó tìm theo email (nếu có email)
     let userQuery = `
-      SELECT user_id, username, email, full_name, avatar_url, facebook_id
+      SELECT user_id, username, email, full_name, avatar_url, facebook_id, is_active
       FROM users
       WHERE facebook_id = $1
     `;
@@ -186,6 +192,12 @@ export async function loginFacebookUser(payload) {
 
     const result = await client.query(userQuery, queryParams);
     let user = result.rows[0];
+
+    if (user && user.is_active === false) {
+      const error = new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.');
+      error.statusCode = 403;
+      throw error;
+    }
 
     // Cập nhật facebook_id nếu tìm thấy user qua email nhưng chưa có facebook_id
     if (user && !user.facebook_id) {
@@ -371,7 +383,7 @@ export async function loginWithGoogle({ idToken, accessToken }) {
     await client.query('BEGIN');
 
     const existing = await client.query(
-      'SELECT user_id, username, email, full_name, avatar_url FROM users WHERE email = $1 LIMIT 1',
+      'SELECT user_id, username, email, full_name, avatar_url, is_active FROM users WHERE email = $1 LIMIT 1',
       [email.toLowerCase()]
     );
 
@@ -379,6 +391,12 @@ export async function loginWithGoogle({ idToken, accessToken }) {
 
     if (existing.rowCount > 0) {
       user = existing.rows[0];
+      
+      if (user.is_active === false) {
+        const error = new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.');
+        error.statusCode = 403;
+        throw error;
+      }
       await client.query(
         `UPDATE users SET auth_provider = 'google', provider_uid = $1,
          avatar_url = COALESCE(avatar_url, $2)

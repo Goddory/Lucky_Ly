@@ -7,10 +7,16 @@ import 'package:http/http.dart' as http;
 import '../core/database/database_helper.dart';
 
 class AvaturnScreen extends StatefulWidget {
-  // Thay subdomain của bạn tại đây, ví dụ: 'https://demo.avaturn.me' hoặc link riêng từ Avaturn
+  // Domain Avaturn chinh thuc cua Lucky Ly.
+  static const defaultAvaturnSubdomain = 'https://luckyly.avaturn.dev/';
+
+  // Co the truyen domain khac khi can, neu khong se dung domain mac dinh.
   final String avaturnSubdomain;
 
-  const AvaturnScreen({super.key, required this.avaturnSubdomain});
+  const AvaturnScreen({
+    super.key,
+    this.avaturnSubdomain = defaultAvaturnSubdomain,
+  });
 
   @override
   State<AvaturnScreen> createState() => _AvaturnScreenState();
@@ -44,7 +50,7 @@ class _AvaturnScreenState extends State<AvaturnScreen> {
       // Chèn mã JS để hứng sự kiện window postMessage từ iFrame/WebView của Avaturn
       // và pass data xuống Flutter thông qua AvaturnEventChannel.
       ..setOnConsoleMessage((message) {
-        print("JS Console: \${message.message}");
+        print("JS Console: ${message.message}");
       })
       ..loadRequest(Uri.parse(widget.avaturnSubdomain));
   }
@@ -58,7 +64,7 @@ class _AvaturnScreenState extends State<AvaturnScreen> {
         await _downloadAndCacheAvatar(modelUrl);
       }
     } catch (e) {
-      print("Error parsing avaturn message: \$e");
+      print("Error parsing avaturn message: $e");
     }
   }
 
@@ -73,9 +79,9 @@ class _AvaturnScreenState extends State<AvaturnScreen> {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final dir = await getApplicationDocumentsDirectory();
-        final fileName = 'avatar_\${DateTime.now().millisecondsSinceEpoch}.glb';
-        final file = File('\${dir.path}/\$fileName');
-        
+        final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.glb';
+        final file = File('${dir.path}/$fileName');
+
         await file.writeAsBytes(response.bodyBytes);
 
         // Lưu bản ghi vào SQLite
@@ -95,12 +101,12 @@ class _AvaturnScreenState extends State<AvaturnScreen> {
         }
       }
     } catch (e) {
-      print("Download error: \$e");
+      print("Download error: $e");
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Lỗi khi tải Avatar 3D")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Lỗi khi tải Avatar 3D")));
       }
     }
   }
@@ -118,8 +124,7 @@ class _AvaturnScreenState extends State<AvaturnScreen> {
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),
-          if (_isLoading)
-            const Center(child: CircularProgressIndicator()),
+          if (_isLoading) const Center(child: CircularProgressIndicator()),
         ],
       ),
     );

@@ -16,7 +16,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Khởi tạo Facebook Auth cho web/desktop
-  if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.macOS || defaultTargetPlatform == TargetPlatform.linux) {
+  if (kIsWeb ||
+      defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.linux) {
     await FacebookAuth.instance.webAndDesktopInitialize(
       appId: "2016157219330688",
       cookie: true,
@@ -92,18 +95,25 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateMixin {
+class _AuthScreenState extends State<AuthScreen>
+    with SingleTickerProviderStateMixin {
   // Base URL backend auth API — web dùng localhost, mobile emulator dùng 10.0.2.2
-  static final String _apiBaseUrl = const String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: '',
-  ).isNotEmpty
+  static final String _apiBaseUrl =
+      const String.fromEnvironment('API_BASE_URL', defaultValue: '').isNotEmpty
       ? const String.fromEnvironment('API_BASE_URL')
       : (kIsWeb ? 'http://localhost:4000' : 'http://10.0.2.2:4000');
+
+  // Web OAuth client id / server client id dùng để lấy token từ Google.
+  static const String _googleClientId = String.fromEnvironment(
+    'GOOGLE_CLIENT_ID',
+    defaultValue:
+        '301453242147-i7a769fga6fmvmbdghnguntvhfe87r1c.apps.googleusercontent.com',
+  );
 
   bool isSignUp = true;
   bool rememberMe = false;
   bool isSubmitting = false;
+  bool _googleSignInInitialized = false;
 
   List<Map<String, String>> _savedAccounts = [];
 
@@ -155,7 +165,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       if (savedData != null) {
         final List<dynamic> decoded = jsonDecode(savedData);
         setState(() {
-          _savedAccounts = decoded.map((e) => Map<String, String>.from(e)).toList();
+          _savedAccounts = decoded
+              .map((e) => Map<String, String>.from(e))
+              .toList();
         });
       }
     } catch (e) {
@@ -227,13 +239,18 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                     );
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 40,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(36),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF004C63).withValues(alpha: 0.12),
+                          color: const Color(
+                            0xFF004C63,
+                          ).withValues(alpha: 0.12),
                           blurRadius: 40,
                           offset: const Offset(0, 20),
                         ),
@@ -274,9 +291,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          isSignUp 
-                            ? 'Sign up to get started' 
-                            : 'Sign in to continue',
+                          isSignUp
+                              ? 'Sign up to get started'
+                              : 'Sign in to continue',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: Color(0xFF8B9CB0),
@@ -285,14 +302,15 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                           ),
                         ),
                         const SizedBox(height: 32),
-                        
+
                         // Sleek Switcher (Bật tắt giữa Sign In/Sign Up)
                         _AuthModeSwitch(
                           isSignUp: isSignUp,
-                          onChanged: (value) => setState(() => isSignUp = value),
+                          onChanged: (value) =>
+                              setState(() => isSignUp = value),
                         ),
                         const SizedBox(height: 32),
-                        
+
                         // Form với animation tự co giãn kích thước
                         AnimatedSize(
                           duration: const Duration(milliseconds: 400),
@@ -302,26 +320,37 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                             duration: const Duration(milliseconds: 400),
                             switchInCurve: Curves.easeOutCubic,
                             switchOutCurve: Curves.easeInCubic,
-                            layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
-                              return Stack(
-                                alignment: Alignment.topCenter,
-                                children: <Widget>[
-                                  ...previousChildren,
-                                  // ignore: use_null_aware_elements
-                                  if (currentChild != null) currentChild,
-                                ],
-                              );
-                            },
-                            child: isSignUp ? _buildSignUpForm() : _buildSignInForm(),
+                            layoutBuilder:
+                                (
+                                  Widget? currentChild,
+                                  List<Widget> previousChildren,
+                                ) {
+                                  return Stack(
+                                    alignment: Alignment.topCenter,
+                                    children: <Widget>[
+                                      ...previousChildren,
+                                      // ignore: use_null_aware_elements
+                                      if (currentChild != null) currentChild,
+                                    ],
+                                  );
+                                },
+                            child: isSignUp
+                                ? _buildSignUpForm()
+                                : _buildSignInForm(),
                           ),
                         ),
-                        
+
                         const SizedBox(height: 36),
-                        
+
                         // Khu vực đăng nhập Social
                         Row(
                           children: [
-                            Expanded(child: Divider(color: Colors.grey.shade200, thickness: 1.5)),
+                            Expanded(
+                              child: Divider(
+                                color: Colors.grey.shade200,
+                                thickness: 1.5,
+                              ),
+                            ),
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 16),
                               child: Text(
@@ -333,7 +362,12 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                 ),
                               ),
                             ),
-                            Expanded(child: Divider(color: Colors.grey.shade200, thickness: 1.5)),
+                            Expanded(
+                              child: Divider(
+                                color: Colors.grey.shade200,
+                                thickness: 1.5,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 24),
@@ -352,9 +386,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                             ),
                           ],
                         ),
-                        
+
                         const SizedBox(height: 40),
-                        
+
                         // Nút tác vụ chính với hiệu ứng bóp (scale)
                         _PrimaryGradientButton(
                           text: isSignUp ? 'Sign up' : 'Sign in',
@@ -399,10 +433,14 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
 
             final List<String> errors = [];
             if (pass.length < 8) errors.add('Ít nhất 8 ký tự');
-            if (!RegExp(r'[A-Z]').hasMatch(pass)) errors.add('Cần ít nhất 1 chữ hoa');
-            if (!RegExp(r'[a-z]').hasMatch(pass)) errors.add('Cần ít nhất 1 chữ thường');
-            if (!RegExp(r'[0-9]').hasMatch(pass)) errors.add('Cần ít nhất 1 số');
-            if (!RegExp(r'[!@#\$%^&*(),.?":{}|<>]').hasMatch(pass)) errors.add('Cần 1 ký tự đặc biệt');
+            if (!RegExp(r'[A-Z]').hasMatch(pass))
+              errors.add('Cần ít nhất 1 chữ hoa');
+            if (!RegExp(r'[a-z]').hasMatch(pass))
+              errors.add('Cần ít nhất 1 chữ thường');
+            if (!RegExp(r'[0-9]').hasMatch(pass))
+              errors.add('Cần ít nhất 1 số');
+            if (!RegExp(r'[!@#\$%^&*(),.?":{}|<>]').hasMatch(pass))
+              errors.add('Cần 1 ký tự đặc biệt');
 
             if (errors.isEmpty) return const SizedBox.shrink();
 
@@ -410,7 +448,11 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
               child: Text(
                 'Mật khẩu chưa đạt: ${errors.join(", ")}',
-                style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  color: Color(0xFFEF4444),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             );
           },
@@ -424,18 +466,26 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         ),
         const SizedBox(height: 8),
         AnimatedBuilder(
-          animation: Listenable.merge([signUpPasswordController, signUpRepeatPasswordController]),
+          animation: Listenable.merge([
+            signUpPasswordController,
+            signUpRepeatPasswordController,
+          ]),
           builder: (context, child) {
             final pass = signUpPasswordController.text;
             final repeatPass = signUpRepeatPasswordController.text;
-            
-            if (repeatPass.isEmpty || pass == repeatPass) return const SizedBox.shrink();
+
+            if (repeatPass.isEmpty || pass == repeatPass)
+              return const SizedBox.shrink();
 
             return const Padding(
               padding: EdgeInsets.only(left: 12.0, bottom: 8.0),
               child: Text(
                 'Mật khẩu nhập lại không khớp',
-                style: TextStyle(color: Color(0xFFEF4444), fontSize: 13, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                  color: Color(0xFFEF4444),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             );
           },
@@ -448,7 +498,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               width: 24,
               child: Checkbox(
                 value: rememberMe,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
                 activeColor: const Color(0xFF18C7C2),
                 side: const BorderSide(color: Color(0xFFCFD9E3), width: 1.5),
                 onChanged: (value) {
@@ -500,7 +552,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               TextButton(
                 onPressed: () => _showSavedAccountsSheet(context),
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
@@ -554,7 +609,12 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
             return Container(
-              padding: const EdgeInsets.only(left: 24, right: 24, top: 32, bottom: 32),
+              padding: const EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 32,
+                bottom: 32,
+              ),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
@@ -565,7 +625,11 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                 children: [
                   const Text(
                     'Chọn tài khoản',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF1392B1)),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1392B1),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   const Text(
@@ -576,7 +640,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                   if (_savedAccounts.isEmpty)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Center(child: Text('Không có tài khoản nào được lưu.')),
+                      child: Center(
+                        child: Text('Không có tài khoản nào được lưu.'),
+                      ),
                     )
                   else
                     ..._savedAccounts.map((acc) {
@@ -592,23 +658,36 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                           },
                           borderRadius: BorderRadius.circular(16),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.grey.shade300),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.account_circle, color: Color(0xFF16B4C2), size: 36),
+                                const Icon(
+                                  Icons.account_circle,
+                                  color: Color(0xFF16B4C2),
+                                  size: 36,
+                                ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
                                     email,
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.delete_outline, color: Colors.grey),
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.grey,
+                                  ),
                                   onPressed: () {
                                     _removeAccount(email);
                                     setModalState(() {});
@@ -680,7 +759,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       final body = _safeDecodeMap(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        await _saveAccount(email, password); // Lưu tài khoản sau khi đăng ký thành công
+        await _saveAccount(
+          email,
+          password,
+        ); // Lưu tài khoản sau khi đăng ký thành công
         _navigateToHome(body);
       } else {
         _showMessage(body['message']?.toString() ?? 'Sign up failed.');
@@ -769,7 +851,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       } else if (result.status == LoginStatus.cancelled) {
         _showMessage('Facebook login cancelled.');
       } else {
-        _showMessage('Facebook login failed: ${result.message ?? "Unknown error"}');
+        _showMessage(
+          'Facebook login failed: ${result.message ?? "Unknown error"}',
+        );
         debugPrint('[Facebook] Error Result: ${result.message}');
       }
     } catch (e) {
@@ -780,29 +864,78 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     }
   }
 
+  Future<void> _ensureGoogleSignInInitialized() async {
+    if (_googleSignInInitialized) return;
+
+    if (kIsWeb) {
+      await GoogleSignIn.instance.initialize(clientId: _googleClientId);
+    } else {
+      await GoogleSignIn.instance.initialize(serverClientId: _googleClientId);
+    }
+
+    _googleSignInInitialized = true;
+  }
+
+  bool _isGoogleLoginCancelled(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('cancel') ||
+        message.contains('popup_closed') ||
+        message.contains('popup closed') ||
+        message.contains('aborted');
+  }
+
+  String _googleErrorMessage(Object error) {
+    final message = error.toString().toLowerCase();
+
+    if (message.contains('network')) {
+      return 'Google login failed: network error.';
+    }
+
+    if (message.contains('api_exception: 10') ||
+        message.contains('developer_error') ||
+        message.contains('configuration')) {
+      return 'Google login failed: OAuth client configuration error.';
+    }
+
+    return 'Google login failed. Please try again.';
+  }
+
   // Đăng nhập bằng Google: gọi Google Sign-In, gửi idToken về backend
   Future<void> _handleGoogleLogin() async {
     if (isSubmitting) return;
     setState(() => isSubmitting = true);
 
     try {
-      await google_auth.GoogleSignIn.instance.initialize();
-      final google_auth.GoogleSignInAccount account = await google_auth.GoogleSignIn.instance.authenticate(
-        scopeHint: ['email', 'profile'],
-      );
+      await _ensureGoogleSignInInitialized();
 
-      final google_auth.GoogleSignInAuthentication auth = account.authentication;
+      late final GoogleSignInAccount account;
+      try {
+        account = await GoogleSignIn.instance.authenticate(
+          scopeHint: ['email', 'profile'],
+        );
+      } catch (e) {
+        debugPrint('GoogleSignIn auth error: $e');
+        if (_isGoogleLoginCancelled(e)) {
+          _showMessage('Google login cancelled.');
+        } else {
+          _showMessage(_googleErrorMessage(e));
+        }
+        return;
+      }
+
+      final auth = await account.authentication;
       final String? idToken = auth.idToken;
-      final String? accessToken = null; // Access token is no longer directly available in v7. Usually idToken is enough for backend verification.
+
+      if (idToken == null || idToken.isEmpty) {
+        _showMessage('Google login failed: no valid Google token returned.');
+        return;
+      }
 
       final response = await http
           .post(
             Uri.parse('$_apiBaseUrl/api/auth/google'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'idToken': idToken,
-              'accessToken': accessToken,
-            }),
+            body: jsonEncode({'idToken': idToken}),
           )
           .timeout(const Duration(seconds: 15));
 
@@ -813,8 +946,15 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       } else {
         _showMessage(body['message']?.toString() ?? 'Google login failed.');
       }
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        _showMessage('Google login cancelled.');
+      } else {
+        _showMessage('Google login failed. Please try again.');
+      }
     } catch (e) {
-      _showMessage('Google login error. Please try again.');
+      debugPrint('Google login unexpected error: $e');
+      _showMessage(_googleErrorMessage(e));
     } finally {
       if (mounted) setState(() => isSubmitting = false);
     }
@@ -840,20 +980,27 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         return StatefulBuilder(
           builder: (BuildContext ctx, StateSetter setModalState) {
             final bottomInset = MediaQuery.of(ctx).viewInsets.bottom;
-            
+
             Widget buildStepContent() {
               if (step == 1) {
                 return Column(
                   children: [
                     Text(
                       'Quên mật khẩu',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF1392B1)),
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF1392B1),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       'Vui lòng nhập email đăng ký. Chúng tôi sẽ gửi mã OTP cho bạn.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     _PillInput(
@@ -869,13 +1016,20 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                   children: [
                     Text(
                       'Xác thực OTP',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF1392B1)),
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF1392B1),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       'Mã 6 số đã được gửi tới:\n$userEmail',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     _PillInput(
@@ -891,7 +1045,11 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                   children: [
                     Text(
                       'Tạo mật khẩu mới',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF1392B1)),
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF1392B1),
+                      ),
                     ),
                     const SizedBox(height: 24),
                     _PillInput(
@@ -913,7 +1071,12 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             }
 
             return Container(
-              padding: EdgeInsets.only(left: 24, right: 24, top: 32, bottom: bottomInset + 32),
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 32,
+                bottom: bottomInset + 32,
+              ),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
@@ -932,7 +1095,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                         ? null
                         : () async {
                             final navigator = Navigator.of(ctx);
-                            
+
                             if (step == 1) {
                               final email = emailController.text.trim();
                               if (email.isEmpty || !_looksLikeEmail(email)) {
@@ -940,24 +1103,37 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                 return;
                               }
                               setModalState(() => isLoading = true);
-                              
-                              try {
-                                final res = await http.post(
-                                  Uri.parse('$_apiBaseUrl/api/auth/forgot-password'),
-                                  headers: {'Content-Type': 'application/json'},
-                                  body: jsonEncode({'email': email})
-                                ).timeout(const Duration(seconds: 15));
 
-                                if (res.statusCode >= 200 && res.statusCode < 300) {
+                              try {
+                                final res = await http
+                                    .post(
+                                      Uri.parse(
+                                        '$_apiBaseUrl/api/auth/forgot-password',
+                                      ),
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                      },
+                                      body: jsonEncode({'email': email}),
+                                    )
+                                    .timeout(const Duration(seconds: 15));
+
+                                if (res.statusCode >= 200 &&
+                                    res.statusCode < 300) {
                                   userEmail = email;
                                   setModalState(() {
                                     isLoading = false;
                                     step = 2; // Chuyển sang bước nhập OTP
                                   });
-                                  _showMessage('Mã OTP đã được gửi!', isError: false);
+                                  _showMessage(
+                                    'Mã OTP đã được gửi!',
+                                    isError: false,
+                                  );
                                 } else {
                                   final body = _safeDecodeMap(res.body);
-                                  _showMessage(body['message']?.toString() ?? 'Gửi OTP thất bại');
+                                  _showMessage(
+                                    body['message']?.toString() ??
+                                        'Gửi OTP thất bại',
+                                  );
                                   setModalState(() => isLoading = false);
                                 }
                               } catch (e) {
@@ -970,16 +1146,26 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                 _showMessage('OTP phải gồm 6 chữ số');
                                 return;
                               }
-                              
+
                               setModalState(() => isLoading = true);
                               try {
-                                final res = await http.post(
-                                  Uri.parse('$_apiBaseUrl/api/auth/verify-reset-otp'),
-                                  headers: {'Content-Type': 'application/json'},
-                                  body: jsonEncode({'email': userEmail, 'otp': otp})
-                                ).timeout(const Duration(seconds: 15));
+                                final res = await http
+                                    .post(
+                                      Uri.parse(
+                                        '$_apiBaseUrl/api/auth/verify-reset-otp',
+                                      ),
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                      },
+                                      body: jsonEncode({
+                                        'email': userEmail,
+                                        'otp': otp,
+                                      }),
+                                    )
+                                    .timeout(const Duration(seconds: 15));
 
-                                if (res.statusCode >= 200 && res.statusCode < 300) {
+                                if (res.statusCode >= 200 &&
+                                    res.statusCode < 300) {
                                   resetOtp = otp;
                                   setModalState(() {
                                     isLoading = false;
@@ -987,7 +1173,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                   });
                                 } else {
                                   final body = _safeDecodeMap(res.body);
-                                  _showMessage(body['message']?.toString() ?? 'OTP không hợp lệ');
+                                  _showMessage(
+                                    body['message']?.toString() ??
+                                        'OTP không hợp lệ',
+                                  );
                                   setModalState(() => isLoading = false);
                                 }
                               } catch (e) {
@@ -997,7 +1186,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                             } else if (step == 3) {
                               final newPass = newPassController.text;
                               final confirmPass = confirmPassController.text;
-                              
+
                               if (newPass.isEmpty || confirmPass.isEmpty) {
                                 _showMessage('Vui lòng điền đủ mật khẩu');
                                 return;
@@ -1006,22 +1195,39 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                 _showMessage('Mật khẩu nhập lại không khớp');
                                 return;
                               }
-                              
+
                               setModalState(() => isLoading = true);
                               try {
-                                final res = await http.post(
-                                  Uri.parse('$_apiBaseUrl/api/auth/reset-password'),
-                                  headers: {'Content-Type': 'application/json'},
-                                  body: jsonEncode({'email': userEmail, 'otp': resetOtp, 'newPassword': newPass})
-                                ).timeout(const Duration(seconds: 15));
+                                final res = await http
+                                    .post(
+                                      Uri.parse(
+                                        '$_apiBaseUrl/api/auth/reset-password',
+                                      ),
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                      },
+                                      body: jsonEncode({
+                                        'email': userEmail,
+                                        'otp': resetOtp,
+                                        'newPassword': newPass,
+                                      }),
+                                    )
+                                    .timeout(const Duration(seconds: 15));
 
-                                if (res.statusCode >= 200 && res.statusCode < 300) {
+                                if (res.statusCode >= 200 &&
+                                    res.statusCode < 300) {
                                   if (!ctx.mounted) return;
                                   if (navigator.canPop()) navigator.pop();
-                                  _showMessage('Đặt lại mật khẩu thành công! Bạn có thể đăng nhập.', isError: false);
+                                  _showMessage(
+                                    'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập.',
+                                    isError: false,
+                                  );
                                 } else {
                                   final body = _safeDecodeMap(res.body);
-                                  _showMessage(body['message']?.toString() ?? 'Đặt lại thất bại');
+                                  _showMessage(
+                                    body['message']?.toString() ??
+                                        'Đặt lại thất bại',
+                                  );
                                   setModalState(() => isLoading = false);
                                 }
                               } catch (e) {
@@ -1033,18 +1239,31 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 18),
                       backgroundColor: const Color(0xFF10B981),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
                       elevation: 4,
                     ),
                     child: isLoading
                         ? const SizedBox(
                             width: 24,
                             height: 24,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 3,
+                            ),
                           )
                         : Text(
-                            step == 1 ? 'Gửi mã xác nhận' : (step == 2 ? 'Xác thực OTP' : 'Xác nhận tạo mới'),
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            step == 1
+                                ? 'Gửi mã xác nhận'
+                                : (step == 2
+                                      ? 'Xác thực OTP'
+                                      : 'Xác nhận tạo mới'),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                   ),
                 ],
@@ -1100,17 +1319,24 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               Expanded(
                 child: Text(
                   message,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ],
           ),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          backgroundColor: isError ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          backgroundColor: isError
+              ? const Color(0xFFEF4444)
+              : const Color(0xFF10B981),
           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           elevation: 10,
-        )
+        ),
       );
   }
 }
@@ -1152,14 +1378,22 @@ class _AuthModeSwitch extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(26),
                   color: !isSignUp ? Colors.white : Colors.transparent,
-                  boxShadow: !isSignUp 
-                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))]
+                  boxShadow: !isSignUp
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
                       : [],
                 ),
                 child: AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 300),
                   style: TextStyle(
-                    color: !isSignUp ? const Color(0xFF1392B1) : const Color(0xFF94A3B8),
+                    color: !isSignUp
+                        ? const Color(0xFF1392B1)
+                        : const Color(0xFF94A3B8),
                     fontWeight: !isSignUp ? FontWeight.w800 : FontWeight.w600,
                     fontSize: 16,
                   ),
@@ -1180,14 +1414,22 @@ class _AuthModeSwitch extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(26),
                   color: isSignUp ? Colors.white : Colors.transparent,
-                  boxShadow: isSignUp 
-                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))]
+                  boxShadow: isSignUp
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
                       : [],
                 ),
                 child: AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 300),
                   style: TextStyle(
-                    color: isSignUp ? const Color(0xFF1392B1) : const Color(0xFF94A3B8),
+                    color: isSignUp
+                        ? const Color(0xFF1392B1)
+                        : const Color(0xFF94A3B8),
                     fontWeight: isSignUp ? FontWeight.w800 : FontWeight.w600,
                     fontSize: 16,
                   ),
@@ -1257,13 +1499,15 @@ class _PillInputState extends State<_PillInput> {
           color: _isFocused ? const Color(0xFF16B4C2) : const Color(0xFFE2E8F0),
           width: 1.5,
         ),
-        boxShadow: _isFocused ? [
-          BoxShadow(
-            color: const Color(0xFF16B4C2).withValues(alpha: 0.12),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ] : [],
+        boxShadow: _isFocused
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF16B4C2).withValues(alpha: 0.12),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : [],
       ),
       child: Row(
         children: [
@@ -1273,7 +1517,9 @@ class _PillInputState extends State<_PillInput> {
             child: Icon(
               widget.icon,
               key: ValueKey(_isFocused),
-              color: _isFocused ? const Color(0xFF16B4C2) : const Color(0xFFA0AEC0),
+              color: _isFocused
+                  ? const Color(0xFF16B4C2)
+                  : const Color(0xFFA0AEC0),
               size: 24,
             ),
           ),
@@ -1301,8 +1547,12 @@ class _PillInputState extends State<_PillInput> {
                 suffixIcon: widget.isPassword
                     ? IconButton(
                         icon: Icon(
-                          _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                          color: _isFocused ? const Color(0xFF16B4C2) : const Color(0xFFA0AEC0),
+                          _obscureText
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: _isFocused
+                              ? const Color(0xFF16B4C2)
+                              : const Color(0xFFA0AEC0),
                         ),
                         onPressed: () {
                           setState(() {
@@ -1337,14 +1587,18 @@ class _PrimaryGradientButton extends StatefulWidget {
   State<_PrimaryGradientButton> createState() => _PrimaryGradientButtonState();
 }
 
-class _PrimaryGradientButtonState extends State<_PrimaryGradientButton> with SingleTickerProviderStateMixin {
+class _PrimaryGradientButtonState extends State<_PrimaryGradientButton>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 150));
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.96).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
     );
@@ -1418,7 +1672,12 @@ class _PrimaryGradientButtonState extends State<_PrimaryGradientButton> with Sin
 
 // Nút Social Login bọc InkWell có hiệu ứng ripple tròn trịa
 class _SocialButton extends StatelessWidget {
-  const _SocialButton({this.icon, this.imagePath, this.color, required this.onTap});
+  const _SocialButton({
+    this.icon,
+    this.imagePath,
+    this.color,
+    required this.onTap,
+  });
 
   final IconData? icon;
   final String? imagePath;
@@ -1451,14 +1710,9 @@ class _SocialButton extends StatelessWidget {
           ),
           child: imagePath != null
               ? Center(child: Image.asset(imagePath!, width: 30, height: 30))
-              : Icon(
-                  icon,
-                  color: color,
-                  size: 30,
-                ),
+              : Icon(icon, color: color, size: 30),
         ),
       ),
     );
   }
 }
-

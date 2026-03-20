@@ -7,6 +7,9 @@ import 'core/services/sync_manager.dart';
 import 'package:provider/provider.dart';
 import 'app_theme.dart';
 import 'providers/theme_provider.dart';
+import 'screens/admin/admin_dashboard_screen.dart';
+import 'screens/avaturn_screen.dart' as screens;
+import 'screens/avatar_3d_screen.dart' as screens;
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -26,7 +29,8 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _entryController;
   late Animation<double> _fadeIn;
 
@@ -50,7 +54,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _fadeIn = CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic);
+    _fadeIn = CurvedAnimation(
+      parent: _entryController,
+      curve: Curves.easeOutCubic,
+    );
     _entryController.forward();
 
     fullName = widget.userData['full_name']?.toString() ?? 'User';
@@ -62,13 +69,15 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     fullNameController = TextEditingController(text: fullName);
     emailController = TextEditingController(text: email);
     avatarUrlController = TextEditingController(text: avatarUrl);
-    
+
     _loadLocalUser();
   }
 
   Future<void> _loadLocalUser() async {
     final dbHelper = DatabaseHelper.instance;
-    final user = await dbHelper.getUser(widget.userData['id']?.toString() ?? '1');
+    final user = await dbHelper.getUser(
+      widget.userData['id']?.toString() ?? '1',
+    );
     if (user != null) {
       if (mounted) {
         setState(() {
@@ -97,15 +106,22 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _fadeIn,
-      child: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          _buildHeader(),
-          SliverToBoxAdapter(child: _buildProfileCard()),
-          SliverToBoxAdapter(child: _buildInfoSection()),
-          SliverToBoxAdapter(child: _buildSettingsSection()),
-          SliverToBoxAdapter(child: _buildLogoutButton()),
-          const SliverToBoxAdapter(child: SizedBox(height: 120)),
+      child: Column(
+        children: [
+          _buildStaticHeader(),
+          Expanded(
+            child: ListView(
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.zero,
+              children: [
+                _buildProfileCard(),
+                _buildInfoSection(),
+                _buildSettingsSection(),
+                _buildLogoutButton(),
+                const SizedBox(height: 120),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -121,12 +137,14 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         decoration: BoxDecoration(
           gradient: AppTheme.of(context).primaryGradient,
         ),
-        child: SafeArea(
-          bottom: false,
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 16, bottom: 32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(height: 16),
               // Avatar
               Container(
                 width: 88,
@@ -145,7 +163,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 child: CircleAvatar(
                   radius: 40,
                   backgroundColor: Colors.white.withValues(alpha: 0.2),
-                  backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                  backgroundImage: avatarUrl.isNotEmpty
+                      ? NetworkImage(avatarUrl)
+                      : null,
                   child: avatarUrl.isEmpty
                       ? Text(
                           _getInitials(fullName),
@@ -171,7 +191,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               const SizedBox(height: 4),
               // Badge loại tài khoản
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
@@ -230,7 +253,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     }
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       gradient: isEditing
                           ? const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)])
@@ -247,7 +273,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          isEditing ? (isSaving ? 'Đang lưu...' : 'Lưu') : 'Chỉnh sửa',
+                          isEditing
+                              ? (isSaving ? 'Đang lưu...' : 'Lưu')
+                              : 'Chỉnh sửa',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
@@ -368,6 +396,20 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         ),
         child: Column(
           children: [
+            if (email == 'admin@gmail.com') ...[
+              _SettingsTile(
+                icon: Icons.admin_panel_settings,
+                label: 'Quản trị hệ thống',
+                color: const Color(0xFFEF4444),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => AdminDashboardScreen(apiBaseUrl: widget.apiBaseUrl, accessToken: widget.accessToken)),
+                  );
+                },
+              ),
+              Divider(height: 1, indent: 56, color: Colors.grey.shade100),
+            ],
             _SettingsTile(
               icon: Icons.palette_outlined,
               label: 'Đổi giao diện',
@@ -381,6 +423,47 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               color: const Color(0xFF0EA5D8),
               onTap: _showChangePasswordSheet,
               enabled: authProvider == 'local',
+            ),
+            Divider(height: 1, indent: 56, color: Colors.grey.shade100),
+            _SettingsTile(
+              icon: Icons.camera_front,
+              label: 'Tạo Model 3D (Avaturn)',
+              color: const Color(0xFFE11D48),
+              onTap: () {
+                // Điều hướng tới AvaturnScreen
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const screens.AvaturnScreen(avaturnSubdomain: 'https://luckyly.avaturn.dev/')),
+                );
+              },
+            ),
+            Divider(height: 1, indent: 56, color: Colors.grey.shade100),
+            _SettingsTile(
+              icon: Icons.view_in_ar,
+              label: 'Xem Model 3D của tôi',
+              color: const Color(0xFF8B5CF6),
+              onTap: () {
+                // Điều hướng tới Avatar3DScreen chứa UnityWidget
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const screens.Avatar3DScreen()),
+                );
+              },
+            ),
+            Divider(height: 1, indent: 56, color: Colors.grey.shade100),
+            _SettingsTile(
+              icon: Icons.sync,
+              label: 'Đồng bộ Đám mây',
+              color: const Color(0xFF10B981),
+              onTap: () async {
+                _showSnack('Đang đồng bộ...', isError: false);
+                bool success = await SyncManager.manualSync();
+                if (success) {
+                  // Reload user sau khi đồng bộ
+                  await _loadLocalUser();
+                  _showSnack('Đồng bộ thành công!', isError: false);
+                } else {
+                  _showSnack('Đồng bộ thất bại, hãy tải lại.');
+                }
+              },
             ),
             Divider(height: 1, indent: 56, color: Colors.grey.shade100),
             _SettingsTile(
@@ -419,7 +502,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.3)),
+            border: Border.all(
+              color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+            ),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFFEF4444).withValues(alpha: 0.08),
@@ -510,7 +595,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       builder: (ctx) => StatefulBuilder(
         builder: (BuildContext context, StateSetter setModalState) {
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            ),
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: const BoxDecoration(
@@ -526,7 +613,11 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     children: [
                       const Text(
                         'Đổi mật khẩu',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1E293B),
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close, color: Color(0xFF94A3B8)),
@@ -539,21 +630,24 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     controller: currentPasswordController,
                     label: 'Mật khẩu hiện tại',
                     obscure: obscureCurrent,
-                    onToggle: () => setModalState(() => obscureCurrent = !obscureCurrent),
+                    onToggle: () =>
+                        setModalState(() => obscureCurrent = !obscureCurrent),
                   ),
                   const SizedBox(height: 16),
                   _buildPasswordField(
                     controller: newPasswordController,
                     label: 'Mật khẩu mới',
                     obscure: obscureNew,
-                    onToggle: () => setModalState(() => obscureNew = !obscureNew),
+                    onToggle: () =>
+                        setModalState(() => obscureNew = !obscureNew),
                   ),
                   const SizedBox(height: 16),
                   _buildPasswordField(
                     controller: confirmPasswordController,
                     label: 'Xác nhận mật khẩu mới',
                     obscure: obscureNew,
-                    onToggle: () => setModalState(() => obscureNew = !obscureNew),
+                    onToggle: () =>
+                        setModalState(() => obscureNew = !obscureNew),
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
@@ -564,7 +658,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                             final newPass = newPasswordController.text;
                             final confirm = confirmPasswordController.text;
 
-                            if (current.isEmpty || newPass.isEmpty || confirm.isEmpty) {
+                            if (current.isEmpty ||
+                                newPass.isEmpty ||
+                                confirm.isEmpty) {
                               _showSnack('Vui lòng nhập đầy đủ thông tin');
                               return;
                             }
@@ -577,32 +673,46 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
                             try {
                               final navigator = Navigator.of(ctx);
-                              final response = await http.put(
-                                Uri.parse('${widget.apiBaseUrl}/api/users/me/password'),
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                  'Authorization': 'Bearer ${widget.accessToken}',
-                                },
-                                body: jsonEncode({
-                                  'currentPassword': current,
-                                  'newPassword': newPass,
-                                }),
-                              ).timeout(const Duration(seconds: 15));
+                              final response = await http
+                                  .put(
+                                    Uri.parse(
+                                      '${widget.apiBaseUrl}/api/users/me/password',
+                                    ),
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      'Authorization':
+                                          'Bearer ${widget.accessToken}',
+                                    },
+                                    body: jsonEncode({
+                                      'currentPassword': current,
+                                      'newPassword': newPass,
+                                    }),
+                                  )
+                                  .timeout(const Duration(seconds: 15));
 
-                              if (response.statusCode >= 200 && response.statusCode < 300) {
+                              if (response.statusCode >= 200 &&
+                                  response.statusCode < 300) {
                                 if (!ctx.mounted) return;
                                 if (navigator.canPop()) {
                                   navigator.pop();
                                 }
-                                _showSnack('Đổi mật khẩu thành công. Vui lòng đăng nhập lại.', isError: false);
+                                _showSnack(
+                                  'Đổi mật khẩu thành công. Vui lòng đăng nhập lại.',
+                                  isError: false,
+                                );
                                 // Force logout sau khi đổi pass thành công do refresh token bị revoke
-                                await Future.delayed(const Duration(seconds: 2));
+                                await Future.delayed(
+                                  const Duration(seconds: 2),
+                                );
                                 if (mounted) {
                                   _handleLogout(force: true);
                                 }
                               } else {
                                 final body = jsonDecode(response.body);
-                                _showSnack(body['message']?.toString() ?? 'Đổi mật khẩu thất bại.');
+                                _showSnack(
+                                  body['message']?.toString() ??
+                                      'Đổi mật khẩu thất bại.',
+                                );
                                 setModalState(() => isLoading = false);
                               }
                             } catch (e) {
@@ -613,12 +723,28 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: const Color(0xFF10B981),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       elevation: 0,
                     ),
                     child: isLoading
-                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text('Xác nhận đổi mật khẩu', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Xác nhận đổi mật khẩu',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ],
               ),
@@ -638,16 +764,31 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     return TextField(
       controller: controller,
       obscureText: obscure,
-      style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+      style: const TextStyle(
+        fontWeight: FontWeight.w600,
+        color: Color(0xFF1E293B),
+      ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+        labelStyle: const TextStyle(
+          color: Color(0xFF64748B),
+          fontWeight: FontWeight.w500,
+        ),
         filled: true,
         fillColor: const Color(0xFFF8FAFC),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF0EA5D8), width: 2)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF0EA5D8), width: 2),
+        ),
         suffixIcon: IconButton(
-          icon: Icon(obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: const Color(0xFF94A3B8)),
+          icon: Icon(
+            obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+            color: const Color(0xFF94A3B8),
+          ),
           onPressed: onToggle,
         ),
       ),
@@ -673,7 +814,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         'clientUpdatedAt': DateTime.now().toIso8601String(),
         'isSync': 0, // Cần được push
       };
-      
+
       await DatabaseHelper.instance.insertUser(userRecord);
 
       setState(() {
@@ -689,11 +830,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       widget.userData['email'] = email;
       widget.userData['avatar_url'] = avatarUrl;
 
-      _showSnack('Đã cập nhật lưu cục bộ. Nhấn Đồng bộ để cập nhật lên Cloud.', isError: false);
-      
+      _showSnack(
+        'Đã cập nhật lưu cục bộ. Nhấn Đồng bộ để cập nhật lên Cloud.',
+        isError: false,
+      );
+
       // Auto-trigger sync optionally
       // SyncManager.pushData();
-      
     } catch (e) {
       _showSnack('Lưu offline thất bại.');
       setState(() => isSaving = false);
@@ -705,7 +848,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Text(
             'Đăng xuất',
             style: TextStyle(fontWeight: FontWeight.w800),
@@ -716,14 +861,20 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               onPressed: () => Navigator.of(ctx).pop(false),
               child: const Text(
                 'Hủy',
-                style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(true),
               child: const Text(
                 'Đăng xuất',
-                style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  color: Color(0xFFEF4444),
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
@@ -759,10 +910,17 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(message, style: const TextStyle(fontWeight: FontWeight.w600)),
+          content: Text(
+            message,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          backgroundColor: isError ? const Color(0xFF64748B) : const Color(0xFF10B981),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          backgroundColor: isError
+              ? const Color(0xFF64748B)
+              : const Color(0xFF10B981),
           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
       );
@@ -843,14 +1001,22 @@ class _InfoRow extends StatelessWidget {
                         ),
                         decoration: InputDecoration(
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 12,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: Color(0xFF0EA5D8)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF0EA5D8),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: Color(0xFF0EA5D8), width: 2),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF0EA5D8),
+                              width: 2,
+                            ),
                           ),
                         ),
                       )
@@ -905,14 +1071,20 @@ class _SettingsTile extends StatelessWidget {
                   color: (enabled ? color : Colors.grey).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: enabled ? color : Colors.grey, size: 20),
+                child: Icon(
+                  icon,
+                  color: enabled ? color : Colors.grey,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: enabled ? const Color(0xFF1E293B) : const Color(0xFF94A3B8),
+                    color: enabled
+                        ? const Color(0xFF1E293B)
+                        : const Color(0xFF94A3B8),
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),

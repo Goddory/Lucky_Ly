@@ -6,7 +6,7 @@ public class AvatarController : MonoBehaviour
 {
     private GameObject currentAvatar;
     
-    // Gọi từ Flutter truyền đường dẫn Local Path của SQLite
+    // Gọi từ Flutter truyền đường dẫn Local Path từ SQLite
     public void LoadAvatarFromPath(string path)
     {
         Debug.Log("Unity LoadAvatarFromPath called: " + path);
@@ -31,19 +31,22 @@ public class AvatarController : MonoBehaviour
         currentAvatar.transform.SetParent(this.transform, false);
 
         var gltf = new GltfImport();
-        bool success = await gltf.Load("file://" + path);
+        // Unity file path prefix for local files
+        string fileUrl = "file://" + path;
+        
+        // glTFast 5.x+ uses Load
+        bool success = await gltf.Load(fileUrl);
         if (success)
         {
             bool instantiateSuccess = await gltf.InstantiateMainSceneAsync(currentAvatar.transform);
             if (instantiateSuccess)
             {
                 Debug.Log("Avatar Loaded Successfully!");
-                // Optionally setup animations or modify materials here
             }
         }
         else
         {
-            Debug.LogError("Failed to load glTF.");
+            Debug.LogError("Failed to load glTF from: " + fileUrl);
         }
     }
 }
