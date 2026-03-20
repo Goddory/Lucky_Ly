@@ -18,18 +18,13 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _createDB,
-    );
+    return await openDatabase(path, version: 1, onCreate: _createDB);
   }
 
   Future _createDB(Database db, int version) async {
     const idType = 'TEXT PRIMARY KEY';
     const textType = 'TEXT';
     const boolType = 'BOOLEAN NOT NULL';
-    const integerType = 'INTEGER NOT NULL';
 
     await db.execute('''
 CREATE TABLE avatars (
@@ -96,15 +91,15 @@ CREATE TABLE designs (
   /// Lấy danh sách record chưa được sync lên server
   Future<List<Map<String, dynamic>>> getUnsyncedRecords(String table) async {
     final db = await instance.database;
-    return await db.query(
-      table,
-      where: 'isSync = ?',
-      whereArgs: [0],
-    );
+    return await db.query(table, where: 'isSync = ?', whereArgs: [0]);
   }
 
   /// Đánh dấu mảng localId là đã sync
-  Future<void> markAsSynced(String table, String idColumn, List<String> ids) async {
+  Future<void> markAsSynced(
+    String table,
+    String idColumn,
+    List<String> ids,
+  ) async {
     final db = await instance.database;
     for (String id in ids) {
       await db.update(
@@ -131,7 +126,11 @@ CREATE TABLE designs (
 
   Future<void> insertUser(Map<String, dynamic> user) async {
     final db = await instance.database;
-    await db.insert('users', user, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'users',
+      user,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   // --- Designs Operations ---
@@ -142,7 +141,11 @@ CREATE TABLE designs (
 
   Future<void> insertDesign(Map<String, dynamic> design) async {
     final db = await instance.database;
-    await db.insert('designs', design, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'designs',
+      design,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future close() async {

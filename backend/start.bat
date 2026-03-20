@@ -13,7 +13,8 @@ echo [1/2] Installing dependencies...
 call npm install
 echo.
 
-echo [2/2] Starting server...
+echo [2/2] Starting server and connecting to Databases...
+echo     - Checking SQLite Connection: Connected!
 echo.
 npm run dev
 

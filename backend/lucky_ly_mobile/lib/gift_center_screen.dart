@@ -4,7 +4,6 @@ import 'money_transfer_screen.dart';
 
 class _C {
   static const primary = Color(0xFF0EA5D8);
-  static const accent = Color(0xFF19C6C4);
   static const bg = Color(0xFFF2F6FA);
   static const card = Colors.white;
   static const textDark = Color(0xFF1E293B);
@@ -19,7 +18,10 @@ class GiftCenterScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: _C.bg,
       appBar: AppBar(
-        title: const Text('Tặng Quà', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Tặng Quà',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: _C.primary,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -31,7 +33,11 @@ class GiftCenterScreen extends StatelessWidget {
           children: [
             const Text(
               'Chọn hình thức quà tặng',
-              style: TextStyle(color: _C.textDark, fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: _C.textDark,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -45,7 +51,12 @@ class GiftCenterScreen extends StatelessWidget {
               title: 'Vật phẩm',
               subtitle: 'Gửi các món quà AR hoặc bao lì xì tự thiết kế',
               color: const Color(0xFFF59E0B),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DesignSelectionScreen(type: 'item'))),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const DesignSelectionScreen(type: 'item'),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             _buildOption(
@@ -54,7 +65,10 @@ class GiftCenterScreen extends StatelessWidget {
               title: 'Tiền tệ',
               subtitle: 'Chuyển tiền trực tiếp vào tài khoản Lucky Ly',
               color: _C.primary,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MoneyTransferScreen())),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MoneyTransferScreen()),
+              ),
             ),
             const SizedBox(height: 16),
             _buildOption(
@@ -63,7 +77,12 @@ class GiftCenterScreen extends StatelessWidget {
               title: 'Vật phẩm & Tiền',
               subtitle: 'Kết hợp cả quà tặng và tiền lì xì',
               color: const Color(0xFFE63946),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DesignSelectionScreen(type: 'both'))),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const DesignSelectionScreen(type: 'both'),
+                ),
+              ),
             ),
           ],
         ),
@@ -71,7 +90,8 @@ class GiftCenterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOption(BuildContext context, {
+  Widget _buildOption(
+    BuildContext context, {
     required IconData icon,
     required String title,
     required String subtitle,
@@ -110,7 +130,11 @@ class GiftCenterScreen extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(color: _C.textDark, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: _C.textDark,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(

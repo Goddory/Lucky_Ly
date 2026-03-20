@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 
 class _C {
   static const primary = Color(0xFF0EA5D8);
-  static const accent = Color(0xFF19C6C4);
   static const bg = Color(0xFFF2F6FA);
-  static const card = Colors.white;
-  static const textDark = Color(0xFF1E293B);
   static const textMuted = Color(0xFF64748B);
 }
 
@@ -17,7 +14,10 @@ class MobileStudioScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: _C.bg,
       appBar: AppBar(
-        title: const Text('Xưởng Studio 3D', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Xưởng Studio 3D',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: _C.primary,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -33,7 +33,11 @@ class MobileStudioScreen extends StatelessWidget {
                 color: Colors.red,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 40, offset: const Offset(0, 20)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 40,
+                    offset: const Offset(0, 20),
+                  ),
                 ],
               ),
               child: const Center(
@@ -42,13 +46,20 @@ class MobileStudioScreen extends StatelessWidget {
                   children: [
                     Icon(Icons.view_in_ar, color: Colors.white, size: 80),
                     SizedBox(height: 20),
-                    Text('Môi trường 3D\n(Sắp ra mắt)', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    Text(
+                      'Môi trường 3D\n(Sắp ra mắt)',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
           ),
-          
+
           // Toolbars
           Positioned(
             bottom: 30,
