@@ -911,7 +911,7 @@ class _AuthScreenState extends State<AuthScreen>
         return;
       }
 
-      final auth = account.authentication;
+      final auth = await account.authentication;
       final String? idToken = auth.idToken;
 
       String? accessToken;
