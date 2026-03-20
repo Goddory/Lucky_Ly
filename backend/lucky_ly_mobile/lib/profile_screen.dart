@@ -4,6 +4,9 @@ import 'package:http/http.dart' as http;
 import 'main.dart';
 import 'core/database/database_helper.dart';
 import 'core/services/sync_manager.dart';
+import 'package:provider/provider.dart';
+import 'app_theme.dart';
+import 'providers/theme_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -115,12 +118,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       pinned: true,
       automaticallyImplyLeading: false,
       flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0EA5D8), Color(0xFF19C6C4)],
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.of(context).primaryGradient,
         ),
         child: SafeArea(
           bottom: false,
@@ -235,7 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     decoration: BoxDecoration(
                       gradient: isEditing
                           ? const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)])
-                          : const LinearGradient(colors: [Color(0xFF0EA5D8), Color(0xFF19C6C4)]),
+                          : AppTheme.of(context).primaryGradient,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -370,6 +369,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         child: Column(
           children: [
             _SettingsTile(
+              icon: Icons.palette_outlined,
+              label: 'Đổi giao diện',
+              color: AppTheme.of(context).primary,
+              onTap: () => _showThemeBottomSheet(context),
+            ),
+            Divider(height: 1, indent: 56, color: Colors.grey.shade100),
+            _SettingsTile(
               icon: Icons.lock_outline,
               label: 'Đổi mật khẩu',
               color: const Color(0xFF0EA5D8),
@@ -444,6 +450,49 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
   Widget _buildDivider() {
     return Divider(height: 1, indent: 40, color: Colors.grey.shade100);
+  }
+
+  void _showThemeBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final themeProvider = Provider.of<ThemeProvider>(context);
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Chọn giao diện',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                _buildThemeOption(context, themeProvider, AppThemeType.defaultTheme, 'Mặc định', Icons.phone_android),
+                _buildThemeOption(context, themeProvider, AppThemeType.tet, 'Tết Nguyên Đán', Icons.celebration, color: Colors.red),
+                _buildThemeOption(context, themeProvider, AppThemeType.valentine, 'Valentine', Icons.favorite, color: Colors.pink),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildThemeOption(BuildContext context, ThemeProvider provider, AppThemeType type, String name, IconData icon, {Color? color}) {
+    final isSelected = provider.currentTheme == type;
+    return ListTile(
+      leading: Icon(icon, color: color ?? AppTheme.of(context).primary),
+      title: Text(name, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+      trailing: isSelected ? Icon(Icons.check_circle, color: AppTheme.of(context).primary) : null,
+      onTap: () {
+        provider.setTheme(type);
+        Navigator.pop(context);
+      },
+    );
   }
 
   void _showChangePasswordSheet() {

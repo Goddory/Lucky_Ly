@@ -47,6 +47,9 @@ dependencies:
   path_provider: ^2.1.5
   webview_flutter: ^4.13.1
   flutter_unity_widget: ^2022.2.1
+  provider: ^6.1.5+1
+  table_calendar: ^3.2.0
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
