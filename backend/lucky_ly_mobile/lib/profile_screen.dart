@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'main.dart';
 import 'core/database/database_helper.dart';
 import 'core/services/sync_manager.dart';
+import 'screens/admin/admin_dashboard_screen.dart';
 import 'screens/avaturn_screen.dart' as screens;
 import 'screens/avatar_3d_screen.dart' as screens;
 
@@ -102,40 +103,44 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _fadeIn,
-      child: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          _buildHeader(),
-          SliverToBoxAdapter(child: _buildProfileCard()),
-          SliverToBoxAdapter(child: _buildInfoSection()),
-          SliverToBoxAdapter(child: _buildSettingsSection()),
-          SliverToBoxAdapter(child: _buildLogoutButton()),
-          const SliverToBoxAdapter(child: SizedBox(height: 120)),
+      child: Column(
+        children: [
+          _buildStaticHeader(),
+          Expanded(
+            child: ListView(
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.zero,
+              children: [
+                _buildProfileCard(),
+                _buildInfoSection(),
+                _buildSettingsSection(),
+                _buildLogoutButton(),
+                const SizedBox(height: 120),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return SliverAppBar(
-      expandedHeight: 220,
-      floating: false,
-      pinned: true,
-      automaticallyImplyLeading: false,
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0EA5D8), Color(0xFF19C6C4)],
-          ),
+  Widget _buildStaticHeader() {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0EA5D8), Color(0xFF19C6C4)],
         ),
-        child: SafeArea(
-          bottom: false,
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 16, bottom: 32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(height: 16),
               // Avatar
               Container(
                 width: 88,
@@ -391,6 +396,20 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         child: Column(
           children: [
+            if (email == 'admin@gmail.com') ...[
+              _SettingsTile(
+                icon: Icons.admin_panel_settings,
+                label: 'Quản trị hệ thống',
+                color: const Color(0xFFEF4444),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => AdminDashboardScreen(apiBaseUrl: widget.apiBaseUrl, accessToken: widget.accessToken)),
+                  );
+                },
+              ),
+              Divider(height: 1, indent: 56, color: Colors.grey.shade100),
+            ],
             _SettingsTile(
               icon: Icons.lock_outline,
               label: 'Đổi mật khẩu',

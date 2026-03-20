@@ -894,7 +894,10 @@ class _AuthScreenState extends State<AuthScreen>
     setState(() => isSubmitting = true);
 
     try {
-      await _ensureGoogleSignInInitialized();
+      await GoogleSignIn.instance.initialize();
+      final GoogleSignInAccount? account = await GoogleSignIn.instance.authenticate(
+        scopeHint: ['email', 'profile'],
+      );
 
       late final GoogleSignInAccount account;
       try {
@@ -911,6 +914,18 @@ class _AuthScreenState extends State<AuthScreen>
         return;
       }
 
+      final GoogleSignInAuthentication auth = account.authentication;
+      final String? idToken = auth.idToken;
+      
+      // In v7.x, accessToken is separated. We can get it via authorizationClient, 
+      // but usually the backend only needs idToken for identity verification.
+      // If the backend strictly requires accessToken, we fetch it:
+      String? accessToken;
+      try {
+        final authz = await account.authorizationClient.authorizationForScopes(['email', 'profile']);
+        accessToken = authz?.accessToken;
+      } catch (e) {
+        // Fallback or ignore if authorization fails
       final auth = await account.authentication;
       final String? idToken = auth.idToken;
 
