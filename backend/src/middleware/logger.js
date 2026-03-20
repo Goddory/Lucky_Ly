@@ -7,13 +7,9 @@ export const activityLogger = (req, res, next) => {
     let module = 'SYSTEM';
     let details = '';
     
-    // Cố gắng định danh người dùng từ token (nếu có middleware requireAuth chạy trước đó)
-    // Hoặc giả định là Khách nếu không có req.user
-    const userIdentifier = req.user?.email || req.user?.id || req.user?.username || 'Khách/Chưa ĐN';
-    
     if (originalUrl.includes('/api/auth/login')) {
         action = 'Người dùng đăng nhập'; module = 'AUTH';
-        details = `Tài khoản: ${body.login || body.email || 'N/A'}`;
+        details = `Tài khoản: ${body.login || body.identifier || body.email || 'N/A'}`;
     } else if (originalUrl.includes('/api/auth/google')) {
         action = 'Đăng nhập (Google)'; module = 'AUTH';
         details = 'OAuth SignIn';
@@ -43,6 +39,9 @@ export const activityLogger = (req, res, next) => {
         const duration = Date.now() - start;
         const status = res.statusCode;
         const time = new Date().toLocaleString('vi-VN');
+        
+        // Read req.user here (after auth middleware has run) to reflect the authenticated user
+        const userIdentifier = req.user?.email || req.user?.id || req.user?.username || 'Khách/Chưa ĐN';
         
         const detailSuffix = details ? ` | Chi tiết: [${details}]` : '';
         const userSuffix = ` | User: [${userIdentifier}]`;
