@@ -131,22 +131,51 @@ export const logout = async (req, res) => {
 
 export const googleLogin = async (req, res) => {
     try {
-        const { idToken } = req.body;
+        const { idToken, accessToken: googleAccessToken } = req.body;
 
-        if (!idToken) {
-            return res.status(400).json({ message: 'idToken is required' });
+        if (!idToken && !googleAccessToken) {
+            return res.status(400).json({ message: 'idToken or accessToken is required' });
         }
 
-        const client = new OAuth2Client(env.googleClientId);
-        const ticket = await client.verifyIdToken({
-            idToken,
-            audience: env.googleClientId,
-        });
+        let googleId = '';
+        let email = '';
+        let fullName = '';
 
-        const payload = ticket.getPayload();
-        const googleId = payload.sub;
-        const email = payload.email;
-        const fullName = payload.name || email.split('@')[0];
+        if (idToken) {
+            if (!env.googleClientId) {
+                return res.status(500).json({ message: 'Google auth is not configured on server' });
+            }
+
+            const client = new OAuth2Client(env.googleClientId);
+            const ticket = await client.verifyIdToken({
+                idToken,
+                audience: env.googleClientId,
+            });
+
+            const payload = ticket.getPayload();
+            googleId = payload?.sub || '';
+            email = payload?.email || '';
+            fullName = payload?.name || (email ? email.split('@')[0] : 'Google User');
+        } else {
+            const googleResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: {
+                    Authorization: `Bearer ${googleAccessToken}`,
+                },
+            });
+
+            if (!googleResponse.ok) {
+                return res.status(401).json({ message: 'Invalid or expired Google access token' });
+            }
+
+            const payload = await googleResponse.json();
+            googleId = payload?.sub || '';
+            email = payload?.email || '';
+            fullName = payload?.name || (email ? email.split('@')[0] : 'Google User');
+        }
+
+        if (!googleId || !email) {
+            return res.status(401).json({ message: 'Invalid Google account payload' });
+        }
 
         // Check if user already exists with this Google account
         let userResult = await query(

@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import { ZodError } from 'zod';
 import { env } from './config/env.js';
 import { errorHandler, notFoundHandler } from './db/middlewares/errorHandler.js';
+import { activityLogger } from './middleware/logger.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import userRoutes from './modules/user/user.routes.js';
 import designRoutes from './modules/designs/designs.routes.js';
@@ -22,6 +23,9 @@ app.use(
   })
 );
 app.use(express.json({ limit: '100kb' }));
+
+// Global console logger for all activities
+app.use(activityLogger);
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
