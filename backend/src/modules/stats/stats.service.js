@@ -179,6 +179,18 @@ export async function getChartData(metric, period, year, month, startDate) {
   }
 
   if (!query) return [];
-  const result = await pool.query(query, params);
-  return result.rows.map(r => ({ label: String(r.label), value: parseInt(r.value) }));
+  try {
+    const result = await pool.query(query, params);
+    return result.rows.map((r) => ({ label: String(r.label), value: Number.parseInt(r.value, 10) }));
+  } catch (e) {
+    console.error('Stats: getChartData query failed', e.message);
+
+    // In envs where designs table is not migrated yet, return empty chart data instead of 500.
+    if (metric === 'designs' && e?.code === '42P01') {
+      console.error('Stats: designs chart skipped because designs table does not exist.');
+      return [];
+    }
+
+    throw e;
+  }
 }

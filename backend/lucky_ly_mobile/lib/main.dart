@@ -894,10 +894,7 @@ class _AuthScreenState extends State<AuthScreen>
     setState(() => isSubmitting = true);
 
     try {
-      await GoogleSignIn.instance.initialize();
-      final GoogleSignInAccount? account = await GoogleSignIn.instance.authenticate(
-        scopeHint: ['email', 'profile'],
-      );
+      await _ensureGoogleSignInInitialized();
 
       late final GoogleSignInAccount account;
       try {
@@ -914,34 +911,10 @@ class _AuthScreenState extends State<AuthScreen>
         return;
       }
 
-      final GoogleSignInAuthentication auth = account.authentication;
-      final String? idToken = auth.idToken;
-      
-      // In v7.x, accessToken is separated. We can get it via authorizationClient, 
-      // but usually the backend only needs idToken for identity verification.
-      // If the backend strictly requires accessToken, we fetch it:
-      String? accessToken;
-      try {
-        final authz = await account.authorizationClient.authorizationForScopes(['email', 'profile']);
-        accessToken = authz?.accessToken;
-      } catch (e) {
-        // Fallback or ignore if authorization fails
       final auth = await account.authentication;
       final String? idToken = auth.idToken;
 
-      String? accessToken;
-      try {
-        final clientAuth = await account.authorizationClient.authorizeScopes([
-          'email',
-          'profile',
-        ]);
-        accessToken = clientAuth.accessToken;
-      } catch (e) {
-        debugPrint('GoogleSignIn scopes error: $e');
-      }
-
-      if ((idToken == null || idToken.isEmpty) &&
-          (accessToken == null || accessToken.isEmpty)) {
+      if (idToken == null || idToken.isEmpty) {
         _showMessage('Google login failed: no valid Google token returned.');
         return;
       }
@@ -950,7 +923,7 @@ class _AuthScreenState extends State<AuthScreen>
           .post(
             Uri.parse('$_apiBaseUrl/api/auth/google'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'idToken': idToken, 'accessToken': accessToken}),
+            body: jsonEncode({'idToken': idToken}),
           )
           .timeout(const Duration(seconds: 15));
 

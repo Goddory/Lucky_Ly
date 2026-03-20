@@ -6,7 +6,11 @@ import '../../app_theme.dart';
 class UsersManagementScreen extends StatefulWidget {
   final String apiBaseUrl;
   final String accessToken;
-  const UsersManagementScreen({super.key, required this.apiBaseUrl, required this.accessToken});
+  const UsersManagementScreen({
+    super.key,
+    required this.apiBaseUrl,
+    required this.accessToken,
+  });
 
   @override
   State<UsersManagementScreen> createState() => _UsersManagementScreenState();
@@ -28,13 +32,15 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
   Future<void> _fetchUsers() async {
     setState(() => _isLoading = true);
     try {
-      final response = await http.get(
-        Uri.parse('${widget.apiBaseUrl}/api/users'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.accessToken}',
-        },
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('${widget.apiBaseUrl}/api/users'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ${widget.accessToken}',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body);
@@ -54,43 +60,64 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
 
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message),
-      backgroundColor: Colors.red,
-      behavior: SnackBarBehavior.floating,
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   List<Map<String, dynamic>> get _filteredUsers {
     if (_selectedFilter == 'Tất cả') return _users;
-    if (_selectedFilter == 'Hoạt động') return _users.where((u) => u['isActive'] == true && u['role'] != 'admin').toList();
-    if (_selectedFilter == 'Đã khóa') return _users.where((u) => u['isActive'] == false).toList();
-    if (_selectedFilter == 'Quản trị') return _users.where((u) => u['role'] == 'admin').toList();
+    if (_selectedFilter == 'Hoạt động')
+      return _users
+          .where((u) => u['isActive'] == true && u['role'] != 'admin')
+          .toList();
+    if (_selectedFilter == 'Đã khóa')
+      return _users.where((u) => u['isActive'] == false).toList();
+    if (_selectedFilter == 'Quản trị')
+      return _users.where((u) => u['role'] == 'admin').toList();
     return _users;
   }
 
   Future<void> _toggleUserStatus(int index, bool newValue) async {
-    final user = _filteredUsers[index];
+    final filteredUsers = _filteredUsers;
+    if (index < 0 || index >= filteredUsers.length) return;
+
+    final user = filteredUsers[index];
     if (user['role'] == 'admin') {
       _showSnack('Không thể khóa tài khoản Quản trị viên');
       return;
     }
 
+    final userId = user['id'];
+    final sourceIndex = _users.indexWhere(
+      (u) => u['id']?.toString() == userId?.toString(),
+    );
+    if (sourceIndex == -1) {
+      _showSnack('Không tìm thấy người dùng để cập nhật');
+      return;
+    }
+
     // Save previous state to revert if API fails
-    final previousState = user['isActive'];
+    final previousState = _users[sourceIndex]['isActive'];
     setState(() {
-      _filteredUsers[index]['isActive'] = newValue;
+      _users[sourceIndex]['isActive'] = newValue;
     });
 
     try {
-      final response = await http.put(
-        Uri.parse('${widget.apiBaseUrl}/api/users/${user['id']}/status'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.accessToken}',
-        },
-        body: jsonEncode({'isActive': newValue}),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .put(
+            Uri.parse('${widget.apiBaseUrl}/api/users/$userId/status'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ${widget.accessToken}',
+            },
+            body: jsonEncode({'isActive': newValue}),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw Exception('API Failed');
@@ -98,7 +125,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
     } catch (e) {
       _showSnack('Thay đổi trạng thái thất bại');
       setState(() {
-        _filteredUsers[index]['isActive'] = previousState;
+        _users[sourceIndex]['isActive'] = previousState;
       });
     }
   }
@@ -113,9 +140,14 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
           _buildFilters(),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppTheme.primary),
+                  )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
                     physics: const BouncingScrollPhysics(),
                     itemCount: _filteredUsers.length,
                     itemBuilder: (context, index) {
@@ -162,7 +194,11 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                         color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+                      child: const Icon(
+                        Icons.arrow_back,
+                        color: Colors.white,
+                        size: 24,
+                      ),
                     ),
                   ),
                   const Spacer(),
@@ -186,7 +222,11 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.people_alt_outlined, color: Color(0xFF0EA5D8), size: 32),
+                    child: const Icon(
+                      Icons.people_alt_outlined,
+                      color: Color(0xFF0EA5D8),
+                      size: 32,
+                    ),
                   ),
                   const SizedBox(width: 20),
                   Expanded(
@@ -195,12 +235,20 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                       children: const [
                         Text(
                           'Quản lý Người dùng',
-                          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                         SizedBox(height: 6),
                         Text(
                           'Danh sách tài khoản & phân quyền',
-                          style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
@@ -235,7 +283,10 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
               selected: isSelected,
               selectedColor: AppTheme.primary,
               backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide.none),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide.none,
+              ),
               showCheckmark: false,
               elevation: isSelected ? 4 : 0,
               onSelected: (bool selected) {
@@ -252,7 +303,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
     final bool isActive = user['isActive'];
     final bool isAdmin = user['role'] == 'admin';
     final String name = user['name'];
-    
+
     return Badge(
       isLabelVisible: isAdmin,
       label: const Text('Admin', style: TextStyle(fontSize: 10)),
@@ -264,13 +315,17 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
         decoration: BoxDecoration(
           color: isActive ? AppTheme.card : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(16),
-          border: isActive ? null : Border.all(color: Colors.red.withValues(alpha: 0.2)),
+          border: isActive
+              ? null
+              : Border.all(color: Colors.red.withValues(alpha: 0.2)),
           boxShadow: AppTheme.softShadow,
         ),
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: isActive ? AppTheme.primary.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+              backgroundColor: isActive
+                  ? AppTheme.primary.withValues(alpha: 0.1)
+                  : Colors.red.withValues(alpha: 0.1),
               radius: 24,
               child: Text(
                 name[0].toUpperCase(),
@@ -292,20 +347,29 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                       color: isActive ? AppTheme.textDark : AppTheme.textMuted,
-                      decoration: isActive ? TextDecoration.none : TextDecoration.lineThrough,
+                      decoration: isActive
+                          ? TextDecoration.none
+                          : TextDecoration.lineThrough,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     user['email'],
-                    style: TextStyle(color: isActive ? AppTheme.textMuted : Colors.grey.shade500, fontSize: 13),
+                    style: TextStyle(
+                      color: isActive
+                          ? AppTheme.textMuted
+                          : Colors.grey.shade500,
+                      fontSize: 13,
+                    ),
                   ),
                 ],
               ),
             ),
             Switch(
               value: isActive,
-              onChanged: isAdmin ? null : (val) => _toggleUserStatus(index, val),
+              onChanged: isAdmin
+                  ? null
+                  : (val) => _toggleUserStatus(index, val),
               activeColor: const Color(0xFF10B981),
               inactiveThumbColor: Colors.red,
               inactiveTrackColor: Colors.red.withValues(alpha: 0.2),
