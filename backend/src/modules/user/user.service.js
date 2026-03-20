@@ -5,7 +5,7 @@ import { env } from '../../config/env.js';
 // Lấy profile user hiện tại từ DB.
 export async function getUserProfile(userId) {
   const result = await pool.query(
-    `SELECT user_id, username, email, full_name, avatar_url, auth_provider, created_at
+    `SELECT user_id, username, email, full_name, avatar_url, auth_provider, role, created_at
      FROM users WHERE user_id = $1 LIMIT 1`,
     [userId]
   );
@@ -58,7 +58,7 @@ export async function updateUserProfile(userId, payload) {
 
   const result = await pool.query(
     `UPDATE users SET ${fields.join(', ')} WHERE user_id = $${paramIndex}
-     RETURNING user_id, username, email, full_name, avatar_url, auth_provider, created_at`,
+     RETURNING user_id, username, email, full_name, avatar_url, auth_provider, role, created_at`,
     values
   );
 

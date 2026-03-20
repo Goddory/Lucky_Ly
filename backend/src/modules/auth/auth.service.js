@@ -68,7 +68,7 @@ export async function registerUser(payload) {
     const insertUserQuery = `
       INSERT INTO users (username, password_hash, email, full_name, avatar_url)
       VALUES ($1, $2, $3, $4, $5)
-      RETURNING user_id, username, email, full_name, avatar_url, created_at
+      RETURNING user_id, username, email, full_name, avatar_url, role, created_at
     `;
 
     const userResult = await client.query(insertUserQuery, [
@@ -109,7 +109,7 @@ export async function registerUser(payload) {
 export async function loginUser(payload) {
   const loginValue = payload.login.trim();
   const query = `
-    SELECT user_id, username, email, full_name, avatar_url, password_hash, is_active
+    SELECT user_id, username, email, full_name, avatar_url, password_hash, is_active, role
     FROM users
     WHERE username = $1 OR email = $2
     LIMIT 1
@@ -155,7 +155,8 @@ export async function loginUser(payload) {
         username: user.username,
         email: user.email,
         full_name: user.full_name,
-        avatar_url: user.avatar_url
+        avatar_url: user.avatar_url,
+        role: user.role ?? 'user'
       },
       accessToken: buildAccessToken(user),
       refreshToken
@@ -178,7 +179,7 @@ export async function loginFacebookUser(payload) {
 
     // Tìm user: Ưu tiên facebook_id, sau đó tìm theo email (nếu có email)
     let userQuery = `
-      SELECT user_id, username, email, full_name, avatar_url, facebook_id, is_active
+      SELECT user_id, username, email, full_name, avatar_url, facebook_id, is_active, role
       FROM users
       WHERE facebook_id = $1
     `;
@@ -216,7 +217,7 @@ export async function loginFacebookUser(payload) {
       const insertUserQuery = `
         INSERT INTO users (username, email, full_name, avatar_url, facebook_id, auth_provider)
         VALUES ($1, $2, $3, $4, $5, 'facebook')
-        RETURNING user_id, username, email, full_name, avatar_url, facebook_id, created_at
+        RETURNING user_id, username, email, full_name, avatar_url, facebook_id, role, created_at
       `;
       const finalEmail = (email && email.trim() !== '') ? email.trim().toLowerCase() : null;
 
@@ -240,7 +241,8 @@ export async function loginFacebookUser(payload) {
         username: user.username,
         email: user.email,
         full_name: user.full_name,
-        avatar_url: user.avatar_url
+        avatar_url: user.avatar_url,
+        role: user.role ?? 'user'
       },
       accessToken: buildAccessToken(user),
       refreshToken
@@ -383,7 +385,7 @@ export async function loginWithGoogle({ idToken, accessToken }) {
     await client.query('BEGIN');
 
     const existing = await client.query(
-      'SELECT user_id, username, email, full_name, avatar_url, is_active FROM users WHERE email = $1 LIMIT 1',
+      'SELECT user_id, username, email, full_name, avatar_url, is_active, role FROM users WHERE email = $1 LIMIT 1',
       [email.toLowerCase()]
     );
 
@@ -412,7 +414,7 @@ export async function loginWithGoogle({ idToken, accessToken }) {
       const insertResult = await client.query(
         `INSERT INTO users (username, email, full_name, avatar_url, auth_provider, provider_uid)
          VALUES ($1, $2, $3, $4, 'google', $5)
-         RETURNING user_id, username, email, full_name, avatar_url, created_at`,
+         RETURNING user_id, username, email, full_name, avatar_url, role, created_at`,
         [username, email.toLowerCase(), name || email.split('@')[0], picture, googleUid]
       );
       user = insertResult.rows[0];

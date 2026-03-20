@@ -50,6 +50,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
     _fadeIn = CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic);
     _entryController.forward();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<ThemeProvider>().syncThemeFromServer(
+        apiBaseUrl: widget.apiBaseUrl,
+        accessToken: widget.accessToken,
+      );
+    });
   }
 
   @override
@@ -339,7 +347,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       _ServiceItem('Lắc Xì', Icons.casino, const Color(0xFFE85D3A)),
       _ServiceItem('Vay Nhanh', Icons.flash_on, const Color(0xFF14B8A6)),
       _ServiceItem('Tạo Avatar', Icons.person_add_alt_1, Colors.purpleAccent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AvaturnScreen()))),
-      _ServiceItem('Thanh toán', Icons.money_off, AppTheme.primary),
+      _ServiceItem('Thanh toán', Icons.money_off, AppTheme.of(context).primary),
       _ServiceItem('Vé phim', Icons.movie_outlined, const Color(0xFFE85D3A)),
       _ServiceItem('Du lịch', Icons.flight_takeoff, AppTheme.of(context).primary),
       _ServiceItem('Thêm', Icons.grid_view, AppTheme.of(context).textMuted),

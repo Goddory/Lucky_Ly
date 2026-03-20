@@ -868,9 +868,9 @@ class _AuthScreenState extends State<AuthScreen>
     if (_googleSignInInitialized) return;
 
     if (kIsWeb) {
-      await GoogleSignIn.instance.initialize(clientId: _googleClientId);
+      await google_auth.GoogleSignIn.instance.initialize(clientId: _googleClientId);
     } else {
-      await GoogleSignIn.instance.initialize(serverClientId: _googleClientId);
+      await google_auth.GoogleSignIn.instance.initialize(serverClientId: _googleClientId);
     }
 
     _googleSignInInitialized = true;
@@ -908,9 +908,9 @@ class _AuthScreenState extends State<AuthScreen>
     try {
       await _ensureGoogleSignInInitialized();
 
-      late final GoogleSignInAccount account;
+      late final google_auth.GoogleSignInAccount account;
       try {
-        account = await GoogleSignIn.instance.authenticate(
+        account = await google_auth.GoogleSignIn.instance.authenticate(
           scopeHint: ['email', 'profile'],
         );
       } catch (e) {
@@ -923,7 +923,7 @@ class _AuthScreenState extends State<AuthScreen>
         return;
       }
 
-      final auth = await account.authentication;
+      final auth = account.authentication;
       final String? idToken = auth.idToken;
 
       if (idToken == null || idToken.isEmpty) {
@@ -946,8 +946,8 @@ class _AuthScreenState extends State<AuthScreen>
       } else {
         _showMessage(body['message']?.toString() ?? 'Google login failed.');
       }
-    } on GoogleSignInException catch (e) {
-      if (e.code == GoogleSignInExceptionCode.canceled) {
+    } on google_auth.GoogleSignInException catch (e) {
+      if (e.code == google_auth.GoogleSignInExceptionCode.canceled) {
         _showMessage('Google login cancelled.');
       } else {
         _showMessage('Google login failed. Please try again.');

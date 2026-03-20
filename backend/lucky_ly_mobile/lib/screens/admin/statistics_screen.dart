@@ -148,14 +148,16 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme.of(context);
+
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: theme.bg,
       body: Column(
         children: [
           _buildHeroHeader(context),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                ? Center(child: CircularProgressIndicator(color: theme.primary))
                 : RefreshIndicator(
                     onRefresh: _fetchOverview,
                     child: SingleChildScrollView(
@@ -198,6 +200,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
   }
 
   Widget _buildStatCard(_MetricInfo metric) {
+    final theme = AppTheme.of(context);
     final isSelected = _selectedMetric == metric.key;
     return GestureDetector(
       onTap: () => _onMetricTap(metric.key),
@@ -206,7 +209,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
         curve: Curves.easeInOut,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? metric.color.withValues(alpha: 0.08) : AppTheme.card,
+          color: isSelected ? metric.color.withValues(alpha: 0.08) : theme.card,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? metric.color : Colors.transparent,
@@ -240,14 +243,14 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
               style: TextStyle(
                 fontWeight: FontWeight.w900,
                 fontSize: 28,
-                color: isSelected ? metric.color : AppTheme.textDark,
+                color: isSelected ? metric.color : theme.textDark,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               metric.title,
-              style: const TextStyle(
-                color: AppTheme.textMuted,
+              style: TextStyle(
+                color: theme.textMuted,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -259,9 +262,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
   }
 
   Widget _buildPeriodFilter() {
+    final theme = AppTheme.of(context);
+
     return Row(
       children: [
-        const Text('Lọc theo:', style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textDark, fontSize: 15)),
+        Text('Lọc theo:', style: TextStyle(fontWeight: FontWeight.w700, color: theme.textDark, fontSize: 15)),
         const SizedBox(width: 12),
         _buildPeriodChip('day', 'Ngày'),
         const SizedBox(width: 8),
@@ -273,6 +278,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
   }
 
   Widget _buildPeriodChip(String value, String label) {
+    final theme = AppTheme.of(context);
     final isActive = _selectedPeriod == value;
     return GestureDetector(
       onTap: () => _onPeriodChanged(value),
@@ -280,15 +286,15 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          gradient: isActive ? AppTheme.primaryGradient : null,
-          color: isActive ? null : AppTheme.card,
+          gradient: isActive ? theme.primaryGradient : null,
+          color: isActive ? null : theme.card,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isActive ? Colors.transparent : AppTheme.divider),
+          border: Border.all(color: isActive ? Colors.transparent : theme.divider),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isActive ? Colors.white : AppTheme.textMuted,
+            color: isActive ? Colors.white : theme.textMuted,
             fontWeight: FontWeight.w700,
             fontSize: 13,
           ),
@@ -298,12 +304,13 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
   }
 
   Widget _buildDateSelector() {
+    final theme = AppTheme.of(context);
     final currentMetric = _metrics.firstWhere((m) => m.key == _selectedMetric);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.card,
+        color: theme.card,
         borderRadius: BorderRadius.circular(14),
         boxShadow: AppTheme.softShadow,
       ),
@@ -409,6 +416,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
   }
 
   Future<String?> _showPickerDialog(String title, List<String> items) async {
+    final theme = AppTheme.of(context);
+
     return showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -424,7 +433,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
           children: [
             Padding(
               padding: const EdgeInsets.all(20),
-              child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppTheme.textDark)),
+              child: Text(title, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: theme.textDark)),
             ),
             Flexible(
               child: ListView.builder(
@@ -444,13 +453,14 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
   }
 
   Widget _buildChartSection() {
+    final theme = AppTheme.of(context);
     final currentMetric = _metrics.firstWhere((m) => m.key == _selectedMetric);
 
     if (_isChartLoading) {
       return Container(
         height: 280,
         decoration: BoxDecoration(
-          color: AppTheme.card,
+          color: theme.card,
           borderRadius: BorderRadius.circular(20),
           boxShadow: AppTheme.softShadow,
         ),
@@ -462,17 +472,17 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
       return Container(
         height: 280,
         decoration: BoxDecoration(
-          color: AppTheme.card,
+          color: theme.card,
           borderRadius: BorderRadius.circular(20),
           boxShadow: AppTheme.softShadow,
         ),
-        child: const Center(
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.info_outline, size: 48, color: AppTheme.textLight),
+              Icon(Icons.info_outline, size: 48, color: theme.textLight),
               SizedBox(height: 12),
-              Text('Không có dữ liệu cho khoảng thời gian này', style: TextStyle(color: AppTheme.textMuted, fontWeight: FontWeight.w600)),
+              Text('Không có dữ liệu cho khoảng thời gian này', style: TextStyle(color: theme.textMuted, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -484,7 +494,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 20, 20, 16),
         decoration: BoxDecoration(
-          color: AppTheme.card,
+          color: theme.card,
           borderRadius: BorderRadius.circular(20),
           boxShadow: AppTheme.softShadow,
         ),
@@ -527,6 +537,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
   }
 
   Widget _buildBarChart(_MetricInfo metric) {
+    final theme = AppTheme.of(context);
     final maxY = _chartData.fold<double>(0, (prev, e) => (e['value'] as int).toDouble() > prev ? (e['value'] as int).toDouble() : prev);
     final interval = maxY <= 5 ? 1.0 : (maxY / 5).ceilToDouble();
 
@@ -555,7 +566,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
               interval: interval,
               getTitlesWidget: (val, meta) => Text(
                 val.toInt().toString(),
-                style: const TextStyle(fontSize: 11, color: AppTheme.textLight, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 11, color: theme.textLight, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -569,7 +580,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     _formatLabel(_chartData[idx]['label'].toString()),
-                    style: const TextStyle(fontSize: 10, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 10, color: theme.textMuted, fontWeight: FontWeight.w600),
                   ),
                 );
               },
@@ -580,7 +591,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
           show: true,
           drawVerticalLine: false,
           horizontalInterval: interval,
-          getDrawingHorizontalLine: (val) => FlLine(color: AppTheme.divider.withValues(alpha: 0.5), strokeWidth: 1),
+          getDrawingHorizontalLine: (val) => FlLine(color: theme.divider.withValues(alpha: 0.5), strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
         barGroups: _chartData.asMap().entries.map((e) {
@@ -605,6 +616,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
   }
 
   Widget _buildLineChart(_MetricInfo metric) {
+    final theme = AppTheme.of(context);
     final maxY = _chartData.fold<double>(0, (prev, e) => (e['value'] as int).toDouble() > prev ? (e['value'] as int).toDouble() : prev);
     final interval = maxY <= 5 ? 1.0 : (maxY / 5).ceilToDouble();
     final labelInterval = (_chartData.length / 6).ceil();
@@ -634,7 +646,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
               interval: interval,
               getTitlesWidget: (val, meta) => Text(
                 val.toInt().toString(),
-                style: const TextStyle(fontSize: 11, color: AppTheme.textLight, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 11, color: theme.textLight, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -649,7 +661,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     _formatLabel(_chartData[idx]['label'].toString()),
-                    style: const TextStyle(fontSize: 10, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 10, color: theme.textMuted, fontWeight: FontWeight.w600),
                   ),
                 );
               },
@@ -660,7 +672,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
           show: true,
           drawVerticalLine: false,
           horizontalInterval: interval,
-          getDrawingHorizontalLine: (val) => FlLine(color: AppTheme.divider.withValues(alpha: 0.5), strokeWidth: 1),
+          getDrawingHorizontalLine: (val) => FlLine(color: theme.divider.withValues(alpha: 0.5), strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
         lineBarsData: [
@@ -710,10 +722,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
   }
 
   Widget _buildHeroHeader(BuildContext context) {
+    final theme = AppTheme.of(context);
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
+        gradient: theme.primaryGradient,
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(32),
           bottomRight: Radius.circular(32),

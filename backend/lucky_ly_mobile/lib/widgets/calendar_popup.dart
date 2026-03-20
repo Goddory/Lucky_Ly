@@ -267,28 +267,40 @@ class _CalendarPopupState extends State<CalendarPopup> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) {
         final themeProvider = Provider.of<ThemeProvider>(context);
+        final currentTheme = themeProvider.currentTheme;
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Chọn chủ đề Lễ hội', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text('Chủ đề hệ thống', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                const Text(
+                  'Chỉ admin có quyền đổi theme trong trang quản trị.',
+                  style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                ),
                 const SizedBox(height: 16),
                 ListTile(
                   leading: const Icon(Icons.phone_android, color: Colors.teal),
                   title: const Text('Mặc định'),
-                  onTap: () { themeProvider.setTheme(AppThemeType.defaultTheme); Navigator.pop(ctx); },
+                  trailing: currentTheme == AppThemeType.defaultTheme
+                      ? Icon(Icons.check_circle, color: AppTheme.of(context).primary)
+                      : const Icon(Icons.lock_outline, color: Color(0xFF94A3B8)),
                 ),
                 ListTile(
                   leading: const Icon(Icons.celebration, color: Colors.red),
                   title: const Text('Tết Nguyên Đán'),
-                  onTap: () { themeProvider.setTheme(AppThemeType.tet); Navigator.pop(ctx); },
+                  trailing: currentTheme == AppThemeType.tet
+                      ? Icon(Icons.check_circle, color: AppTheme.of(context).primary)
+                      : const Icon(Icons.lock_outline, color: Color(0xFF94A3B8)),
                 ),
                 ListTile(
                   leading: const Icon(Icons.favorite, color: Colors.pink),
                   title: const Text('Valentine'),
-                  onTap: () { themeProvider.setTheme(AppThemeType.valentine); Navigator.pop(ctx); },
+                  trailing: currentTheme == AppThemeType.valentine
+                      ? Icon(Icons.check_circle, color: AppTheme.of(context).primary)
+                      : const Icon(Icons.lock_outline, color: Color(0xFF94A3B8)),
                 ),
               ],
             ),

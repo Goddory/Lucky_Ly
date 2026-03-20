@@ -132,16 +132,18 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme.of(context);
+
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: theme.bg,
       body: Column(
         children: [
           _buildHeroHeader(context),
           _buildFilters(),
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppTheme.primary),
+                ? Center(
+                    child: CircularProgressIndicator(color: theme.primary),
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(
@@ -162,10 +164,12 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
   }
 
   Widget _buildHeroHeader(BuildContext context) {
+    final theme = AppTheme.of(context);
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
+        gradient: theme.primaryGradient,
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(32),
           bottomRight: Radius.circular(32),
@@ -263,6 +267,8 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
   }
 
   Widget _buildFilters() {
+    final theme = AppTheme.of(context);
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
@@ -276,12 +282,12 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
               label: Text(
                 filter,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : AppTheme.textMuted,
+                  color: isSelected ? Colors.white : theme.textMuted,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                 ),
               ),
               selected: isSelected,
-              selectedColor: AppTheme.primary,
+              selectedColor: theme.primary,
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
@@ -300,6 +306,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
   }
 
   Widget _buildUserTile(Map<String, dynamic> user, int index) {
+    final theme = AppTheme.of(context);
     final bool isActive = user['isActive'];
     final bool isAdmin = user['role'] == 'admin';
     final String name = user['name'];
@@ -313,7 +320,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isActive ? AppTheme.card : const Color(0xFFF8FAFC),
+          color: isActive ? theme.card : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(16),
           border: isActive
               ? null
@@ -324,7 +331,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
           children: [
             CircleAvatar(
               backgroundColor: isActive
-                  ? AppTheme.primary.withValues(alpha: 0.1)
+                  ? theme.primary.withValues(alpha: 0.1)
                   : Colors.red.withValues(alpha: 0.1),
               radius: 24,
               child: Text(
@@ -332,7 +339,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
-                  color: isActive ? AppTheme.primary : Colors.red,
+                  color: isActive ? theme.primary : Colors.red,
                 ),
               ),
             ),
@@ -346,7 +353,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: isActive ? AppTheme.textDark : AppTheme.textMuted,
+                      color: isActive ? theme.textDark : theme.textMuted,
                       decoration: isActive
                           ? TextDecoration.none
                           : TextDecoration.lineThrough,
@@ -357,7 +364,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                     user['email'],
                     style: TextStyle(
                       color: isActive
-                          ? AppTheme.textMuted
+                          ? theme.textMuted
                           : Colors.grey.shade500,
                       fontSize: 13,
                     ),

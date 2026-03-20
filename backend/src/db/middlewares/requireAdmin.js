@@ -10,7 +10,7 @@ export async function requireAdmin(req, res, next) {
     }
 
     const result = await pool.query('SELECT role FROM users WHERE user_id = $1 LIMIT 1', [userId]);
-    const role = result.rows[0]?.role;
+    const role = String(result.rows[0]?.role ?? '').trim().toLowerCase();
 
     if (role !== 'admin') {
       return res.status(403).json({ message: 'Forbidden' });

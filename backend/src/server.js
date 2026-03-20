@@ -12,10 +12,14 @@ async function start() {
     
     // Khởi tạo MongoDB (Không bắt buộc để chạy ứng dụng chính)
     try {
-      await connectMongo();
-      console.log('✅ Connected to MongoDB successfully');
+      const mongoResult = await connectMongo();
+      if (mongoResult?.connected) {
+        console.log('✅ Connected to MongoDB successfully');
+      } else {
+        console.error(`⚠️ MongoDB Connection Failed (Proceeding without Mongo): ${mongoResult?.reason || 'unknown reason'}`);
+      }
     } catch (e) {
-      console.error('⚠️ MongoDB Connection Failed (Proceeding without Mongo):', e.message);
+      console.error('⚠️ MongoDB Connection Failed (Proceeding without Mongo):', e?.message || e);
     }
     
     app.listen(env.port, () => {

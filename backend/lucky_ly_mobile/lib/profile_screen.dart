@@ -39,6 +39,9 @@ class _ProfileScreenState extends State<ProfileScreen>
   late String username;
   late String avatarUrl;
   late String authProvider;
+  late String userRole;
+
+  bool get _isAdmin => userRole == 'admin';
 
   bool isEditing = false;
   bool isSaving = false;
@@ -65,19 +68,25 @@ class _ProfileScreenState extends State<ProfileScreen>
     username = widget.userData['username']?.toString() ?? '';
     avatarUrl = widget.userData['avatar_url']?.toString() ?? '';
     authProvider = widget.userData['auth_provider']?.toString() ?? 'local';
+    userRole = widget.userData['role']?.toString().toLowerCase() ?? 'user';
 
     fullNameController = TextEditingController(text: fullName);
     emailController = TextEditingController(text: email);
     avatarUrlController = TextEditingController(text: avatarUrl);
 
     _loadLocalUser();
+    _loadRemoteUser();
+  }
+
+  String _resolveCurrentUserId() {
+    return widget.userData['id']?.toString() ??
+        widget.userData['user_id']?.toString() ??
+        '1';
   }
 
   Future<void> _loadLocalUser() async {
     final dbHelper = DatabaseHelper.instance;
-    final user = await dbHelper.getUser(
-      widget.userData['id']?.toString() ?? '1',
-    );
+    final user = await dbHelper.getUser(_resolveCurrentUserId());
     if (user != null) {
       if (mounted) {
         setState(() {
@@ -90,6 +99,47 @@ class _ProfileScreenState extends State<ProfileScreen>
           avatarUrlController.text = avatarUrl;
         });
       }
+    }
+  }
+
+  Future<void> _loadRemoteUser() async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('${widget.apiBaseUrl}/api/users/me'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ${widget.accessToken}',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return;
+      }
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) return;
+      final user = decoded['user'];
+      if (user is! Map<String, dynamic>) return;
+
+      if (!mounted) return;
+      setState(() {
+        userRole = user['role']?.toString().toLowerCase() ?? userRole;
+        fullName = user['full_name']?.toString() ?? fullName;
+        email = user['email']?.toString() ?? email;
+        username = user['username']?.toString() ?? username;
+        avatarUrl = user['avatar_url']?.toString() ?? avatarUrl;
+        authProvider = user['auth_provider']?.toString() ?? authProvider;
+
+        if (!isEditing) {
+          fullNameController.text = fullName;
+          emailController.text = email;
+          avatarUrlController.text = avatarUrl;
+        }
+      });
+    } catch (_) {
+      // Keep current local profile state if remote sync fails.
     }
   }
 
@@ -127,25 +177,24 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Widget _buildHeader() {
-    return SliverAppBar(
-      expandedHeight: 220,
-      floating: false,
-      pinned: true,
-      automaticallyImplyLeading: false,
-      flexibleSpace: Container(
-        decoration: BoxDecoration(
-          gradient: AppTheme.of(context).primaryGradient,
+  Widget _buildStaticHeader() {
+    final theme = AppTheme.of(context);
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: theme.primaryGradient,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
         ),
       ),
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.only(top: 16, bottom: 32),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Avatar
               Container(
                 width: 88,
                 height: 88,
@@ -179,7 +228,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
               ),
               const SizedBox(height: 12),
-              // Tên user
               Text(
                 fullName,
                 style: const TextStyle(
@@ -188,25 +236,50 @@ class _ProfileScreenState extends State<ProfileScreen>
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 4),
-              // Badge loại tài khoản
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  _providerLabel(authProvider),
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+              const SizedBox(height: 8),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      _providerLabel(authProvider),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
+                  if (_isAdmin)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Admin',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ],
           ),
@@ -396,7 +469,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         child: Column(
           children: [
-            if (email == 'admin@gmail.com') ...[
+            if (_isAdmin) ...[
               _SettingsTile(
                 icon: Icons.admin_panel_settings,
                 label: 'Quản trị hệ thống',
@@ -412,7 +485,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             ],
             _SettingsTile(
               icon: Icons.palette_outlined,
-              label: 'Đổi giao diện',
+              label: _isAdmin ? 'Quản lý giao diện hệ thống' : 'Xem giao diện hệ thống',
               color: AppTheme.of(context).primary,
               onTap: () => _showThemeBottomSheet(context),
             ),
@@ -538,45 +611,141 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showThemeBottomSheet(BuildContext context) {
+    final canEditTheme = _isAdmin;
+    context.read<ThemeProvider>().syncThemeFromServer(
+      apiBaseUrl: widget.apiBaseUrl,
+      accessToken: widget.accessToken,
+    );
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        final themeProvider = Provider.of<ThemeProvider>(context);
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Chọn giao diện',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        return Consumer<ThemeProvider>(
+          builder: (context, themeProvider, _) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      canEditTheme ? 'Quản lý giao diện hệ thống' : 'Giao diện hệ thống',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      canEditTheme
+                          ? 'Thay đổi sẽ áp dụng cho toàn bộ người dùng.'
+                          : 'Bạn chỉ có quyền xem. Chỉ admin mới được đổi giao diện.',
+                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                    ),
+                    const SizedBox(height: 16),
+                    if (themeProvider.isSyncing)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: LinearProgressIndicator(
+                          color: AppTheme.of(context).primary,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    _buildThemeOption(
+                      context,
+                      themeProvider,
+                      AppThemeType.defaultTheme,
+                      'Mặc định',
+                      Icons.phone_android,
+                      enabled: canEditTheme,
+                      onTap: () => _applyGlobalTheme(ctx, themeProvider, AppThemeType.defaultTheme),
+                    ),
+                    _buildThemeOption(
+                      context,
+                      themeProvider,
+                      AppThemeType.tet,
+                      'Tết Nguyên Đán',
+                      Icons.celebration,
+                      color: Colors.red,
+                      enabled: canEditTheme,
+                      onTap: () => _applyGlobalTheme(ctx, themeProvider, AppThemeType.tet),
+                    ),
+                    _buildThemeOption(
+                      context,
+                      themeProvider,
+                      AppThemeType.valentine,
+                      'Valentine',
+                      Icons.favorite,
+                      color: Colors.pink,
+                      enabled: canEditTheme,
+                      onTap: () => _applyGlobalTheme(ctx, themeProvider, AppThemeType.valentine),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                _buildThemeOption(context, themeProvider, AppThemeType.defaultTheme, 'Mặc định', Icons.phone_android),
-                _buildThemeOption(context, themeProvider, AppThemeType.tet, 'Tết Nguyên Đán', Icons.celebration, color: Colors.red),
-                _buildThemeOption(context, themeProvider, AppThemeType.valentine, 'Valentine', Icons.favorite, color: Colors.pink),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildThemeOption(BuildContext context, ThemeProvider provider, AppThemeType type, String name, IconData icon, {Color? color}) {
+  Future<void> _applyGlobalTheme(
+    BuildContext sheetContext,
+    ThemeProvider provider,
+    AppThemeType type,
+  ) async {
+    if (!_isAdmin) return;
+
+    final success = await provider.updateThemeAsAdmin(
+      theme: type,
+      apiBaseUrl: widget.apiBaseUrl,
+      accessToken: widget.accessToken,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      if (sheetContext.mounted) {
+        Navigator.of(sheetContext).pop();
+      }
+      _showSnack('Đã áp dụng giao diện cho toàn bộ người dùng.', isError: false);
+      return;
+    }
+
+    _showSnack(provider.lastError ?? 'Không thể cập nhật giao diện lúc này.');
+  }
+
+  Widget _buildThemeOption(
+    BuildContext context,
+    ThemeProvider provider,
+    AppThemeType type,
+    String name,
+    IconData icon, {
+    Color? color,
+    bool enabled = true,
+    VoidCallback? onTap,
+  }) {
     final isSelected = provider.currentTheme == type;
+
     return ListTile(
       leading: Icon(icon, color: color ?? AppTheme.of(context).primary),
-      title: Text(name, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-      trailing: isSelected ? Icon(Icons.check_circle, color: AppTheme.of(context).primary) : null,
-      onTap: () {
-        provider.setTheme(type);
-        Navigator.pop(context);
-      },
+      title: Text(
+        name,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: enabled || isSelected
+              ? const Color(0xFF1E293B)
+              : const Color(0xFF94A3B8),
+        ),
+      ),
+      trailing: isSelected
+          ? Icon(Icons.check_circle, color: AppTheme.of(context).primary)
+          : (!enabled
+                ? const Icon(Icons.lock_outline, color: Color(0xFF94A3B8))
+                : null),
+      onTap: enabled ? onTap : null,
     );
   }
 
@@ -800,7 +969,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     setState(() => isSaving = true);
 
     try {
-      final String currentId = widget.userData['id']?.toString() ?? '1';
+      final String currentId = _resolveCurrentUserId();
       final newFullName = fullNameController.text.trim();
       final newEmail = emailController.text.trim();
       final newAvatarUrl = avatarUrlController.text.trim();

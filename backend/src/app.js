@@ -12,6 +12,7 @@ import designRoutes from './modules/designs/designs.routes.js';
 import syncRoutes from './routes/sync.routes.js';
 import eventsRoutes from './modules/events/events.routes.js';
 import statsRoutes from './modules/stats/stats.routes.js';
+import themeRoutes from './modules/theme/theme.routes.js';
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use('/api/designs', designRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/theme', themeRoutes);
 
 app.use(notFoundHandler);
 

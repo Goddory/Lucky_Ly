@@ -7,12 +7,19 @@ import 'theme_management_screen.dart';
 class AdminDashboardScreen extends StatelessWidget {
   final String apiBaseUrl;
   final String accessToken;
-  const AdminDashboardScreen({super.key, required this.apiBaseUrl, required this.accessToken});
+
+  const AdminDashboardScreen({
+    super.key,
+    required this.apiBaseUrl,
+    required this.accessToken,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme.of(context);
+
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: theme.bg,
       body: Column(
         children: [
           _buildHeroHeader(context),
@@ -23,12 +30,12 @@ class AdminDashboardScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Tổng quan',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
-                      color: AppTheme.textDark,
+                      color: theme.textDark,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -38,25 +45,49 @@ class AdminDashboardScreen extends StatelessWidget {
                     subtitle: 'Xem danh sách, khóa/mở khóa tài khoản',
                     icon: Icons.people_alt_outlined,
                     color: const Color(0xFF0EA5D8),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => UsersManagementScreen(apiBaseUrl: apiBaseUrl, accessToken: accessToken))),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UsersManagementScreen(
+                          apiBaseUrl: apiBaseUrl,
+                          accessToken: accessToken,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   _buildAdminCard(
                     context: context,
-                    title: 'Báo cáo & Thống kê',
+                    title: 'Báo cáo và Thống kê',
                     subtitle: 'Theo dõi lưu lượng truy cập và giao dịch',
                     icon: Icons.analytics_outlined,
                     color: const Color(0xFF10B981),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StatisticsScreen(apiBaseUrl: apiBaseUrl, accessToken: accessToken))),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => StatisticsScreen(
+                          apiBaseUrl: apiBaseUrl,
+                          accessToken: accessToken,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   _buildAdminCard(
                     context: context,
-                    title: 'Quản lý Giao diện (Theme)',
-                    subtitle: 'Đổi theme toàn hệ thống (Tết, Noel, v.v...)',
+                    title: 'Quản lý Giao diện',
+                    subtitle: 'Đổi theme toàn hệ thống cho tất cả user',
                     icon: Icons.color_lens_outlined,
                     color: const Color(0xFFF59E0B),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThemeManagementScreen())),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ThemeManagementScreen(
+                          apiBaseUrl: apiBaseUrl,
+                          accessToken: accessToken,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -68,10 +99,12 @@ class AdminDashboardScreen extends StatelessWidget {
   }
 
   Widget _buildHeroHeader(BuildContext context) {
+    final theme = AppTheme.of(context);
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
+        gradient: theme.primaryGradient,
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(32),
           bottomRight: Radius.circular(32),
@@ -100,12 +133,19 @@ class AdminDashboardScreen extends StatelessWidget {
                         color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+                      child: const Icon(
+                        Icons.arrow_back,
+                        color: Colors.white,
+                        size: 24,
+                      ),
                     ),
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
@@ -115,7 +155,7 @@ class AdminDashboardScreen extends StatelessWidget {
                         Icon(Icons.verified_user, color: Colors.white, size: 16),
                         SizedBox(width: 6),
                         Text(
-                          'Super Admin',
+                          'Admin',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -145,13 +185,17 @@ class AdminDashboardScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.shield_outlined, color: Color(0xFF0EA5D8), size: 32),
+                    child: const Icon(
+                      Icons.shield_outlined,
+                      color: Color(0xFF0EA5D8),
+                      size: 32,
+                    ),
                   ),
                   const SizedBox(width: 20),
-                  Expanded(
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           'Quản trị hệ thống',
                           style: TextStyle(
@@ -162,7 +206,7 @@ class AdminDashboardScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 6),
                         Text(
-                          'Theo dõi và thiết lập toàn bộ\nhoạt động của Lucky Ly',
+                          'Theo dõi và thiết lập hoạt động Lucky Ly',
                           style: TextStyle(
                             color: Colors.white70,
                             fontSize: 14,
@@ -190,12 +234,14 @@ class AdminDashboardScreen extends StatelessWidget {
     required Color color,
     required VoidCallback onTap,
   }) {
+    final theme = AppTheme.of(context);
+
     return AnimatedInteractiveScale(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppTheme.card,
+          color: theme.card,
           borderRadius: BorderRadius.circular(20),
           boxShadow: AppTheme.softShadow,
         ),
@@ -216,25 +262,25 @@ class AdminDashboardScreen extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.textDark,
+                      color: theme.textDark,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: AppTheme.textMuted,
+                      color: theme.textMuted,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppTheme.textLight),
+            Icon(Icons.chevron_right, color: theme.textLight),
           ],
         ),
       ),
