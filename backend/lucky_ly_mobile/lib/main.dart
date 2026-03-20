@@ -946,6 +946,12 @@ class _AuthScreenState extends State<AuthScreen>
       } else {
         _showMessage(body['message']?.toString() ?? 'Google login failed.');
       }
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        _showMessage('Google login cancelled.');
+      } else {
+        _showMessage('Google login failed. Please try again.');
+      }
     } catch (e) {
       debugPrint('Google login unexpected error: $e');
       _showMessage(_googleErrorMessage(e));
