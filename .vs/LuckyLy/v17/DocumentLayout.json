@@ -1,7 +1,20 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\Users\\Dell\\LuckyLy\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Dell\\LuckyLy\\backend\\start.bat||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:backend\\start.bat||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Dell\\LuckyLy\\.editorconfig||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:.editorconfig||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Dell\\LuckyLy\\.gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:.gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -9,7 +22,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": -1,
+          "SelectedChildIndex": 11,
           "Children": [
             {
               "$type": "Bookmark",
@@ -54,6 +67,45 @@
             {
               "$type": "Bookmark",
               "Name": "ST:131:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "start.bat",
+              "DocumentMoniker": "C:\\Users\\Dell\\LuckyLy\\backend\\start.bat",
+              "RelativeDocumentMoniker": "backend\\start.bat",
+              "ToolTip": "C:\\Users\\Dell\\LuckyLy\\backend\\start.bat",
+              "RelativeToolTip": "backend\\start.bat",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "00000000-0000-0000-0000-000000000000.000000|iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAE8SURBVDhPvZJNSwJRGIWfmcaQiH6DEdEHFBEFBe6KoKKoTf8iAlOmgdbipqBf0rKICAuDkj4WERgulL5o06gLx9S53lZJzrVQgh54uXDOuefdvPAXpJReqW00y4xkQAa8RmtoWb2dz4tLKw0vyACWGZaVSkWZ48SVPDpLKvr3scyw1BtWAPfpLIenl9i5PO92jv2DODd3KW\u002BsjlJg6DqOU2JidIjJsWGckoNhKLE6iuMKQbVaQdQENSFwq1VcV3hjdZSCcrmMBsTPk5wkLtA0SF7f4pQ\u002BvFFoVjA\u002BMsja8hw93V0IV/D69sLj8xOx3T1SD2lvXC34YnVhlvmZIIV8gei2Sd628fs7vbGfCwCKRQdDh/VQBJ\u002Bvo\u002Bnl/low0N/HVmiD4PQUO7EovQH15jTL3MyApjotIbNe5f/5BEiOoURWS5r0AAAAAElFTkSuQmCC",
+              "WhenOpened": "2026-03-18T13:45:39.143Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": ".gitignore",
+              "DocumentMoniker": "C:\\Users\\Dell\\LuckyLy\\.gitignore",
+              "RelativeDocumentMoniker": ".gitignore",
+              "ToolTip": "C:\\Users\\Dell\\LuckyLy\\.gitignore",
+              "RelativeToolTip": ".gitignore",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-03-18T13:42:27.51Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": ".editorconfig",
+              "DocumentMoniker": "C:\\Users\\Dell\\LuckyLy\\.editorconfig",
+              "RelativeDocumentMoniker": ".editorconfig",
+              "ToolTip": "C:\\Users\\Dell\\LuckyLy\\.editorconfig",
+              "RelativeToolTip": ".editorconfig",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-03-18T13:42:24.772Z",
+              "EditorCaption": ""
             }
           ]
         },

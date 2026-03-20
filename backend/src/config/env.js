@@ -29,5 +29,10 @@ export const env = {
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   bcryptRounds: Number(process.env.BCRYPT_ROUNDS || 12),
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
-  sendgridApiKey: process.env.SENDGRID_API_KEY
+  sendgridApiKey: process.env.SENDGRID_API_KEY,
+  payos: {
+    clientId: process.env.PAYOS_CLIENT_ID || '',
+    apiKey: process.env.PAYOS_API_KEY || '',
+    checksumKey: process.env.PAYOS_CHECKSUM_KEY || ''
+  }
 };

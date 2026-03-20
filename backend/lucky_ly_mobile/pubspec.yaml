@@ -33,7 +33,7 @@ dependencies:
   http: ^1.2.2
   firebase_core: ^4.5.0
   firebase_auth: ^6.2.0
-  google_sign_in: ^7.2.0
+  google_sign_in: ^6.2.1
   flutter_facebook_auth: ^7.1.5
   camera: ^0.12.0
   permission_handler: ^12.0.1
@@ -47,6 +47,7 @@ dependencies:
   path_provider: ^2.1.5
   webview_flutter: ^4.13.1
   flutter_unity_widget: ^2022.2.1
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

@@ -2,11 +2,13 @@ import bcrypt from 'bcrypt';
 import { pool } from '../../db/pool.js';
 import { env } from '../../config/env.js';
 
-// Lấy profile user hiện tại từ DB.
+// Lấy profile user hiện tại từ DB kèm theo số dư ví.
 export async function getUserProfile(userId) {
   const result = await pool.query(
-    `SELECT user_id, username, email, full_name, avatar_url, auth_provider, created_at
-     FROM users WHERE user_id = $1 LIMIT 1`,
+    `SELECT u.user_id, u.username, u.email, u.full_name, u.avatar_url, u.auth_provider, u.created_at, w.balance, w.currency
+     FROM users u
+     LEFT JOIN wallets w ON u.user_id = w.user_id
+     WHERE u.user_id = $1 LIMIT 1`,
     [userId]
   );
 
@@ -18,6 +20,7 @@ export async function getUserProfile(userId) {
 
   return result.rows[0];
 }
+
 
 // Cập nhật thông tin profile user.
 export async function updateUserProfile(userId, payload) {

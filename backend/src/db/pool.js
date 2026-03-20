@@ -12,8 +12,9 @@ export const pool = new Pool({
   ssl: env.db.ssl ? { rejectUnauthorized: false } : false,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000
+  connectionTimeoutMillis: 15000
 });
+
 
 // Log lỗi kết nối nền để dễ theo dõi sự cố hạ tầng DB.
 pool.on('error', (err) => {

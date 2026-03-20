@@ -1,4 +1,7 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+
 import 'profile_screen.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -8,6 +11,7 @@ import 'celebrate_screen.dart';
 import 'offers_screen.dart';
 import 'history_screen.dart';
 import 'app_theme.dart';
+import 'deposit_screen.dart';
 
 // Constants moved to app_theme.dart
 
@@ -35,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   int _currentTab = 0;
   late AnimationController _entryController;
   late Animation<double> _fadeIn;
+  Map<String, dynamic>? _userProfile;
 
   @override
   void initState() {
@@ -45,7 +50,37 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
     _fadeIn = CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic);
     _entryController.forward();
+    _fetchUserProfile();
   }
+
+  Future<void> _fetchUserProfile() async {
+    if (widget.accessToken.isEmpty) return;
+    try {
+      final response = await http.get(
+        Uri.parse('${widget.apiBaseUrl}/api/users/me'),
+        headers: {'Authorization': 'Bearer ${widget.accessToken}'},
+      );
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (mounted) {
+          setState(() => _userProfile = body['user']);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching profile in home: $e');
+    }
+  }
+
+  String _formatCurrency(int amount) {
+    final str = amount.toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < str.length; i++) {
+      if (i > 0 && (str.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(str[i]);
+    }
+    return '${buffer.toString()}đ';
+  }
+
 
   @override
   void dispose() {
@@ -183,8 +218,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ),
           _QuickAction(
             icon: Icons.swap_horiz, 
-            label: 'Nạp/Rút'
+            label: 'Nạp/Rút',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => DepositScreen(
+                  apiBaseUrl: widget.apiBaseUrl,
+                  accessToken: widget.accessToken,
+                ),
+              ),
+            ).then((_) => _fetchUserProfile()),
           ),
+
           _QuickAction(
             icon: Icons.call_received, 
             label: 'Nhận tiền'
@@ -224,14 +269,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               children: [
                 _WalletItem(
                   label: 'Ví Lucky Ly',
-                  amount: '4.901đ',
+                  amount: _userProfile != null 
+                    ? _formatCurrency((double.tryParse(_userProfile!['balance'].toString()) ?? 0).toInt())
+                    : '...',
                   icon: Icons.account_balance_wallet,
                   iconColor: AppTheme.primary,
                 ),
+
                 _WalletDivider(),
                 _WalletItem(
                   label: 'Ví Trả Sau',
-                  amount: '18.951.000đ',
+                  amount: '20.000.000đ',
                   icon: Icons.credit_card,
                   iconColor: AppTheme.accent,
                 ),

@@ -10,7 +10,11 @@ export function errorHandler(err, req, res, next) {
   }
 
   const status = err.statusCode || 500;
-  const message = status >= 500 ? 'Internal server error' : err.message;
+  // Show actual error message during debugging
+  const message =
+    process.env.NODE_ENV === 'development' || status < 500
+      ? `[API_ERR] ${err.message || 'Internal server error'}`
+      : 'Internal server error';
 
   if (status >= 500) {
     console.error(err);
