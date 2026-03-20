@@ -10,6 +10,7 @@ import authRoutes from './modules/auth/auth.routes.js';
 import userRoutes from './modules/user/user.routes.js';
 import designRoutes from './modules/designs/designs.routes.js';
 import syncRoutes from './routes/sync.routes.js';
+import eventsRoutes from './modules/events/events.routes.js';
 import statsRoutes from './modules/stats/stats.routes.js';
 
 const app = express();
@@ -44,6 +45,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/designs', designRoutes);
 app.use('/api/sync', syncRoutes);
+app.use('/api/events', eventsRoutes);
 app.use('/api/stats', statsRoutes);
 
 app.use(notFoundHandler);

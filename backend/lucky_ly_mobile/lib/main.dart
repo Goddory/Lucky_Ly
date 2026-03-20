@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter/foundation.dart'
-    show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:google_sign_in/google_sign_in.dart' as google_auth;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
+import 'app_theme.dart';
+import 'package:provider/provider.dart';
+import 'providers/theme_provider.dart';
 
 // Entry point khởi chạy ứng dụng Flutter.
 void main() async {
@@ -42,7 +44,14 @@ void main() async {
     await Firebase.initializeApp();
   }
 
-  runApp(const LuckyLyAuthApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+      ],
+      child: const LuckyLyAuthApp(),
+    ),
+  );
 }
 
 // Widget root cấu hình theme và màn hình khởi đầu.
@@ -51,12 +60,15 @@ class LuckyLyAuthApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final currentAppTheme = AppTheme.getTheme(themeProvider.currentTheme);
+    
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Lucky Ly Auth',
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFFF4F7FC),
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF16B4C2)),
+        scaffoldBackgroundColor: currentAppTheme.bg,
+        colorScheme: ColorScheme.fromSeed(seedColor: currentAppTheme.primary),
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),

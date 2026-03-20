@@ -7,7 +7,11 @@ import 'design_selection_screen.dart';
 import 'celebrate_screen.dart';
 import 'offers_screen.dart';
 import 'history_screen.dart';
+import 'package:provider/provider.dart';
+import 'providers/theme_provider.dart';
 import 'app_theme.dart';
+import 'widgets/calendar_popup.dart';
+import 'widgets/theme_particles.dart';
 import 'screens/avaturn_screen.dart';
 
 // Constants moved to app_theme.dart
@@ -57,33 +61,38 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg,
-      body: _currentTab == 1
-          ? const OffersScreen()
-          : _currentTab == 3
-              ? const HistoryScreen()
-              : _currentTab == 4
-                  ? ProfileScreen(
-                      userData: widget.userData,
-                      accessToken: widget.accessToken,
-                      refreshToken: widget.refreshToken,
-                      apiBaseUrl: widget.apiBaseUrl,
-                    )
-                  : FadeTransition(
-                      opacity: _fadeIn,
-                      child: CustomScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        slivers: [
-                          _buildSliverHeader(context),
-                          SliverToBoxAdapter(child: _buildQuickActions()),
-                          SliverToBoxAdapter(child: _buildWalletCard()),
-                          const SliverToBoxAdapter(child: SizedBox(height: 8)),
-                          _buildPremiumServiceGrid(),
-                          SliverToBoxAdapter(child: _buildEventsSection()),
-                          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-                        ],
-                      ),
-                    ),
+      backgroundColor: AppTheme.of(context).bg,
+      body: Stack(
+        children: [
+          const ThemeParticles(),
+          _currentTab == 1
+              ? const OffersScreen()
+              : _currentTab == 3
+                  ? const HistoryScreen()
+                  : _currentTab == 4
+                      ? ProfileScreen(
+                          userData: widget.userData,
+                          accessToken: widget.accessToken,
+                          refreshToken: widget.refreshToken,
+                          apiBaseUrl: widget.apiBaseUrl,
+                        )
+                      : FadeTransition(
+                          opacity: _fadeIn,
+                          child: CustomScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            slivers: [
+                              _buildSliverHeader(context),
+                              SliverToBoxAdapter(child: _buildQuickActions()),
+                              SliverToBoxAdapter(child: _buildWalletCard()),
+                              const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                              _buildPremiumServiceGrid(),
+                              SliverToBoxAdapter(child: _buildEventsSection()),
+                              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                            ],
+                          ),
+                        ),
+        ],
+      ),
       bottomNavigationBar: _buildBottomNav(),
       floatingActionButton: _buildQrFab(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -99,33 +108,44 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       pinned: false,
       automaticallyImplyLeading: false,
       flexibleSpace: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
-        child: SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-            child: Column(
-              children: [
-                // Search bar + actions
+        decoration: BoxDecoration(gradient: AppTheme.of(context).primaryGradient),
+        child: Stack(
+          children: [
+            _buildThemeDecorations(context),
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Column(
+                  children: [
+                    // Search bar + actions
                 Row(
                   children: [
                     Expanded(
                       child: Container(
                         height: 44,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: Colors.white.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Row(
                           children: [
                             const SizedBox(width: 16),
-                            const Icon(Icons.search, color: Colors.white, size: 22),
+                            const Icon(Icons.search, color: Colors.white, size: 20),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 'Tìm kiếm dịch vụ',
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
+                                  color: Colors.white.withValues(alpha: 0.9),
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -133,9 +153,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              margin: const EdgeInsets.only(right: 6),
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.25),
                                 borderRadius: BorderRadius.circular(16),
+                                boxShadow: AppTheme.softShadow,
                               ),
                               child: const Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -165,14 +187,57 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
           ),
         ),
+            ],
+          ),
       ),
+    );
+  }
+
+  Widget _buildThemeDecorations(BuildContext context) {
+    final themeType = Provider.of<ThemeProvider>(context).currentTheme;
+    final isTet = themeType == AppThemeType.tet;
+    final isVal = themeType == AppThemeType.valentine;
+    
+    if (!isTet && !isVal) return const SizedBox.shrink();
+
+    return Stack(
+      children: [
+        // Glow effect
+        Positioned(
+          top: -50,
+          left: -50,
+          child: Container(
+            width: 200,
+            height: 200,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  blurRadius: 100,
+                  spreadRadius: 50,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (isTet) ...[
+          Positioned(top: -20, left: 10, child: _AnimatedFloatingWidget(durationSeconds: 3.0, offsetFactor: 15, child: Transform.rotate(angle: -0.2, child: Opacity(opacity: 0.4, child: Text('🌸', style: TextStyle(fontSize: 80)))))),
+          Positioned(top: -10, right: -10, child: _AnimatedFloatingWidget(durationSeconds: 2.5, offsetFactor: 12, child: Transform.rotate(angle: 0.3, child: Opacity(opacity: 0.35, child: Text('🌼', style: TextStyle(fontSize: 90)))))),
+          Positioned(top: 40, left: MediaQuery.of(context).size.width / 2 - 30, child: _AnimatedFloatingWidget(durationSeconds: 2.0, offsetFactor: 8, child: Opacity(opacity: 0.4, child: Text('🏮', style: TextStyle(fontSize: 45))))),
+        ] else if (isVal) ...[
+          Positioned(top: -10, left: 15, child: _AnimatedFloatingWidget(durationSeconds: 2.5, offsetFactor: 10, child: Transform.rotate(angle: -0.15, child: Opacity(opacity: 0.4, child: Text('💖', style: TextStyle(fontSize: 70)))))),
+          Positioned(top: -20, right: 10, child: _AnimatedFloatingWidget(durationSeconds: 3.2, offsetFactor: 15, child: Transform.rotate(angle: 0.2, child: Opacity(opacity: 0.35, child: Text('💌', style: TextStyle(fontSize: 80)))))),
+          Positioned(top: 30, left: MediaQuery.of(context).size.width / 2, child: _AnimatedFloatingWidget(durationSeconds: 2.0, offsetFactor: 8, child: Opacity(opacity: 0.4, child: Text('💕', style: TextStyle(fontSize: 45))))),
+        ],
+      ],
     );
   }
 
   // ─── QUICK ACTIONS ROW ────────────────────────────────────
   Widget _buildQuickActions() {
     return Container(
-      decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+      decoration: BoxDecoration(gradient: AppTheme.of(context).primaryGradient),
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -187,8 +252,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             label: 'Nạp/Rút'
           ),
           _QuickAction(
-            icon: Icons.call_received, 
-            label: 'Nhận tiền'
+            icon: Icons.calendar_month_outlined, 
+            label: 'Lịch',
+            onTap: () => CalendarPopup.show(context),
           ),
           _QuickAction(
             icon: Icons.card_giftcard, 
@@ -214,7 +280,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
-            color: AppTheme.card,
+            color: AppTheme.of(context).card,
             borderRadius: BorderRadius.circular(24),
             boxShadow: AppTheme.softShadow,
           ),
@@ -227,14 +293,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   label: 'Ví Lucky Ly',
                   amount: '4.901đ',
                   icon: Icons.account_balance_wallet,
-                  iconColor: AppTheme.primary,
+                  iconColor: AppTheme.of(context).primary,
                 ),
                 _WalletDivider(),
                 _WalletItem(
                   label: 'Ví Trả Sau',
                   amount: '18.951.000đ',
                   icon: Icons.credit_card,
-                  iconColor: AppTheme.accent,
+                  iconColor: AppTheme.of(context).accent,
                 ),
                 _WalletDivider(),
                 _WalletItem(
@@ -265,18 +331,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   Widget _buildPremiumServiceGrid() {
     final services = [
-      _ServiceItem('Chuyển tiền', Icons.send, AppTheme.primary),
+      _ServiceItem('Chuyển tiền', Icons.send, AppTheme.of(context).primary),
       _ServiceItem('Ngân hàng', Icons.account_balance, const Color(0xFF0C8DB8)),
-      _ServiceItem('Hóa đơn', Icons.receipt_long, AppTheme.accent),
+      _ServiceItem('Hóa đơn', Icons.receipt_long, AppTheme.of(context).accent),
       _ServiceItem('Nạp ĐT', Icons.phone_android, const Color(0xFF0D96C8)),
-      _ServiceItem('Data 4G/5G', Icons.signal_cellular_alt, AppTheme.primary),
+      _ServiceItem('Data 4G/5G', Icons.signal_cellular_alt, AppTheme.of(context).primary),
       _ServiceItem('Lắc Xì', Icons.casino, const Color(0xFFE85D3A)),
       _ServiceItem('Vay Nhanh', Icons.flash_on, const Color(0xFF14B8A6)),
       _ServiceItem('Tạo Avatar', Icons.person_add_alt_1, Colors.purpleAccent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AvaturnScreen()))),
       _ServiceItem('Thanh toán', Icons.money_off, AppTheme.primary),
       _ServiceItem('Vé phim', Icons.movie_outlined, const Color(0xFFE85D3A)),
-      _ServiceItem('Du lịch', Icons.flight_takeoff, AppTheme.primary),
-      _ServiceItem('Thêm', Icons.grid_view, AppTheme.textMuted),
+      _ServiceItem('Du lịch', Icons.flight_takeoff, AppTheme.of(context).primary),
+      _ServiceItem('Thêm', Icons.grid_view, AppTheme.of(context).textMuted),
     ];
 
     return SliverPadding(
@@ -305,8 +371,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: AppTheme.card,
+        decoration: BoxDecoration(
+          color: AppTheme.of(context).card,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(32),
             topRight: Radius.circular(32),
@@ -319,7 +385,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppTheme.divider,
+                color: AppTheme.of(context).divider,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -327,26 +393,26 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.accent.withValues(alpha: 0.1),
+                color: AppTheme.of(context).accent.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.campaign, color: AppTheme.accent, size: 40),
+              child: Icon(Icons.campaign, color: AppTheme.of(context).accent, size: 40),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Chào mừng bạn đến với Lucky Ly!',
               style: TextStyle(
-                color: AppTheme.textDark,
+                color: AppTheme.of(context).textDark,
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Tận hưởng các dịch vụ tài chính thông minh và ưu đãi hấp dẫn dành riêng cho bạn.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppTheme.textMuted,
+                color: AppTheme.of(context).textMuted,
                 fontSize: 15,
                 height: 1.5,
               ),
@@ -357,7 +423,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
+                  backgroundColor: AppTheme.of(context).primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.all(16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -383,7 +449,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             Text(
               'Sự kiện đang diễn ra',
               style: TextStyle(
-                color: AppTheme.textDark,
+                color: AppTheme.of(context).textDark,
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
               ),
@@ -395,14 +461,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               borderRadius: BorderRadius.circular(20),
               gradient: LinearGradient(
                 colors: [
-                  AppTheme.primary,
-                  AppTheme.accent,
-                  AppTheme.primary.withValues(alpha: 0.9),
+                  AppTheme.of(context).primary,
+                  AppTheme.of(context).accent,
+                  AppTheme.of(context).primary.withValues(alpha: 0.9),
                 ],
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.primary.withValues(alpha: 0.3),
+                  color: AppTheme.of(context).primary.withValues(alpha: 0.3),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -473,7 +539,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         child: Text(
                           'Nhận ngay',
                           style: TextStyle(
-                            color: AppTheme.primary,
+                            color: AppTheme.of(context).primary,
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
                           ),
@@ -494,7 +560,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget _buildBottomNav() {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.card,
+        color: AppTheme.of(context).card,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -528,9 +594,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       height: 64,
       width: 64,
       decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
+        gradient: AppTheme.of(context).primaryGradient,
         shape: BoxShape.circle,
-        boxShadow: AppTheme.glowShadow(AppTheme.primary),
+        boxShadow: AppTheme.glowShadow(AppTheme.of(context).primary),
       ),
       child: FloatingActionButton(
         elevation: 0,
@@ -699,14 +765,22 @@ class _HeaderIconBtn extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           Container(
-          height: 44,
-          width: 44,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.2),
-            shape: BoxShape.circle,
+            height: 44,
+            width: 44,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(icon, color: Colors.white, size: 22),
           ),
-          child: Icon(icon, color: Colors.white, size: 22),
-        ),
         if (badge > 0)
           Positioned(
             right: -2,
@@ -744,29 +818,98 @@ class _QuickAction extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            height: 52,
-            width: 52,
+            height: 56,
+            width: 56,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.3),
+                  Colors.white.withValues(alpha: 0.05),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1.2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  blurRadius: 15,
+                  spreadRadius: 2,
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            child: Icon(icon, color: Colors.white, size: 26),
+            child: Icon(icon, color: Colors.white, size: 28),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             label,
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white, 
-              fontSize: 11, 
-              fontWeight: FontWeight.w600, 
+              fontSize: 12, 
+              fontWeight: FontWeight.w700, 
               height: 1.2,
               letterSpacing: -0.2,
+              shadows: [
+                Shadow(
+                  color: Colors.black26,
+                  blurRadius: 4,
+                  offset: Offset(0, 1),
+                ),
+              ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _AnimatedFloatingWidget extends StatefulWidget {
+  final Widget child;
+  final double durationSeconds;
+  final double offsetFactor;
+  const _AnimatedFloatingWidget({required this.child, this.durationSeconds = 2.0, this.offsetFactor = 10.0});
+
+  @override
+  State<_AnimatedFloatingWidget> createState() => _AnimatedFloatingWidgetState();
+}
+
+class _AnimatedFloatingWidgetState extends State<_AnimatedFloatingWidget> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: (widget.durationSeconds * 1000).toInt()),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, -_controller.value * widget.offsetFactor),
+          child: child,
+        );
+      },
+      child: widget.child,
     );
   }
 }
@@ -799,8 +942,8 @@ class _WalletItem extends StatelessWidget {
               Flexible(
                 child: Text(
                   label,
-                  style: const TextStyle(
-                    color: AppTheme.textMuted,
+                  style: TextStyle(
+                    color: AppTheme.of(context).textMuted,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -815,8 +958,8 @@ class _WalletItem extends StatelessWidget {
               Flexible(
                 child: Text(
                   amount,
-                  style: const TextStyle(
-                    color: AppTheme.textDark,
+                  style: TextStyle(
+                    color: AppTheme.of(context).textDark,
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
@@ -824,7 +967,7 @@ class _WalletItem extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 2),
-              const Icon(Icons.chevron_right, size: 16, color: AppTheme.textLight),
+              Icon(Icons.chevron_right, size: 16, color: AppTheme.of(context).textLight),
             ],
           ),
         ],
@@ -865,8 +1008,8 @@ class _ServiceGridTile extends StatelessWidget {
       onTap: service.onTap ?? () {},
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.card,
-          border: Border.all(color: AppTheme.divider.withValues(alpha: 0.5), width: 0.5),
+          color: AppTheme.of(context).card,
+          border: Border.all(color: AppTheme.of(context).divider.withValues(alpha: 0.5), width: 0.5),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -886,8 +1029,8 @@ class _ServiceGridTile extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppTheme.textDark, 
+              style: TextStyle(
+                color: AppTheme.of(context).textDark, 
                 fontSize: 10, 
                 fontWeight: FontWeight.w700, 
                 letterSpacing: -0.2,
@@ -925,14 +1068,14 @@ class _NavItem extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: isActive ? AppTheme.primary : AppTheme.textLight,
+              color: isActive ? AppTheme.of(context).primary : AppTheme.of(context).textLight,
               size: 24,
             ),
             const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
-                color: isActive ? AppTheme.primary : AppTheme.textLight,
+                color: isActive ? AppTheme.of(context).primary : AppTheme.of(context).textLight,
                 fontSize: 10,
                 fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
               ),
