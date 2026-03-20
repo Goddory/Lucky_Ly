@@ -29,5 +29,11 @@ export const env = {
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   bcryptRounds: Number(process.env.BCRYPT_ROUNDS || 12),
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
-  sendgridApiKey: process.env.SENDGRID_API_KEY
+  sendgridApiKey: process.env.SENDGRID_API_KEY,
+  vnpay: {
+    tmnCode: process.env.VNPAY_TMN_CODE,
+    hashSecret: process.env.VNPAY_HASH_SECRET,
+    url: process.env.VNPAY_URL,
+    returnUrl: process.env.VNPAY_RETURN_URL
+  }
 };

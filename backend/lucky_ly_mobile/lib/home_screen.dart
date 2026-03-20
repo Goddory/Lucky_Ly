@@ -7,6 +7,8 @@ import 'design_selection_screen.dart';
 import 'celebrate_screen.dart';
 import 'offers_screen.dart';
 import 'history_screen.dart';
+import 'payment_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'app_theme.dart';
 
 // Constants moved to app_theme.dart
@@ -39,12 +41,24 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
+    _saveTokenToPrefs();
     _entryController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
     _fadeIn = CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic);
     _entryController.forward();
+  }
+
+  Future<void> _saveTokenToPrefs() async {
+    if (widget.accessToken.isNotEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('accessToken', widget.accessToken);
+      if (widget.refreshToken.isNotEmpty) {
+        await prefs.setString('refreshToken', widget.refreshToken);
+      }
+      debugPrint('DEBUG: Token saved to SharedPreferences from HomeScreen');
+    }
   }
 
   @override
@@ -860,7 +874,12 @@ class _ServiceGridTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedInteractiveScale(
-      onTap: () {},
+      onTap: () {
+        final label = service.label;
+        if (label == 'Nạp ĐT' || label == 'Thanh toán' || label == 'Chuyển tiền' || label == 'Ngân hàng') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentScreen()));
+        }
+      },
       child: Container(
         decoration: BoxDecoration(
           color: AppTheme.card,

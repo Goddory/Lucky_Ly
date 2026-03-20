@@ -668,7 +668,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         await _saveAccount(email, password); // Lưu tài khoản sau khi đăng ký thành công
-        _navigateToHome(body);
+        await _navigateToHome(body);
       } else {
         _showMessage(body['message']?.toString() ?? 'Sign up failed.');
       }
@@ -702,7 +702,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         await _saveAccount(login, password); // Lưu cập nhật mật khẩu mới nhất
-        _navigateToHome(body);
+        await _navigateToHome(body);
       } else {
         _showMessage(body['message']?.toString() ?? 'Sign in failed.');
       }
@@ -749,7 +749,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         final body = _safeDecodeMap(response.body);
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
-          _navigateToHome(body);
+          await _navigateToHome(body);
         } else {
           _showMessage(body['message']?.toString() ?? 'Facebook login failed.');
         }
@@ -800,7 +800,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       final body = _safeDecodeMap(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        _navigateToHome(body);
+        await _navigateToHome(body);
       } else {
         _showMessage(body['message']?.toString() ?? 'Google login failed.');
       }
@@ -1047,17 +1047,32 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     );
   }
 
-  void _navigateToHome(Map<String, dynamic> responseBody) {
+  Future<void> _navigateToHome(Map<String, dynamic> responseBody) async {
     if (!mounted) return;
+    
+    // Lưu token vào SharedPreferences để dùng ở các màn hình khác (ví dụ: PaymentScreen)
+    final prefs = await SharedPreferences.getInstance();
+    final accessToken = responseBody['accessToken']?.toString() ?? '';
+    final refreshToken = responseBody['refreshToken']?.toString() ?? '';
+    
+    if (accessToken.isNotEmpty) {
+      await prefs.setString('accessToken', accessToken);
+    }
+    if (refreshToken.isNotEmpty) {
+      await prefs.setString('refreshToken', refreshToken);
+    }
+
     final user = responseBody['user'] as Map<String, dynamic>? ?? {};
     final userEmail = user['email']?.toString() ?? '';
+    
+    if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => HomeScreen(
           userEmail: userEmail,
           userData: user,
-          accessToken: responseBody['accessToken']?.toString() ?? '',
-          refreshToken: responseBody['refreshToken']?.toString() ?? '',
+          accessToken: accessToken,
+          refreshToken: refreshToken,
           apiBaseUrl: _apiBaseUrl,
         ),
       ),

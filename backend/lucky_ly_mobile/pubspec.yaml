@@ -12,7 +12,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In Android, build-name is used as versionName while build-number used as versionCode.
 # Read more about Android versioning at https://developer.android.com/studio/publish/versioning
 # In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
-# Read more about iOS versioning at
+# Read more about iOS versioning atflutter run -d web-server
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
@@ -33,7 +33,7 @@ dependencies:
   http: ^1.2.2
   firebase_core: ^4.5.0
   firebase_auth: ^6.2.0
-  google_sign_in: ^7.2.0
+  google_sign_in: ^6.1.5
   flutter_facebook_auth: ^7.1.5
   camera: ^0.12.0
   permission_handler: ^12.0.1
@@ -47,6 +47,7 @@ dependencies:
   path_provider: ^2.1.5
   webview_flutter: ^4.13.1
   flutter_unity_widget: ^2022.2.1
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
