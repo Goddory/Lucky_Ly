@@ -13,6 +13,7 @@ import syncRoutes from './routes/sync.routes.js';
 import eventsRoutes from './modules/events/events.routes.js';
 import statsRoutes from './modules/stats/stats.routes.js';
 import themeRoutes from './modules/theme/theme.routes.js';
+import giftsRoutes from './modules/gifts/gifts.routes.js';
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use('/api/sync', syncRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/theme', themeRoutes);
+app.use('/api/gifts', giftsRoutes);
 
 app.use(notFoundHandler);
 

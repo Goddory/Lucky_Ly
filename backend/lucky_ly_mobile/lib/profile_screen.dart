@@ -515,7 +515,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               label: 'Xem Model 3D của tôi',
               color: const Color(0xFF8B5CF6),
               onTap: () {
-                // Điều hướng tới Avatar3DScreen chứa UnityWidget
+                // Điều hướng tới Avatar3DScreen hiển thị model bằng ModelViewer
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const screens.Avatar3DScreen()),
                 );

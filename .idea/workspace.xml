@@ -5,10 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e7f21b5e-5660-48eb-b0b3-53ed89e90078" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/backend/lucky_ly_mobile/lib/admin_user_management_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lucky_ly_mobile/lib/admin_user_management_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/admin/admin.controller.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/admin/admin.controller.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/admin/admin.routes.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/admin/admin.routes.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/admin/admin.service.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/admin/admin.service.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/lucky_ly_mobile/lib/profile_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lucky_ly_mobile/lib/profile_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/lucky_ly_mobile/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lucky_ly_mobile/pubspec.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/lucky_ly_mobile/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lucky_ly_mobile/pubspec.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/lucky_ly_mobile/windows/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lucky_ly_mobile/windows/flutter/generated_plugin_registrant.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/lucky_ly_mobile/windows/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lucky_ly_mobile/windows/flutter/generated_plugins.cmake" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -21,9 +23,21 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 0
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "Goddory"
+  }
 }]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/Goddory/Lucky_Ly.git",
+    "accountId": "1d17a960-ca0f-4726-98c6-83917af0527f"
+  }
+}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 0
+}</component>
   <component name="ProjectId" id="3B2F7lRRnrzNUUEdPyzdg1oZGAf" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -33,14 +47,18 @@
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.cidr.known.project.marker": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "Tài__Khoản__Admin",
+    "dart.analysis.tool.window.visible": "false",
+    "git-widget-placeholder": "main",
+    "kotlin-language-version-configured": "true",
     "last_opened_file_path": "D:/Học/CNPM/App_LucKy_Ly/Lucky_Ly",
-    "settings.editor.selected.configurable": "templates.modelproviders.configurable"
+    "settings.editor.selected.configurable": "templates.modelproviders.configurable",
+    "show.migrate.to.gradle.popup": "false"
   }
 }]]></component>
   <component name="TaskManager">

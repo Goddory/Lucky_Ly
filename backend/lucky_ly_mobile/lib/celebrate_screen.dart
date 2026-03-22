@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
+import 'screens/gifts/themed_gift_builder_screen.dart';
 
 class CelebrateScreen extends StatelessWidget {
   const CelebrateScreen({super.key});
@@ -66,7 +67,19 @@ class CelebrateScreen extends StatelessWidget {
 
   Widget _buildHolidayCard(String name, IconData icon, Color color, BuildContext context) {
     return AnimatedInteractiveScale(
-      onTap: () {},
+      onTap: () {
+        String? giftTheme;
+        if (name.contains('Tết')) giftTheme = 'tet';
+        if (name.contains('Valentine')) giftTheme = 'valentine';
+        if (giftTheme != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ThemedGiftBuilderScreen(theme: giftTheme!),
+            ),
+          );
+        }
+      },
       child: Container(
         decoration: BoxDecoration(
           color: AppTheme.of(context).card,

@@ -13,6 +13,7 @@ import 'app_theme.dart';
 import 'widgets/calendar_popup.dart';
 import 'widgets/theme_particles.dart';
 import 'screens/avaturn_screen.dart';
+import 'screens/gifts/gift_notification_screen.dart';
 
 // Constants moved to app_theme.dart
 
@@ -182,6 +183,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       ),
                     ),
                     const SizedBox(width: 14),
+                    _HeaderIconBtn(
+                      icon: Icons.card_giftcard, 
+                      badge: 0,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GiftNotificationScreen())),
+                    ),
+                    const SizedBox(width: 10),
                     _HeaderIconBtn(
                       icon: Icons.notifications_none_outlined, 
                       badge: 1,

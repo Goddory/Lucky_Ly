@@ -36,6 +36,11 @@
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <!-- ARCore - optional, app works without AR  -->
+        <meta-data
+            android:name="com.google.ar.core"
+            android:value="optional" />
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
