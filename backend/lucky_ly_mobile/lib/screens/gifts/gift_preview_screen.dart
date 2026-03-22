@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:model_viewer_plus/model_viewer_plus.dart';
 import '../../data/gift_catalog.dart';
 import '../../app_theme.dart';
 
@@ -169,20 +170,6 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
     );
   }
 
-  IconData _getIconForModel(String iconName) {
-    switch (iconName) {
-      case 'redeem': return Icons.redeem;
-      case 'card_giftcard': return Icons.card_giftcard;
-      case 'local_florist': return Icons.local_florist;
-      case 'pets': return Icons.pets;
-      case 'emoji_events': return Icons.emoji_events;
-      case 'favorite': return Icons.favorite;
-      case 'smart_toy': return Icons.smart_toy;
-      case 'cake': return Icons.cake;
-      default: return Icons.card_giftcard;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final appTheme = AppTheme.of(context);
@@ -201,7 +188,7 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
           children: [
             // Gift preview card
             Container(
-              height: 280,
+              height: 320,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
@@ -225,22 +212,19 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(28),
-                        decoration: BoxDecoration(
-                          color: _themeColor.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(color: _themeColor.withValues(alpha: 0.15), blurRadius: 20, spreadRadius: 5),
-                          ],
-                        ),
-                        child: Icon(
-                          _getIconForModel(widget.model.thumbnailIcon),
-                          color: _themeColor,
-                          size: 64,
+                      SizedBox(
+                        height: 220,
+                        width: double.infinity,
+                        child: ModelViewer(
+                          key: ValueKey(widget.model.id),
+                          src: widget.model.assetPath,
+                          alt: widget.model.name,
+                          autoRotate: true,
+                          cameraControls: true,
+                          backgroundColor: Colors.transparent,
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       Text(
                         widget.model.name,
                         style: TextStyle(
@@ -271,6 +255,7 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
             // Sticker count & message
             if (widget.stickers.isNotEmpty)
               Container(
+                margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -289,8 +274,7 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
                 ),
               ),
 
-            if (widget.message.isNotEmpty) ...[
-              const SizedBox(height: 12),
+            if (widget.message.isNotEmpty)
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -316,7 +300,6 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
                   ],
                 ),
               ),
-            ],
 
             const SizedBox(height: 20),
 

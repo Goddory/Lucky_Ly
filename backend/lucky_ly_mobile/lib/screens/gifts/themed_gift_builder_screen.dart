@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/gift_catalog.dart';
 import '../../app_theme.dart';
 import 'gift_preview_screen.dart';
+import 'package:model_viewer_plus/model_viewer_plus.dart';
 
 class ThemedGiftBuilderScreen extends StatefulWidget {
   const ThemedGiftBuilderScreen({super.key, required this.theme});
@@ -296,19 +297,19 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: _themeColor.withValues(alpha: 0.08),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        _getIconForModel(_models[_selectedModelIndex].thumbnailIcon),
-                        color: _themeColor,
-                        size: 48,
+                    SizedBox(
+                      height: 180,
+                      width: double.infinity,
+                      child: ModelViewer(
+                        key: ValueKey(_models[_selectedModelIndex].id),
+                        src: _models[_selectedModelIndex].assetPath,
+                        alt: _models[_selectedModelIndex].name,
+                        autoRotate: true,
+                        cameraControls: true,
+                        backgroundColor: Colors.transparent,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Text(
                       _models[_selectedModelIndex].name,
                       style: TextStyle(
