@@ -2,14 +2,6 @@ import 'package:flutter/material.dart';
 import 'mobile_studio_screen.dart';
 import 'app_theme.dart';
 
-class _C {
-  static const primary = Color(0xFF0EA5D8);
-  static const bg = Color(0xFFF2F6FA);
-  static const card = Colors.white;
-  static const textDark = Color(0xFF1E293B);
-  static const textMuted = Color(0xFF64748B);
-}
-
 class DesignSelectionScreen extends StatelessWidget {
   const DesignSelectionScreen({super.key, required this.type});
 

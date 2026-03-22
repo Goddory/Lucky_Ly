@@ -3,8 +3,15 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../database/database_helper.dart';
 
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+
 class SyncManager {
-  static const String _syncApiUrl = 'http://10.0.2.2:4000/api/sync'; 
+  static String get _syncApiUrl {
+    if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.macOS || defaultTargetPlatform == TargetPlatform.linux) {
+      return 'http://localhost:4000/api/sync';
+    }
+    return 'http://10.0.2.2:4000/api/sync';
+  }
 
   /// Push những thay đổi offline lên Server (MongoDB)
   static Future<bool> _pushTable(String tableName, String endpoint, String idField) async {

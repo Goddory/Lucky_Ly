@@ -3,8 +3,15 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/event_model.dart';
 
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+
 class CalendarApiService {
-  static const String _baseUrl = 'http://10.0.2.2:4000/api/events';
+  static String get _baseUrl {
+    if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.macOS || defaultTargetPlatform == TargetPlatform.linux) {
+      return 'http://localhost:4000/api/events';
+    }
+    return 'http://10.0.2.2:4000/api/events';
+  }
 
   static Future<List<EventModel>> fetchEvents() async {
     try {

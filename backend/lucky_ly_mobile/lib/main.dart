@@ -101,7 +101,7 @@ class _AuthScreenState extends State<AuthScreen>
   static final String _apiBaseUrl =
       const String.fromEnvironment('API_BASE_URL', defaultValue: '').isNotEmpty
       ? const String.fromEnvironment('API_BASE_URL')
-      : (kIsWeb ? 'http://localhost:4000' : 'http://10.0.2.2:4000');
+      : (kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.macOS || defaultTargetPlatform == TargetPlatform.linux ? 'http://localhost:4000' : 'http://10.0.2.2:4000');
 
   // Web OAuth client id / server client id dùng để lấy token từ Google.
   static const String _googleClientId = String.fromEnvironment(

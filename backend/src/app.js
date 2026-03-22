@@ -1,5 +1,7 @@
 import cors from 'cors';
 import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { ZodError } from 'zod';
@@ -17,14 +19,22 @@ import giftsRoutes from './modules/gifts/gifts.routes.js';
 
 const app = express();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 app.set('trust proxy', 1);
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+}));
 app.use(
   cors({
-    origin: env.corsOrigin,
+    origin: '*', // Cho phép mọi nguồn (đặc biệt là WebView localhost)
     credentials: false
   })
 );
+
+// Phục vụ statics từ assets folder của Flutter app
+app.use('/assets', express.static(path.join(__dirname, '../lucky_ly_mobile/assets')));
 app.use(express.json({ limit: '100kb' }));
 
 // Global console logger for all activities

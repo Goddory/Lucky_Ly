@@ -636,31 +636,29 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     if (status.isGranted) {
       // 2. Lấy danh sách camera khả dụng
       final cameras = await availableCameras();
+      if (!context.mounted) return;
       if (cameras.isEmpty) {
-        if (mounted) _showSimpleMessage('Không tìm thấy camera trên thiết bị.');
+        _showSimpleMessage('Không tìm thấy camera trên thiết bị.');
         return;
       }
       
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => CameraScreen(cameras: cameras)),
-        );
-      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => CameraScreen(cameras: cameras)),
+      );
     } else if (status.isPermanentlyDenied) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Quyền truy cập Camera'),
-            content: const Text('Ứng dụng cần quyền Camera để chụp ảnh. Vui lòng cấp quyền trong Cài đặt.'),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
-              TextButton(onPressed: () => openAppSettings(), child: const Text('Cài đặt')),
-            ],
-          ),
-        );
-      }
+      if (!context.mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Quyền truy cập Camera'),
+          content: const Text('Ứng dụng cần quyền Camera để chụp ảnh. Vui lòng cấp quyền trong Cài đặt.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+            TextButton(onPressed: () => openAppSettings(), child: const Text('Cài đặt')),
+          ],
+        ),
+      );
     }
   }
 
@@ -736,7 +734,8 @@ class _CameraScreenState extends State<CameraScreen> {
                   onTap: () async {
                     try {
                       await _controller.takePicture();
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã chụp ảnh!')));
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã chụp ảnh!')));
                     } catch (e) {
                       debugPrint('Lỗi chụp ảnh: $e');
                     }

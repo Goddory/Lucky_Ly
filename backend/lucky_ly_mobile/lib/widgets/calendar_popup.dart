@@ -66,9 +66,6 @@ class _CalendarPopupState extends State<CalendarPopup> {
   Widget build(BuildContext context) {
     final selectedEvents = _getEventsForDay(_selectedDay ?? _focusedDay);
     final themeType = Provider.of<ThemeProvider>(context).currentTheme;
-    final isValentine = themeType == AppThemeType.valentine;
-    final isTet = themeType == AppThemeType.tet;
-
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
@@ -222,13 +219,13 @@ class _CalendarPopupState extends State<CalendarPopup> {
   }
 
   void _showAddNoteDialog(BuildContext context) {
-    final _ctrl = TextEditingController();
+    final ctrl = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Thêm ghi chú', style: TextStyle(fontWeight: FontWeight.bold)),
         content: TextField(
-          controller: _ctrl,
+          controller: ctrl,
           decoration: InputDecoration(
             hintText: 'Nhập nội dung...',
             focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.of(context).primary)),
@@ -241,12 +238,13 @@ class _CalendarPopupState extends State<CalendarPopup> {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (_ctrl.text.isEmpty) return;
-              final txt = _ctrl.text;
+              if (ctrl.text.isEmpty) return;
+              final txt = ctrl.text;
               Navigator.pop(ctx);
               
               // Call API
               final newEvent = await CalendarApiService.createEvent(txt, _selectedDay ?? _focusedDay);
+              if (!context.mounted) return;
               if (newEvent != null) {
                 _fetchEvents(); // reload simply
               } else {

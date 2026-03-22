@@ -3,10 +3,10 @@ import 'dart:io' as io;
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/rendering.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../app_theme.dart';
@@ -26,7 +26,7 @@ class _GiftOpenScreenState extends State<GiftOpenScreen>
   static final String _apiBaseUrl =
       const String.fromEnvironment('API_BASE_URL', defaultValue: '').isNotEmpty
           ? const String.fromEnvironment('API_BASE_URL')
-          : (kIsWeb ? 'http://localhost:4000' : 'http://10.0.2.2:4000');
+          : (kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.macOS || defaultTargetPlatform == TargetPlatform.linux ? 'http://localhost:4000' : 'http://10.0.2.2:4000');
 
   // State machine
   _OpenPhase _phase = _OpenPhase.initial;

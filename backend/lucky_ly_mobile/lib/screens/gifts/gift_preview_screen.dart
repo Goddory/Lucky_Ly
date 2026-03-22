@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 import '../../data/gift_catalog.dart';
 import '../../app_theme.dart';
@@ -29,13 +29,11 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _emailController = TextEditingController();
   bool _isSending = false;
-  late AnimationController _floatController;
-  late Animation<double> _floatAnimation;
 
   static final String _apiBaseUrl =
       const String.fromEnvironment('API_BASE_URL', defaultValue: '').isNotEmpty
           ? const String.fromEnvironment('API_BASE_URL')
-          : (kIsWeb ? 'http://localhost:4000' : 'http://10.0.2.2:4000');
+          : (kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.macOS || defaultTargetPlatform == TargetPlatform.linux ? 'http://localhost:4000' : 'http://10.0.2.2:4000');
 
   Color get _themeColor =>
       widget.theme == 'tet' ? const Color(0xFFc0392b) : const Color(0xFFe84393);
@@ -50,18 +48,10 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
   @override
   void initState() {
     super.initState();
-    _floatController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-    _floatAnimation = Tween<double>(begin: -8, end: 8).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
-    );
   }
 
   @override
   void dispose() {
-    _floatController.dispose();
     _emailController.dispose();
     super.dispose();
   }
@@ -201,51 +191,70 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
                 border: Border.all(color: _themeColor.withValues(alpha: 0.1)),
               ),
               child: Center(
-                child: AnimatedBuilder(
-                  animation: _floatAnimation,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, _floatAnimation.value),
-                      child: child,
-                    );
-                  },
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        height: 220,
-                        width: double.infinity,
-                        child: ModelViewer(
-                          key: ValueKey(widget.model.id),
-                          src: widget.model.assetPath,
-                          alt: widget.model.name,
-                          autoRotate: true,
-                          cameraControls: true,
-                          backgroundColor: Colors.transparent,
-                        ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      height: 220,
+                      width: double.infinity,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned.fill(
+                            child: ModelViewer(
+                              key: ValueKey(widget.model.id),
+                              src: widget.model.assetPath,
+                              alt: widget.model.name,
+                              autoRotate: true,
+                              cameraControls: true,
+                              backgroundColor: Colors.transparent,
+                            ),
+                          ),
+                          ...widget.stickers.map((s) {
+                            final stickerData = GiftCatalog.getStickers(widget.theme).firstWhere(
+                              (e) => e.id == s['id'],
+                              orElse: () => const GiftSticker(id: '', name: '', assetPath: '', theme: ''),
+                            );
+                            if (stickerData.assetPath.isEmpty) return const SizedBox.shrink();
+                            return Positioned(
+                              left: (s['x'] as num).toDouble(),
+                              top: (s['y'] as num).toDouble(),
+                              child: Transform.rotate(
+                                angle: ((s['rotation'] ?? 0.0) as num).toDouble(),
+                                child: Transform.scale(
+                                  scale: ((s['scale'] ?? 1.0) as num).toDouble(),
+                                  child: SizedBox(
+                                    width: 44, height: 44,
+                                    child: Image.asset(stickerData.assetPath, fit: BoxFit.contain),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        widget.model.name,
-                        style: TextStyle(
-                          color: appTheme.textDark,
-                          fontSize: 20, fontWeight: FontWeight.w800,
-                        ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.model.name,
+                      style: TextStyle(
+                        color: appTheme.textDark,
+                        fontSize: 20, fontWeight: FontWeight.w800,
                       ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: _themeColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          widget.theme == 'tet' ? '🧧 Chủ đề Tết' : '💕 Chủ đề Valentine',
-                          style: TextStyle(color: _themeColor, fontSize: 12, fontWeight: FontWeight.w700),
-                        ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _themeColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                    ],
-                  ),
+                      child: Text(
+                        widget.theme == 'tet' ? '🧧 Chủ đề Tết' : '💕 Chủ đề Valentine',
+                        style: TextStyle(color: _themeColor, fontSize: 12, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

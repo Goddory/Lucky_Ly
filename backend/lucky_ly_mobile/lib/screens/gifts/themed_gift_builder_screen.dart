@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import '../../data/gift_catalog.dart';
 import '../../app_theme.dart';
 import 'gift_preview_screen.dart';
@@ -14,6 +15,11 @@ class ThemedGiftBuilderScreen extends StatefulWidget {
 
 class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
     with SingleTickerProviderStateMixin {
+  static final String _apiBaseUrl =
+      const String.fromEnvironment('API_BASE_URL', defaultValue: '').isNotEmpty
+          ? const String.fromEnvironment('API_BASE_URL')
+          : (kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.macOS || defaultTargetPlatform == TargetPlatform.linux ? 'http://localhost:4000' : 'http://10.0.2.2:4000');
+
   late final List<GiftModel> _models;
   late final List<GiftSticker> _stickers;
   int _selectedModelIndex = 0;
@@ -321,50 +327,12 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                   ],
                 ),
               ),
-              // Placed stickers
-              ..._placedStickers.asMap().entries.map((entry) {
-                final idx = entry.key;
-                final placed = entry.value;
-                return Positioned(
-                  left: placed.x.clamp(0, 260),
-                  top: placed.y.clamp(0, 190),
-                  child: GestureDetector(
-                    onTap: () => setState(() => _placedStickers.removeAt(idx)),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        SizedBox(
-                          width: 44, height: 44,
-                          child: Image.asset(
-                            placed.sticker.assetPath,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) =>
-                                Icon(Icons.auto_awesome, color: _themeColor, size: 20),
-                          ),
-                        ),
-                        Positioned(
-                          top: -6, right: -6,
-                          child: Container(
-                            width: 18, height: 18,
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 1.5),
-                            ),
-                            child: const Icon(Icons.close, size: 10, color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
               // Hint for drag
               if (_placedStickers.isEmpty && !isHovering)
                 Positioned(
                   bottom: 12, left: 0, right: 0,
                   child: Text(
-                    'Kéo sticker vào đây để trang trí',
+                    'Kéo sticker vào đây\nDùng 2 ngón tay để thu phóng/xoay, 1 ngón để di chuyển',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: AppTheme.of(context).textMuted,
@@ -373,6 +341,61 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                     ),
                   ),
                 ),
+              // Placed stickers
+              ..._placedStickers.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final placed = entry.value;
+                return Positioned(
+                  left: placed.x.clamp(-20, 300),
+                  top: placed.y.clamp(-20, 220),
+                  child: GestureDetector(
+                    onScaleUpdate: (details) {
+                      setState(() {
+                        placed.x += details.focalPointDelta.dx;
+                        placed.y += details.focalPointDelta.dy;
+                        placed.scale = (placed.scale * details.scale).clamp(0.5, 3.0);
+                        placed.rotation += details.rotation;
+                      });
+                    },
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Transform.rotate(
+                          angle: placed.rotation,
+                          child: Transform.scale(
+                            scale: placed.scale,
+                            child: SizedBox(
+                              width: 44, height: 44,
+                              child: Image.asset(
+                                placed.sticker.assetPath,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) =>
+                                    Icon(Icons.auto_awesome, color: _themeColor, size: 20),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: -6, right: -6,
+                          child: GestureDetector(
+                            onTap: () => setState(() => _placedStickers.removeAt(idx)),
+                            child: Container(
+                              width: 22, height: 22,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                              ),
+                              child: const Icon(Icons.close, size: 12, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
             ],
           ),
         );
@@ -443,7 +466,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                       theme: widget.theme,
                       model: _models[_selectedModelIndex],
                       stickers: _placedStickers
-                          .map((s) => {'id': s.sticker.id, 'x': s.x, 'y': s.y})
+                          .map((s) => {'id': s.sticker.id, 'x': s.x, 'y': s.y, 'scale': s.scale, 'rotation': s.rotation})
                           .toList(),
                       message: _messageController.text.trim(),
                     ),
@@ -483,8 +506,10 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
 
 class _PlacedSticker {
   final GiftSticker sticker;
-  final double x;
-  final double y;
+  double x;
+  double y;
+  double scale = 1.0;
+  double rotation = 0.0;
 
   _PlacedSticker({required this.sticker, required this.x, required this.y});
 }
