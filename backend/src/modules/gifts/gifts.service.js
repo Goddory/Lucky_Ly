@@ -2,12 +2,13 @@ import { pool } from '../../db/pool.js';
 
 export const createGift = async (senderId, giftData) => {
   const { receiverEmail, theme, modelId, stickers, message } = giftData;
+  const normalizedReceiverEmail = receiverEmail.trim().toLowerCase();
   const query = `
     INSERT INTO gifts (sender_id, receiver_email, theme, model_id, stickers, message, status)
     VALUES ($1, $2, $3, $4, $5, $6, 'pending')
     RETURNING *;
   `;
-  const values = [senderId, receiverEmail, theme, modelId, JSON.stringify(stickers || []), message];
+  const values = [senderId, normalizedReceiverEmail, theme, modelId, JSON.stringify(stickers || []), message];
   const { rows } = await pool.query(query, values);
   return rows[0];
 };
@@ -17,7 +18,7 @@ export const getReceivedGifts = async (userEmail) => {
     SELECT g.*, u.username AS sender_name, u.avatar_url AS sender_avatar
     FROM gifts g
     LEFT JOIN users u ON g.sender_id = u.user_id
-    WHERE g.receiver_email = $1
+    WHERE LOWER(g.receiver_email) = LOWER($1)
     ORDER BY g.created_at DESC;
   `;
   const { rows } = await pool.query(query, [userEmail]);
@@ -36,14 +37,18 @@ export const getSentGifts = async (senderId) => {
   return rows;
 };
 
-export const getGiftById = async (id) => {
+export const getGiftByIdForUser = async (id, userId, userEmail) => {
   const query = `
     SELECT g.*, u.username AS sender_name, u.avatar_url AS sender_avatar, u.full_name AS sender_full_name
     FROM gifts g
     LEFT JOIN users u ON g.sender_id = u.user_id
-    WHERE g.id = $1;
+    WHERE g.id = $1
+      AND (
+        g.sender_id = $2
+        OR LOWER(g.receiver_email) = LOWER($3)
+      );
   `;
-  const { rows } = await pool.query(query, [id]);
+  const { rows } = await pool.query(query, [id, userId, userEmail]);
   return rows[0];
 };
 
@@ -59,7 +64,11 @@ export const markAsOpened = async (id, userEmail) => {
 };
 
 export const countPendingGifts = async (userEmail) => {
-  const query = `SELECT COUNT(*) AS count FROM gifts WHERE receiver_email = $1 AND status = 'pending';`;
+  const query = `
+    SELECT COUNT(*) AS count
+    FROM gifts
+    WHERE LOWER(receiver_email) = LOWER($1) AND status = 'pending';
+  `;
   const { rows } = await pool.query(query, [userEmail]);
   return parseInt(rows[0].count, 10);
 };

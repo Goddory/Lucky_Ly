@@ -65,9 +65,6 @@ class _CalendarPopupState extends State<CalendarPopup> {
   @override
   Widget build(BuildContext context) {
     final selectedEvents = _getEventsForDay(_selectedDay ?? _focusedDay);
-    final themeType = Provider.of<ThemeProvider>(context).currentTheme;
-    final isValentine = themeType == AppThemeType.valentine;
-    final isTet = themeType == AppThemeType.tet;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
@@ -229,6 +226,7 @@ class _CalendarPopupState extends State<CalendarPopup> {
         title: const Text('Thêm ghi chú', style: TextStyle(fontWeight: FontWeight.bold)),
         content: TextField(
           controller: _ctrl,
+          maxLines: 3,
           decoration: InputDecoration(
             hintText: 'Nhập nội dung...',
             focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.of(context).primary)),
@@ -241,16 +239,37 @@ class _CalendarPopupState extends State<CalendarPopup> {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (_ctrl.text.isEmpty) return;
+              if (_ctrl.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Vui lòng nhập nội dung ghi chú'))
+                );
+                return;
+              }
               final txt = _ctrl.text;
               Navigator.pop(ctx);
               
-              // Call API
-              final newEvent = await CalendarApiService.createEvent(txt, _selectedDay ?? _focusedDay);
-              if (newEvent != null) {
-                _fetchEvents(); // reload simply
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi khi thêm ghi chú')));
+              // Show loading indicator
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Đang lưu ghi chú...'), duration: Duration(seconds: 1))
+              );
+              
+              try {
+                // Call API
+                final newEvent = await CalendarApiService.createEvent(txt, _selectedDay ?? _focusedDay);
+                if (newEvent != null) {
+                  _fetchEvents(); // reload
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Ghi chú đã được lưu thành công'))
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Không thể lưu ghi chú. Kiểm tra kết nối mạng.'))
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Lỗi khi lưu ghi chú: $e'))
+                );
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.of(context).primary),

@@ -1,0 +1,165 @@
+# AR Virtual Gift Feature — Implementation Plan
+
+Thêm tính năng tặng quà ảo theo chủ đề (Tết / Valentine) với trải nghiệm mở quà AR. Người gửi chọn chủ đề → chọn model 3D & stickers → gửi kèm lời nhắn. Người nhận mở quà qua camera AR (hoặc nền gradient fallback) với hiệu ứng unboxing.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Cần tải file `.glb` thủ công**: Plugin `ar_flutter_plugin` cần file `.glb` trong `assets/models/`. Tôi sẽ cung cấp danh sách URL model miễn phí từ Sketchfab/Google Poly, bạn cần tải và đặt vào đúng thư mục. Code sẽ hoạt động với placeholder trước.
+
+> [!WARNING]
+> **AR chỉ test được trên thiết bị thật**: ARCore không hoạt động trên Android emulator. Cần thiết bị Android thật có hỗ trợ ARCore để test phần AR. Phần fallback gradient + 3D model sẽ chạy được trên emulator.
+
+---
+
+## Proposed Changes
+
+### Backend — Gift API Module
+
+Tạo module hoàn chỉnh theo pattern hiện tại (`modules/designs/`).
+
+#### [NEW] [gift.model.js](file:///c:/Users/super/source/repos/Lucky_Ly/backend/src/modules/gifts/gift.model.js)
+MongoDB schema cho quà tặng:
+```js
+{
+  senderId: ObjectId (ref: users),
+  receiverEmail: String,
+  theme: String ('tet' | 'valentine'),
+  modelId: String,        // ID model 3D đã chọn
+  stickers: [{ id, x, y, scale, rotation }],
+  message: String,         // Lời nhắn cá nhân
+  status: String ('pending' | 'opened'),
+  openedAt: Date,
+  createdAt: Date
+}
+```
+
+#### [NEW] [gifts.service.js](file:///c:/Users/super/source/repos/Lucky_Ly/backend/src/modules/gifts/gifts.service.js)
+Business logic: `createGift`, `getReceivedGifts`, `getGiftById`, `markAsOpened`.
+
+#### [NEW] [gifts.controller.js](file:///c:/Users/super/source/repos/Lucky_Ly/backend/src/modules/gifts/gifts.controller.js)
+Express handlers: `POST /` (send gift), `GET /received` (list nhận), `GET /:id`, `PATCH /:id/open`.
+
+#### [NEW] [gifts.routes.js](file:///c:/Users/super/source/repos/Lucky_Ly/backend/src/modules/gifts/gifts.routes.js)
+Routes với `authenticateToken` middleware.
+
+#### [MODIFY] [app.js](file:///c:/Users/super/source/repos/Lucky_Ly/backend/src/app.js)
+Thêm `import giftsRoutes` và `app.use('/api/gifts', giftsRoutes)`.
+
+---
+
+### Flutter — Gift Asset Catalog
+
+#### [NEW] [gift_catalog.dart](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/lib/data/gift_catalog.dart)
+Danh mục quà tặng hardcoded cho cả 2 chủ đề:
+- **Tết**: 5 model (bao lì xì đỏ, bao lì xì vàng, bao lì xì hoa mai, bao lì xì rồng, bao lì xì phúc lộc) + 5 sticker (hoa mai, hoa đào, pháo hoa, câu đối, đèn lồng)
+- **Valentine**: 5 model (hộp quà trái tim, hộp quà nơ, gấu bông, bó hoa, socola) + 5 sticker (trái tim, hoa hồng, cánh cupid, chocolate, love letter)
+
+Model path sẽ tham chiếu đến `assets/models/tet/` và `assets/models/valentine/`. Sticker sẽ là hình ảnh generate sẵn trong `assets/stickers/`.
+
+#### [MODIFY] [pubspec.yaml](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/pubspec.yaml)
+- Add dependency: `ar_flutter_plugin: ^0.7.3`
+- Add asset directories: `assets/models/tet/`, `assets/models/valentine/`, `assets/stickers/tet/`, `assets/stickers/valentine/`
+
+---
+
+### Flutter — Gift Creation Flow
+
+#### [NEW] [themed_gift_builder_screen.dart](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/lib/screens/gifts/themed_gift_builder_screen.dart)
+Màn hình tạo quà theo chủ đề:
+- **Carousel model 3D**: Horizontal scrollable cards hiển thị preview model (dùng `model_viewer_plus` cho preview)
+- **Sticker palette**: Grid stickers, kéo thả lên khu vực thiết kế
+- **Message input**: TextField cho lời nhắn cá nhân
+- **Nút preview/gửi**
+
+#### [NEW] [gift_preview_screen.dart](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/lib/screens/gifts/gift_preview_screen.dart)
+Xem trước quà trước khi gửi: Hiển thị model 3D đã chọn + stickers + message. Nút "Gửi quà" gọi API.
+
+#### [NEW] [gift_recipient_picker.dart](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/lib/screens/gifts/gift_recipient_picker.dart)
+Bottom sheet chọn người nhận (nhập email).
+
+#### [MODIFY] [celebrate_screen.dart](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/lib/celebrate_screen.dart)
+Wire holiday card `onTap` → navigate to `ThemedGiftBuilderScreen(theme: 'tet')` hoặc `'valentine'`.
+
+---
+
+### Flutter — Gift Receiving & Notifications
+
+#### [NEW] [gift_notification_screen.dart](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/lib/screens/gifts/gift_notification_screen.dart)
+Danh sách quà đã nhận:
+- Card hiển thị: avatar người gửi, tên chủ đề, trạng thái (chưa mở / đã mở), thời gian
+- Bấm card → vào `GiftOpenScreen`
+- Badge đếm quà chưa mở
+
+#### [MODIFY] [home_screen.dart](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/lib/home_screen.dart)
+- Thêm icon notification 🎁 trên AppBar với badge count
+- Navigate tới `GiftNotificationScreen`
+
+---
+
+### Flutter — AR Gift Opening Experience
+
+#### [NEW] [gift_open_screen.dart](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/lib/screens/gifts/gift_open_screen.dart)
+Màn hình chính mở quà, flow:
+1. **Request camera** → nếu granted → AR mode; nếu denied → gradient fallback
+2. **AR mode**: `ar_flutter_plugin` ARView với plane detection. User tap plane → đặt quà
+3. **Gradient fallback**: Nền gradient theo chủ đề (đỏ/vàng cho Tết, hồng/tím cho Valentine)  + `model_viewer_plus` hiện model 3D
+4. **Unboxing animation**: Hộp quà rung lắc → nổ confetti (custom painter) → reveal model
+5. **Particle effects**: Pháo hoa (Tết) hoặc trái tim bay (Valentine) overlay bằng Flutter CustomPainter
+6. **Message card**: Hiện thiệp lời nhắn từ người gửi với animation slide up
+7. **Capture**: Nút chụp ảnh màn hình (screenshot) để chia sẻ
+
+#### [NEW] [confetti_painter.dart](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/lib/widgets/confetti_painter.dart)
+CustomPainter cho hiệu ứng confetti/pháo hoa.
+
+#### [NEW] [particle_overlay.dart](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/lib/widgets/particle_overlay.dart)
+Widget overlay particles: pháo hoa (Tết) hoặc trái tim rơi (Valentine).
+
+---
+
+### Flutter — Android AR Setup
+
+#### [MODIFY] [build.gradle.kts (app)](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/android/app/build.gradle.kts)
+- Ensure `minSdk >= 24` (ARCore requirement)
+- Add `<uses-feature android:name="android.hardware.camera.ar" android:required="false" />`
+
+#### [MODIFY] [AndroidManifest.xml](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/android/app/src/main/AndroidManifest.xml)
+- Add ARCore metadata: `<meta-data android:name="com.google.ar.core" android:value="optional" />`
+- Ensure camera permission declared
+
+---
+
+## Verification Plan
+
+### Automated / Semi-automated Tests
+
+1. **Backend API test** (curl commands):
+```bash
+# Register test user
+curl -X POST http://localhost:4000/api/auth/register -H "Content-Type: application/json" -d '{"username":"gift_tester","email":"gift@test.com","fullName":"Gift Tester","password":"Test@1234"}'
+
+# Login to get token
+curl -X POST http://localhost:4000/api/auth/login -H "Content-Type: application/json" -d '{"login":"gift@test.com","password":"Test@1234"}'
+
+# Send gift (use token from login response)
+curl -X POST http://localhost:4000/api/gifts -H "Content-Type: application/json" -H "Authorization: Bearer <TOKEN>" -d '{"receiverEmail":"friend@test.com","theme":"tet","modelId":"tet_lixi_red","stickers":[],"message":"Chúc mừng năm mới!"}'
+
+# List received gifts
+curl http://localhost:4000/api/gifts/received -H "Authorization: Bearer <TOKEN>"
+
+# Open gift
+curl -X PATCH http://localhost:4000/api/gifts/<GIFT_ID>/open -H "Authorization: Bearer <TOKEN>"
+```
+
+2. **Flutter build check**:
+```bash
+cd backend/lucky_ly_mobile && flutter build apk --debug
+```
+
+### Manual Verification (Requires user on physical Android device)
+
+1. **Gift creation flow**: Mở app → Chào mừng lễ hội → chọn Tết/Valentine → thấy carousel model + sticker grid → chọn model, thêm sticker, viết lời nhắn → preview → gửi
+2. **Gift notification**: Đăng nhập tài khoản người nhận → thấy badge 🎁 → tap → thấy danh sách quà → tap một quà
+3. **AR opening**: 
+   - **Có camera**: Cho phép camera → thấy AR view → tap mặt phẳng → quà xuất hiện với animation + particle effects → đọc lời nhắn → chụp ảnh
+   - **Không camera**: Từ chối camera → thấy gradient background theo chủ đề → model quà hiện + animation → đọc lời nhắn

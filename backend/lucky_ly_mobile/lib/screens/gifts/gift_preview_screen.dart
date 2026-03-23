@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:model_viewer_plus/model_viewer_plus.dart';
 import '../../data/gift_catalog.dart';
 import '../../app_theme.dart';
+import '../../widgets/glb_model_viewer.dart';
 
 class GiftPreviewScreen extends StatefulWidget {
   const GiftPreviewScreen({
@@ -25,43 +25,27 @@ class GiftPreviewScreen extends StatefulWidget {
   State<GiftPreviewScreen> createState() => _GiftPreviewScreenState();
 }
 
-class _GiftPreviewScreenState extends State<GiftPreviewScreen>
-    with SingleTickerProviderStateMixin {
+class _GiftPreviewScreenState extends State<GiftPreviewScreen> {
   final TextEditingController _emailController = TextEditingController();
   bool _isSending = false;
-  late AnimationController _floatController;
-  late Animation<double> _floatAnimation;
 
   static final String _apiBaseUrl =
       const String.fromEnvironment('API_BASE_URL', defaultValue: '').isNotEmpty
-          ? const String.fromEnvironment('API_BASE_URL')
-          : (kIsWeb ? 'http://localhost:4000' : 'http://10.0.2.2:4000');
+      ? const String.fromEnvironment('API_BASE_URL')
+      : (kIsWeb ? 'http://localhost:4000' : 'http://10.0.2.2:4000');
 
   Color get _themeColor =>
       widget.theme == 'tet' ? const Color(0xFFc0392b) : const Color(0xFFe84393);
   LinearGradient get _themeGradient => LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: widget.theme == 'tet'
-            ? [const Color(0xFFe74c3c), const Color(0xFFc0392b)]
-            : [const Color(0xFFfd79a8), const Color(0xFFe84393)],
-      );
-
-  @override
-  void initState() {
-    super.initState();
-    _floatController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-    _floatAnimation = Tween<double>(begin: -8, end: 8).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
-    );
-  }
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: widget.theme == 'tet'
+        ? [const Color(0xFFe74c3c), const Color(0xFFc0392b)]
+        : [const Color(0xFFfd79a8), const Color(0xFFe84393)],
+  );
 
   @override
   void dispose() {
-    _floatController.dispose();
     _emailController.dispose();
     super.dispose();
   }
@@ -86,7 +70,7 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
             Uri.parse('$_apiBaseUrl/api/gifts'),
             headers: {
               'Content-Type': 'application/json',
-              if (token != null) 'Cookie': 'accessToken=$token',
+              if (token != null) 'Authorization': 'Bearer $token',
             },
             body: jsonEncode({
               'receiverEmail': email,
@@ -135,7 +119,11 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
                 color: Colors.green.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.check_circle, color: Colors.green, size: 56),
+              child: const Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 56,
+              ),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -159,8 +147,13 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
               style: ElevatedButton.styleFrom(
                 backgroundColor: _themeColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
               child: const Text('Xong'),
             ),
@@ -176,8 +169,13 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
     return Scaffold(
       backgroundColor: appTheme.bg,
       appBar: AppBar(
-        title: const Text('Xem trước quà', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        flexibleSpace: Container(decoration: BoxDecoration(gradient: _themeGradient)),
+        title: const Text(
+          'Xem trước quà',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(gradient: _themeGradient),
+        ),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -201,51 +199,52 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
                 border: Border.all(color: _themeColor.withValues(alpha: 0.1)),
               ),
               child: Center(
-                child: AnimatedBuilder(
-                  animation: _floatAnimation,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, _floatAnimation.value),
-                      child: child,
-                    );
-                  },
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        height: 220,
-                        width: double.infinity,
-                        child: ModelViewer(
-                          key: ValueKey(widget.model.id),
-                          src: widget.model.assetPath,
-                          alt: widget.model.name,
-                          autoRotate: true,
-                          cameraControls: true,
-                          backgroundColor: Colors.transparent,
-                        ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      height: 220,
+                      width: double.infinity,
+                      child: GlbModelViewer(
+                        key: ValueKey(widget.model.id),
+                        assetPath: widget.model.assetPath,
+                        alt: widget.model.name,
+                        autoRotate: true,
+                        cameraControls: true,
+                        backgroundColor: Colors.transparent,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        widget.model.name,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.model.name,
+                      style: TextStyle(
+                        color: appTheme.textDark,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _themeColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        widget.theme == 'tet'
+                            ? '🧧 Chủ đề Tết'
+                            : '💕 Chủ đề Valentine',
                         style: TextStyle(
-                          color: appTheme.textDark,
-                          fontSize: 20, fontWeight: FontWeight.w800,
+                          color: _themeColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: _themeColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          widget.theme == 'tet' ? '🧧 Chủ đề Tết' : '💕 Chủ đề Valentine',
-                          style: TextStyle(color: _themeColor, fontSize: 12, fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -260,7 +259,9 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _themeColor.withValues(alpha: 0.08)),
+                  border: Border.all(
+                    color: _themeColor.withValues(alpha: 0.08),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -268,7 +269,10 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
                     const SizedBox(width: 10),
                     Text(
                       '${widget.stickers.length} sticker đã thêm',
-                      style: TextStyle(color: appTheme.textDark, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: appTheme.textDark,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -280,7 +284,9 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _themeColor.withValues(alpha: 0.08)),
+                  border: Border.all(
+                    color: _themeColor.withValues(alpha: 0.08),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,13 +295,24 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
                       children: [
                         Icon(Icons.format_quote, color: _themeColor, size: 20),
                         const SizedBox(width: 8),
-                        Text('Lời nhắn', style: TextStyle(color: appTheme.textMuted, fontSize: 13, fontWeight: FontWeight.w600)),
+                        Text(
+                          'Lời nhắn',
+                          style: TextStyle(
+                            color: appTheme.textMuted,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Text(
                       widget.message,
-                      style: TextStyle(color: appTheme.textDark, fontSize: 15, fontStyle: FontStyle.italic),
+                      style: TextStyle(
+                        color: appTheme.textDark,
+                        fontSize: 15,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                   ],
                 ),
@@ -306,7 +323,11 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
             // Recipient input
             Text(
               'Gửi đến',
-              style: TextStyle(color: appTheme.textDark, fontSize: 16, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                color: appTheme.textDark,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
             ),
             const SizedBox(height: 10),
             Container(
@@ -336,8 +357,12 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
               onPressed: _isSending ? null : _sendGift,
               icon: _isSending
                   ? const SizedBox(
-                      width: 20, height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.send_rounded),
               label: Text(_isSending ? 'Đang gửi...' : 'Gửi quà 🎁'),
@@ -345,9 +370,14 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen>
                 backgroundColor: _themeColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 elevation: 0,
-                textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                textStyle: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],

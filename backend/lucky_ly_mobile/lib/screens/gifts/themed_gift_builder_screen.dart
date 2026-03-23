@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import '../../data/gift_catalog.dart';
 import '../../app_theme.dart';
 import 'gift_preview_screen.dart';
-import 'package:model_viewer_plus/model_viewer_plus.dart';
+import '../../widgets/glb_model_viewer.dart';
 
 class ThemedGiftBuilderScreen extends StatefulWidget {
   const ThemedGiftBuilderScreen({super.key, required this.theme});
   final String theme; // 'tet' or 'valentine'
 
   @override
-  State<ThemedGiftBuilderScreen> createState() => _ThemedGiftBuilderScreenState();
+  State<ThemedGiftBuilderScreen> createState() =>
+      _ThemedGiftBuilderScreenState();
 }
 
 class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
@@ -18,6 +19,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
   late final List<GiftSticker> _stickers;
   int _selectedModelIndex = 0;
   final List<_PlacedSticker> _placedStickers = [];
+  final Map<int, _StickerGestureState> _gestureStates = {};
   final TextEditingController _messageController = TextEditingController();
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -48,12 +50,12 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
   Color get _themeAccent =>
       widget.theme == 'tet' ? const Color(0xFFf39c12) : const Color(0xFF9b59b6);
   LinearGradient get _themeGradient => LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: widget.theme == 'tet'
-            ? [const Color(0xFFe74c3c), const Color(0xFFc0392b)]
-            : [const Color(0xFFfd79a8), const Color(0xFFe84393)],
-      );
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: widget.theme == 'tet'
+        ? [const Color(0xFFe74c3c), const Color(0xFFc0392b)]
+        : [const Color(0xFFfd79a8), const Color(0xFFe84393)],
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -63,9 +65,14 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
       appBar: AppBar(
         title: Text(
           widget.theme == 'tet' ? 'Quà Tết' : 'Quà Valentine',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        flexibleSpace: Container(decoration: BoxDecoration(gradient: _themeGradient)),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(gradient: _themeGradient),
+        ),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -85,7 +92,10 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                   const SizedBox(height: 12),
                   _buildStickerGrid(),
                   const SizedBox(height: 24),
-                  _buildSectionTitle('Khu vực thiết kế', Icons.dashboard_customize),
+                  _buildSectionTitle(
+                    'Khu vực thiết kế',
+                    Icons.dashboard_customize,
+                  ),
                   const SizedBox(height: 12),
                   _buildDesignArea(),
                   const SizedBox(height: 24),
@@ -143,21 +153,36 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
               width: 120,
               margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
-                color: isSelected ? _themeColor.withValues(alpha: 0.1) : Colors.white,
+                color: isSelected
+                    ? _themeColor.withValues(alpha: 0.1)
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isSelected ? _themeColor : Colors.grey.shade200,
                   width: isSelected ? 2.5 : 1,
                 ),
                 boxShadow: isSelected
-                    ? [BoxShadow(color: _themeColor.withValues(alpha: 0.2), blurRadius: 12, offset: const Offset(0, 4))]
-                    : [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)],
+                    ? [
+                        BoxShadow(
+                          color: _themeColor.withValues(alpha: 0.2),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 8,
+                        ),
+                      ],
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ScaleTransition(
-                    scale: isSelected ? _pulseAnimation : const AlwaysStoppedAnimation(1.0),
+                    scale: isSelected
+                        ? _pulseAnimation
+                        : const AlwaysStoppedAnimation(1.0),
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -182,20 +207,23 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                       style: TextStyle(
                         color: AppTheme.of(context).textDark,
                         fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        fontWeight: isSelected
+                            ? FontWeight.w800
+                            : FontWeight.w600,
                       ),
                     ),
                   ),
                   if (isSelected) ...[
                     const SizedBox(height: 4),
                     Container(
-                      width: 20, height: 3,
+                      width: 20,
+                      height: 3,
                       decoration: BoxDecoration(
                         color: _themeColor,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                  ]
+                  ],
                 ],
               ),
             ),
@@ -230,7 +258,11 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
     );
   }
 
-  Widget _buildStickerThumb(GiftSticker sticker, {double size = 56, bool dragging = false}) {
+  Widget _buildStickerThumb(
+    GiftSticker sticker, {
+    double size = 56,
+    bool dragging = false,
+  }) {
     return Container(
       width: size,
       height: size,
@@ -240,8 +272,18 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: _themeColor.withValues(alpha: 0.15)),
         boxShadow: dragging
-            ? [BoxShadow(color: _themeColor.withValues(alpha: 0.3), blurRadius: 12)]
-            : [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4)],
+            ? [
+                BoxShadow(
+                  color: _themeColor.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 4,
+                ),
+              ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(13),
@@ -250,7 +292,8 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
           child: Image.asset(
             sticker.assetPath,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Icon(Icons.auto_awesome, color: _themeColor, size: 24),
+            errorBuilder: (_, __, ___) =>
+                Icon(Icons.auto_awesome, color: _themeColor, size: 24),
           ),
         ),
       ),
@@ -263,11 +306,15 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
         final RenderBox box = context.findRenderObject() as RenderBox;
         final localOffset = box.globalToLocal(details.offset);
         setState(() {
-          _placedStickers.add(_PlacedSticker(
-            sticker: details.data,
-            x: localOffset.dx.clamp(0, 300),
-            y: localOffset.dy.clamp(0, 200),
-          ));
+          _placedStickers.add(
+            _PlacedSticker(
+              sticker: details.data,
+              x: localOffset.dx.clamp(0, 300),
+              y: localOffset.dy.clamp(0, 200),
+              scale: 1.0,
+              rotation: 0.0,
+            ),
+          );
         });
       },
       builder: (context, candidateData, rejectedData) {
@@ -285,7 +332,9 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
             ),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isHovering ? _themeColor : _themeColor.withValues(alpha: 0.15),
+              color: isHovering
+                  ? _themeColor
+                  : _themeColor.withValues(alpha: 0.15),
               width: isHovering ? 2.5 : 1.5,
               strokeAlign: BorderSide.strokeAlignInside,
             ),
@@ -300,9 +349,9 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                     SizedBox(
                       height: 180,
                       width: double.infinity,
-                      child: ModelViewer(
+                      child: GlbModelViewer(
                         key: ValueKey(_models[_selectedModelIndex].id),
-                        src: _models[_selectedModelIndex].assetPath,
+                        assetPath: _models[_selectedModelIndex].assetPath,
                         alt: _models[_selectedModelIndex].name,
                         autoRotate: true,
                         cameraControls: true,
@@ -329,29 +378,84 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                   left: placed.x.clamp(0, 260),
                   top: placed.y.clamp(0, 190),
                   child: GestureDetector(
-                    onTap: () => setState(() => _placedStickers.removeAt(idx)),
+                    onScaleStart: (details) {
+                      _gestureStates[idx] = _StickerGestureState(
+                        focalPoint: details.focalPoint,
+                        startX: placed.x,
+                        startY: placed.y,
+                        startScale: placed.scale,
+                        startRotation: placed.rotation,
+                      );
+                    },
+                    onScaleUpdate: (details) {
+                      final state = _gestureStates[idx];
+                      if (state == null) return;
+
+                      final dx = details.focalPoint.dx - state.focalPoint.dx;
+                      final dy = details.focalPoint.dy - state.focalPoint.dy;
+
+                      setState(() {
+                        placed.x = (state.startX + dx).clamp(0.0, 260.0);
+                        placed.y = (state.startY + dy).clamp(0.0, 190.0);
+                        placed.scale = (state.startScale * details.scale).clamp(
+                          0.5,
+                          2.5,
+                        );
+                        placed.rotation = state.startRotation + details.rotation;
+                      });
+                    },
+                    onScaleEnd: (_) {
+                      _gestureStates.remove(idx);
+                    },
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
-                        SizedBox(
-                          width: 44, height: 44,
-                          child: Image.asset(
-                            placed.sticker.assetPath,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) =>
-                                Icon(Icons.auto_awesome, color: _themeColor, size: 20),
+                        Transform.rotate(
+                          angle: placed.rotation,
+                          child: Transform.scale(
+                            scale: placed.scale,
+                            child: SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: Image.asset(
+                                placed.sticker.assetPath,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => Icon(
+                                  Icons.auto_awesome,
+                                  color: _themeColor,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                         Positioned(
-                          top: -6, right: -6,
-                          child: Container(
-                            width: 18, height: 18,
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 1.5),
+                          top: -6,
+                          right: -6,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _placedStickers.removeAt(idx);
+                                _gestureStates.remove(idx);
+                              });
+                            },
+                            child: Container(
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                size: 10,
+                                color: Colors.white,
+                              ),
                             ),
-                            child: const Icon(Icons.close, size: 10, color: Colors.white),
                           ),
                         ),
                       ],
@@ -362,7 +466,9 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
               // Hint for drag
               if (_placedStickers.isEmpty && !isHovering)
                 Positioned(
-                  bottom: 12, left: 0, right: 0,
+                  bottom: 12,
+                  left: 0,
+                  right: 0,
                   child: Text(
                     'Kéo sticker vào đây để trang trí',
                     textAlign: TextAlign.center,
@@ -399,7 +505,10 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
           hintStyle: TextStyle(color: AppTheme.of(context).textLight),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.all(16),
-          counterStyle: TextStyle(color: AppTheme.of(context).textMuted, fontSize: 11),
+          counterStyle: TextStyle(
+            color: AppTheme.of(context).textMuted,
+            fontSize: 11,
+          ),
         ),
       ),
     );
@@ -411,7 +520,11 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, -4)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, -4),
+          ),
         ],
       ),
       child: Row(
@@ -427,7 +540,9 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                 foregroundColor: _themeColor,
                 side: BorderSide(color: _themeColor),
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ),
@@ -443,7 +558,15 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                       theme: widget.theme,
                       model: _models[_selectedModelIndex],
                       stickers: _placedStickers
-                          .map((s) => {'id': s.sticker.id, 'x': s.x, 'y': s.y})
+                          .map(
+                            (s) => {
+                              'id': s.sticker.id,
+                              'x': s.x,
+                              'y': s.y,
+                              'scale': s.scale,
+                              'rotation': s.rotation,
+                            },
+                          )
                           .toList(),
                       message: _messageController.text.trim(),
                     ),
@@ -456,7 +579,9 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                 backgroundColor: _themeColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 elevation: 0,
               ),
             ),
@@ -468,23 +593,56 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
 
   IconData _getIconForModel(String iconName) {
     switch (iconName) {
-      case 'redeem': return Icons.redeem;
-      case 'card_giftcard': return Icons.card_giftcard;
-      case 'local_florist': return Icons.local_florist;
-      case 'pets': return Icons.pets;
-      case 'emoji_events': return Icons.emoji_events;
-      case 'favorite': return Icons.favorite;
-      case 'smart_toy': return Icons.smart_toy;
-      case 'cake': return Icons.cake;
-      default: return Icons.card_giftcard;
+      case 'redeem':
+        return Icons.redeem;
+      case 'card_giftcard':
+        return Icons.card_giftcard;
+      case 'local_florist':
+        return Icons.local_florist;
+      case 'pets':
+        return Icons.pets;
+      case 'emoji_events':
+        return Icons.emoji_events;
+      case 'favorite':
+        return Icons.favorite;
+      case 'smart_toy':
+        return Icons.smart_toy;
+      case 'cake':
+        return Icons.cake;
+      default:
+        return Icons.card_giftcard;
     }
   }
 }
 
 class _PlacedSticker {
   final GiftSticker sticker;
-  final double x;
-  final double y;
+  double x;
+  double y;
+  double scale;
+  double rotation;
 
-  _PlacedSticker({required this.sticker, required this.x, required this.y});
+  _PlacedSticker({
+    required this.sticker,
+    required this.x,
+    required this.y,
+    this.scale = 1.0,
+    this.rotation = 0.0,
+  });
+}
+
+class _StickerGestureState {
+  final Offset focalPoint;
+  final double startX;
+  final double startY;
+  final double startScale;
+  final double startRotation;
+
+  _StickerGestureState({
+    required this.focalPoint,
+    required this.startX,
+    required this.startY,
+    required this.startScale,
+    required this.startRotation,
+  });
 }

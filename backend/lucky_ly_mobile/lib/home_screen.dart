@@ -311,22 +311,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   iconColor: AppTheme.of(context).primary,
                 ),
                 _WalletDivider(),
-                _WalletItem(
-                  label: 'Ví Trả Sau',
-                  amount: '18.951.000đ',
-                  icon: Icons.credit_card,
-                  iconColor: AppTheme.of(context).accent,
-                ),
-                _WalletDivider(),
-                _WalletItem(
-                  label: 'Túi Thần Tài',
-                  amount: '0đ',
-                  icon: Icons.savings,
-                  iconColor: const Color(0xFFE8A317),
-                ),
-                _WalletDivider(),
                 GestureDetector(
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CelebrateScreen())),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CelebrateScreen()),
+                  ),
                   behavior: HitTestBehavior.opaque,
                   child: _WalletItem(
                     label: 'Celebrate',
@@ -346,17 +335,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   Widget _buildPremiumServiceGrid() {
     final services = [
-      _ServiceItem('Chuyển tiền', Icons.send, AppTheme.of(context).primary),
-      _ServiceItem('Ngân hàng', Icons.account_balance, const Color(0xFF0C8DB8)),
-      _ServiceItem('Hóa đơn', Icons.receipt_long, AppTheme.of(context).accent),
-      _ServiceItem('Nạp ĐT', Icons.phone_android, const Color(0xFF0D96C8)),
-      _ServiceItem('Data 4G/5G', Icons.signal_cellular_alt, AppTheme.of(context).primary),
-      _ServiceItem('Lắc Xì', Icons.casino, const Color(0xFFE85D3A)),
-      _ServiceItem('Vay Nhanh', Icons.flash_on, const Color(0xFF14B8A6)),
-      _ServiceItem('Tạo Avatar', Icons.person_add_alt_1, Colors.purpleAccent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AvaturnScreen()))),
+      _ServiceItem(
+        'Tạo Avatar',
+        Icons.person_add_alt_1,
+        Colors.purpleAccent,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AvaturnScreen()),
+        ),
+      ),
       _ServiceItem('Thanh toán', Icons.money_off, AppTheme.of(context).primary),
-      _ServiceItem('Vé phim', Icons.movie_outlined, const Color(0xFFE85D3A)),
-      _ServiceItem('Du lịch', Icons.flight_takeoff, AppTheme.of(context).primary),
+      _ServiceItem('Hóa đơn', Icons.receipt_long, AppTheme.of(context).accent),
       _ServiceItem('Thêm', Icons.grid_view, AppTheme.of(context).textMuted),
     ];
 

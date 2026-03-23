@@ -6,6 +6,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart' as google_auth;
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'home_screen.dart';
 import 'app_theme.dart';
 import 'package:provider/provider.dart';
@@ -14,6 +17,15 @@ import 'providers/theme_provider.dart';
 // Entry point khởi chạy ứng dụng Flutter.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize SQLite factory on desktop before any openDatabase usage.
+  if (!kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.windows ||
+          defaultTargetPlatform == TargetPlatform.macOS ||
+          defaultTargetPlatform == TargetPlatform.linux)) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
 
   // Khởi tạo Facebook Auth cho web/desktop
   if (kIsWeb ||
@@ -101,7 +113,11 @@ class _AuthScreenState extends State<AuthScreen>
   static final String _apiBaseUrl =
       const String.fromEnvironment('API_BASE_URL', defaultValue: '').isNotEmpty
       ? const String.fromEnvironment('API_BASE_URL')
-      : (kIsWeb ? 'http://localhost:4000' : 'http://10.0.2.2:4000');
+      : (kIsWeb
+        ? 'http://localhost:4000'
+        : (defaultTargetPlatform == TargetPlatform.android
+          ? 'http://10.0.2.2:4000'
+          : 'http://localhost:4000'));
 
   // Web OAuth client id / server client id dùng để lấy token từ Google.
   static const String _googleClientId = String.fromEnvironment(
@@ -113,7 +129,10 @@ class _AuthScreenState extends State<AuthScreen>
   bool isSignUp = true;
   bool rememberMe = false;
   bool isSubmitting = false;
+  bool _isSilentSigningIn = false;
+  String _deviceId = '';
   bool _googleSignInInitialized = false;
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   List<Map<String, String>> _savedAccounts = [];
 
@@ -132,6 +151,8 @@ class _AuthScreenState extends State<AuthScreen>
   void initState() {
     super.initState();
     _loadSavedAccounts();
+    _initDeviceId();
+    _tryAutoLoginFromSavedSession();
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -164,10 +185,18 @@ class _AuthScreenState extends State<AuthScreen>
       final String? savedData = prefs.getString('saved_accounts');
       if (savedData != null) {
         final List<dynamic> decoded = jsonDecode(savedData);
+        final normalized = decoded
+            .map((e) => Map<String, String>.from(e))
+            .map((account) => <String, String>{
+                  'email': account['email']?.trim() ?? '',
+                })
+            .where((account) => account['email']!.isNotEmpty)
+            .toList();
+
+        await prefs.setString('saved_accounts', jsonEncode(normalized));
+
         setState(() {
-          _savedAccounts = decoded
-              .map((e) => Map<String, String>.from(e))
-              .toList();
+          _savedAccounts = normalized;
         });
       }
     } catch (e) {
@@ -175,21 +204,178 @@ class _AuthScreenState extends State<AuthScreen>
     }
   }
 
-  Future<void> _saveAccount(String email, String password) async {
+  Future<void> _saveAccount(String email) async {
     try {
+      final normalizedEmail = email.trim().toLowerCase();
+      if (normalizedEmail.isEmpty) return;
+
       final prefs = await SharedPreferences.getInstance();
       // Loại bỏ tài khoản cũ nếu bị trùng số email
-      _savedAccounts.removeWhere((acc) => acc['email'] == email);
+      _savedAccounts.removeWhere((acc) => acc['email'] == normalizedEmail);
       // Thêm lên đầu danh sách
-      _savedAccounts.insert(0, {'email': email, 'password': password});
+      _savedAccounts.insert(0, {'email': normalizedEmail});
       // Chỉ giữ tối đa 5 tài khoản
       if (_savedAccounts.length > 5) {
         _savedAccounts = _savedAccounts.sublist(0, 5);
       }
       await prefs.setString('saved_accounts', jsonEncode(_savedAccounts));
+      await prefs.setString('last_login_email', normalizedEmail);
       if (mounted) setState(() {});
     } catch (e) {
       debugPrint('Error saving account: $e');
+    }
+  }
+
+  Future<void> _initDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final existing = prefs.getString('device_id');
+    if (existing != null && existing.isNotEmpty) {
+      _deviceId = existing;
+      return;
+    }
+
+    final platform = kIsWeb ? 'web' : defaultTargetPlatform.name;
+    _deviceId = '$platform-${DateTime.now().millisecondsSinceEpoch}';
+    await prefs.setString('device_id', _deviceId);
+  }
+
+  Map<String, String> _buildDeviceInfo() {
+    String platform;
+    if (kIsWeb) {
+      platform = 'web';
+    } else {
+      switch (defaultTargetPlatform) {
+        case TargetPlatform.android:
+          platform = 'android';
+          break;
+        case TargetPlatform.iOS:
+          platform = 'ios';
+          break;
+        case TargetPlatform.windows:
+          platform = 'windows';
+          break;
+        case TargetPlatform.macOS:
+          platform = 'macos';
+          break;
+        case TargetPlatform.linux:
+          platform = 'linux';
+          break;
+        case TargetPlatform.fuchsia:
+          platform = 'fuchsia';
+          break;
+      }
+    }
+
+    return {
+      'platform': platform,
+      'deviceName': 'LuckyLy $platform app',
+      'deviceId': _deviceId.isNotEmpty
+          ? _deviceId
+          : '$platform-${DateTime.now().millisecondsSinceEpoch}'
+    };
+  }
+
+  Future<void> _persistSessionTokens({
+    required String email,
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail.isEmpty || accessToken.isEmpty || refreshToken.isEmpty) {
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('access_token', accessToken);
+    await prefs.setString('last_login_email', normalizedEmail);
+    await _secureStorage.write(
+      key: 'refresh_token_$normalizedEmail',
+      value: refreshToken,
+    );
+    await _saveAccount(normalizedEmail);
+  }
+
+  Future<Map<String, dynamic>?> _refreshWithSavedSession(String email) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail.isEmpty) return null;
+
+    final refreshToken = await _secureStorage.read(
+      key: 'refresh_token_$normalizedEmail',
+    );
+    if (refreshToken == null || refreshToken.isEmpty) {
+      return null;
+    }
+
+    final response = await http
+        .post(
+          Uri.parse('$_apiBaseUrl/api/auth/refresh'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'refreshToken': refreshToken,
+            ..._buildDeviceInfo(),
+          }),
+        )
+        .timeout(const Duration(seconds: 15));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      await _secureStorage.delete(key: 'refresh_token_$normalizedEmail');
+      return null;
+    }
+
+    final refreshed = _safeDecodeMap(response.body);
+    final accessToken = refreshed['accessToken']?.toString() ?? '';
+    final nextRefreshToken = refreshed['refreshToken']?.toString() ?? '';
+    if (accessToken.isEmpty || nextRefreshToken.isEmpty) {
+      return null;
+    }
+
+    await _persistSessionTokens(
+      email: normalizedEmail,
+      accessToken: accessToken,
+      refreshToken: nextRefreshToken,
+    );
+
+    return {
+      'accessToken': accessToken,
+      'refreshToken': nextRefreshToken,
+    };
+  }
+
+  Future<void> _tryAutoLoginFromSavedSession() async {
+    if (_isSilentSigningIn) return;
+
+    _isSilentSigningIn = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastLoginEmail = prefs.getString('last_login_email')?.trim().toLowerCase();
+      final candidateEmail = (lastLoginEmail != null && lastLoginEmail.isNotEmpty)
+          ? lastLoginEmail
+          : (_savedAccounts.isNotEmpty ? (_savedAccounts.first['email'] ?? '') : '');
+
+      if (candidateEmail.isEmpty) {
+        return;
+      }
+
+      final refreshed = await _refreshWithSavedSession(candidateEmail);
+      if (refreshed == null || !mounted) {
+        return;
+      }
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => HomeScreen(
+            userEmail: candidateEmail,
+            userData: {'email': candidateEmail},
+            accessToken: refreshed['accessToken']?.toString() ?? '',
+            refreshToken: refreshed['refreshToken']?.toString() ?? '',
+            apiBaseUrl: _apiBaseUrl,
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Silent login skipped: $e');
+    } finally {
+      _isSilentSigningIn = false;
     }
   }
 
@@ -213,11 +399,13 @@ class _AuthScreenState extends State<AuthScreen>
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topRight,
             end: Alignment.bottomLeft,
-            colors: [Color(0xFF0EA5D8), Color(0xFF19C6C4)],
+            colors: Provider.of<ThemeProvider>(context).currentTheme == AppThemeType.defaultTheme
+                ? const [Color(0xFF0EA5D8), Color(0xFF19C6C4)]
+                : AppTheme.of(context).primaryGradient.colors,
           ),
         ),
         child: SafeArea(
@@ -277,12 +465,14 @@ class _AuthScreenState extends State<AuthScreen>
                             );
                           },
                           child: Text(
-                            isSignUp ? 'Create Account' : 'Welcome Back',
+                            isSignUp ? 'Tạo Tài Khoản\nLuckyLy' : 'Chào Mừng Đến\nLuckyLy',
                             key: ValueKey<bool>(isSignUp),
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: const Color(0xFF1392B1),
-                              fontSize: size.width < 360 ? 32 : 36,
+                              color: Provider.of<ThemeProvider>(context).currentTheme == AppThemeType.defaultTheme
+                                  ? const Color(0xFF1392B1)
+                                  : AppTheme.of(context).primary,
+                              fontSize: size.width < 360 ? 30 : 32,
                               fontWeight: FontWeight.w800,
                               height: 1.2,
                               letterSpacing: -0.5,
@@ -292,8 +482,8 @@ class _AuthScreenState extends State<AuthScreen>
                         const SizedBox(height: 8),
                         Text(
                           isSignUp
-                              ? 'Sign up to get started'
-                              : 'Sign in to continue',
+                              ? 'Đăng ký để bắt đầu trải nghiệm'
+                              : 'Đăng nhập để tiếp tục',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: Color(0xFF8B9CB0),
@@ -354,7 +544,7 @@ class _AuthScreenState extends State<AuthScreen>
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 16),
                               child: Text(
-                                'Or continue with',
+                                'Hoặc tiếp tục với',
                                 style: TextStyle(
                                   color: Color(0xFF9AA8B8),
                                   fontSize: 14,
@@ -391,7 +581,7 @@ class _AuthScreenState extends State<AuthScreen>
 
                         // Nút tác vụ chính với hiệu ứng bóp (scale)
                         _PrimaryGradientButton(
-                          text: isSignUp ? 'Sign up' : 'Sign in',
+                          text: isSignUp ? 'Đăng ký' : 'Đăng nhập',
                           isLoading: isSubmitting,
                           onPressed: _handleSubmit,
                         ),
@@ -413,14 +603,14 @@ class _AuthScreenState extends State<AuthScreen>
       children: [
         _PillInput(
           controller: signUpEmailController,
-          hint: 'Email Address',
+          hint: 'Địa chỉ Email',
           icon: Icons.email_outlined,
           keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: 16),
         _PillInput(
           controller: signUpPasswordController,
-          hint: 'Password',
+          hint: 'Mật khẩu',
           icon: Icons.lock_outline,
           isPassword: true,
         ),
@@ -460,7 +650,7 @@ class _AuthScreenState extends State<AuthScreen>
         const SizedBox(height: 8),
         _PillInput(
           controller: signUpRepeatPasswordController,
-          hint: 'Repeat Password',
+          hint: 'Nhập lại mật khẩu',
           icon: Icons.lock_reset_outlined,
           isPassword: true,
         ),
@@ -513,7 +703,7 @@ class _AuthScreenState extends State<AuthScreen>
               child: GestureDetector(
                 onTap: () => setState(() => rememberMe = !rememberMe),
                 child: const Text(
-                  'I agree to the Terms & Privacy Policy',
+                  'Tôi đồng ý với Điều khoản & Chính sách bảo mật',
                   style: TextStyle(
                     color: Color(0xFF7A8D9F),
                     fontSize: 14,
@@ -534,13 +724,13 @@ class _AuthScreenState extends State<AuthScreen>
       children: [
         _PillInput(
           controller: signInLoginController,
-          hint: 'Username or Email',
+          hint: 'Tên đăng nhập hoặc Email',
           icon: Icons.person_outline,
         ),
         const SizedBox(height: 16),
         _PillInput(
           controller: signInPasswordController,
-          hint: 'Password',
+          hint: 'Mật khẩu',
           icon: Icons.lock_outline,
           isPassword: true,
         ),
@@ -559,15 +749,15 @@ class _AuthScreenState extends State<AuthScreen>
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.bolt, color: Color(0xFFF59E0B), size: 18),
-                    SizedBox(width: 4),
+                    const Icon(Icons.bolt, color: Color(0xFFF59E0B), size: 18),
+                    const SizedBox(width: 4),
                     Text(
                       'Đăng nhập nhanh',
                       style: TextStyle(
-                        color: Color(0xFF16B4C2),
+                        color: Provider.of<ThemeProvider>(context).currentTheme == AppThemeType.defaultTheme ? const Color(0xFF16B4C2) : AppTheme.of(context).primary,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
@@ -586,10 +776,10 @@ class _AuthScreenState extends State<AuthScreen>
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text(
-                'Forgot password?',
+              child: Text(
+                'Quên mật khẩu?',
                 style: TextStyle(
-                  color: Color(0xFF16B4C2),
+                  color: Provider.of<ThemeProvider>(context).currentTheme == AppThemeType.defaultTheme ? const Color(0xFF16B4C2) : AppTheme.of(context).primary,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                 ),
@@ -647,14 +837,35 @@ class _AuthScreenState extends State<AuthScreen>
                   else
                     ..._savedAccounts.map((acc) {
                       final email = acc['email'] ?? '';
-                      final password = acc['password'] ?? '';
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: InkWell(
-                          onTap: () {
+                          onTap: () async {
+                            final refreshed = await _refreshWithSavedSession(email);
+                            if (refreshed != null && mounted) {
+                              Navigator.pop(ctx);
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (_) => HomeScreen(
+                                    userEmail: email,
+                                    userData: {'email': email},
+                                    accessToken:
+                                        refreshed['accessToken']?.toString() ??
+                                        '',
+                                    refreshToken:
+                                        refreshed['refreshToken']?.toString() ??
+                                        '',
+                                    apiBaseUrl: _apiBaseUrl,
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+
                             signInLoginController.text = email;
-                            signInPasswordController.text = password;
+                            signInPasswordController.clear();
                             Navigator.pop(ctx);
+                            _showMessage('Phiên đăng nhập đã hết hạn, vui lòng nhập mật khẩu.');
                           },
                           borderRadius: BorderRadius.circular(16),
                           child: Container(
@@ -752,6 +963,7 @@ class _AuthScreenState extends State<AuthScreen>
               'email': email,
               'fullName': fullName,
               'password': password,
+              ..._buildDeviceInfo(),
             }),
           )
           .timeout(const Duration(seconds: 15));
@@ -759,11 +971,8 @@ class _AuthScreenState extends State<AuthScreen>
       final body = _safeDecodeMap(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        await _saveAccount(
-          email,
-          password,
-        ); // Lưu tài khoản sau khi đăng ký thành công
-        _navigateToHome(body);
+        await _saveAccount(email);
+        await _navigateToHome(body);
       } else {
         _showMessage(body['message']?.toString() ?? 'Sign up failed.');
       }
@@ -789,15 +998,19 @@ class _AuthScreenState extends State<AuthScreen>
           .post(
             Uri.parse('$_apiBaseUrl/api/auth/login'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'login': login, 'password': password}),
+            body: jsonEncode({
+              'login': login,
+              'password': password,
+              ..._buildDeviceInfo(),
+            }),
           )
           .timeout(const Duration(seconds: 15));
 
       final body = _safeDecodeMap(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        await _saveAccount(login, password); // Lưu cập nhật mật khẩu mới nhất
-        _navigateToHome(body);
+        await _saveAccount(login);
+        await _navigateToHome(body);
       } else {
         _showMessage(body['message']?.toString() ?? 'Sign in failed.');
       }
@@ -837,6 +1050,7 @@ class _AuthScreenState extends State<AuthScreen>
                 'name': name,
                 'email': email,
                 'avatarUrl': picture,
+                ..._buildDeviceInfo(),
               }),
             )
             .timeout(const Duration(seconds: 15));
@@ -844,7 +1058,7 @@ class _AuthScreenState extends State<AuthScreen>
         final body = _safeDecodeMap(response.body);
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
-          _navigateToHome(body);
+          await _navigateToHome(body);
         } else {
           _showMessage(body['message']?.toString() ?? 'Facebook login failed.');
         }
@@ -935,14 +1149,14 @@ class _AuthScreenState extends State<AuthScreen>
           .post(
             Uri.parse('$_apiBaseUrl/api/auth/google'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'idToken': idToken}),
+            body: jsonEncode({'idToken': idToken, ..._buildDeviceInfo()}),
           )
           .timeout(const Duration(seconds: 15));
 
       final body = _safeDecodeMap(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        _navigateToHome(body);
+        await _navigateToHome(body);
       } else {
         _showMessage(body['message']?.toString() ?? 'Google login failed.');
       }
@@ -1275,17 +1489,30 @@ class _AuthScreenState extends State<AuthScreen>
     );
   }
 
-  void _navigateToHome(Map<String, dynamic> responseBody) {
+  Future<void> _navigateToHome(Map<String, dynamic> responseBody) async {
     if (!mounted) return;
     final user = responseBody['user'] as Map<String, dynamic>? ?? {};
-    final userEmail = user['email']?.toString() ?? '';
+    final userEmail = user['email']?.toString().trim().toLowerCase() ?? '';
+    final accessToken = responseBody['accessToken']?.toString() ?? '';
+    final refreshToken = responseBody['refreshToken']?.toString() ?? '';
+
+    if (userEmail.isNotEmpty && accessToken.isNotEmpty && refreshToken.isNotEmpty) {
+      await _persistSessionTokens(
+        email: userEmail,
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
+    } else if (userEmail.isNotEmpty) {
+      await _saveAccount(userEmail);
+    }
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => HomeScreen(
           userEmail: userEmail,
           userData: user,
-          accessToken: responseBody['accessToken']?.toString() ?? '',
-          refreshToken: responseBody['refreshToken']?.toString() ?? '',
+          accessToken: accessToken,
+          refreshToken: refreshToken,
           apiBaseUrl: _apiBaseUrl,
         ),
       ),
@@ -1350,6 +1577,9 @@ class _AuthModeSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDefaultTheme = Provider.of<ThemeProvider>(context).currentTheme == AppThemeType.defaultTheme;
+    final primaryColor = isDefaultTheme ? const Color(0xFF1392B1) : AppTheme.of(context).primary;
+
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
@@ -1392,12 +1622,12 @@ class _AuthModeSwitch extends StatelessWidget {
                   duration: const Duration(milliseconds: 300),
                   style: TextStyle(
                     color: !isSignUp
-                        ? const Color(0xFF1392B1)
+                        ? primaryColor
                         : const Color(0xFF94A3B8),
                     fontWeight: !isSignUp ? FontWeight.w800 : FontWeight.w600,
                     fontSize: 16,
                   ),
-                  child: const Text('Sign In'),
+                  child: const Text('Đăng nhập'),
                 ),
               ),
             ),
@@ -1428,12 +1658,12 @@ class _AuthModeSwitch extends StatelessWidget {
                   duration: const Duration(milliseconds: 300),
                   style: TextStyle(
                     color: isSignUp
-                        ? const Color(0xFF1392B1)
+                        ? primaryColor
                         : const Color(0xFF94A3B8),
                     fontWeight: isSignUp ? FontWeight.w800 : FontWeight.w600,
                     fontSize: 16,
                   ),
-                  child: const Text('Sign Up'),
+                  child: const Text('Đăng ký'),
                 ),
               ),
             ),
@@ -1488,6 +1718,9 @@ class _PillInputState extends State<_PillInput> {
 
   @override
   Widget build(BuildContext context) {
+    final isDefaultTheme = Provider.of<ThemeProvider>(context).currentTheme == AppThemeType.defaultTheme;
+    final primaryColor = isDefaultTheme ? const Color(0xFF16B4C2) : AppTheme.of(context).primary;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOutCubic,
@@ -1496,13 +1729,13 @@ class _PillInputState extends State<_PillInput> {
         color: _isFocused ? Colors.white : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: _isFocused ? const Color(0xFF16B4C2) : const Color(0xFFE2E8F0),
+          color: _isFocused ? primaryColor : const Color(0xFFE2E8F0),
           width: 1.5,
         ),
         boxShadow: _isFocused
             ? [
                 BoxShadow(
-                  color: const Color(0xFF16B4C2).withValues(alpha: 0.12),
+                  color: primaryColor.withValues(alpha: 0.12),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -1518,7 +1751,7 @@ class _PillInputState extends State<_PillInput> {
               widget.icon,
               key: ValueKey(_isFocused),
               color: _isFocused
-                  ? const Color(0xFF16B4C2)
+                  ? primaryColor
                   : const Color(0xFFA0AEC0),
               size: 24,
             ),
@@ -1612,6 +1845,14 @@ class _PrimaryGradientButtonState extends State<_PrimaryGradientButton>
 
   @override
   Widget build(BuildContext context) {
+    final isDefaultTheme = Provider.of<ThemeProvider>(context).currentTheme == AppThemeType.defaultTheme;
+    final primaryGradient = isDefaultTheme ? const LinearGradient(
+              colors: [Color(0xFF199EF0), Color(0xFF18C7C2)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ) : AppTheme.of(context).primaryGradient;
+    final primaryShadowColor = isDefaultTheme ? const Color(0xFF18C7C2) : AppTheme.of(context).primaryLight;
+
     return GestureDetector(
       onTapDown: (_) {
         if (!widget.isLoading) _animController.forward();
@@ -1630,15 +1871,11 @@ class _PrimaryGradientButtonState extends State<_PrimaryGradientButton>
         child: Container(
           height: 64,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF199EF0), Color(0xFF18C7C2)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
+            gradient: primaryGradient,
             borderRadius: BorderRadius.circular(32),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF18C7C2).withValues(alpha: 0.4),
+                color: primaryShadowColor.withValues(alpha: 0.4),
                 blurRadius: 24,
                 offset: const Offset(0, 10),
               ),

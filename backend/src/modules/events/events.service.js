@@ -7,7 +7,7 @@ export const createEvent = async (userId, eventData) => {
         VALUES ($1, $2, $3, $4, $5)
         RETURNING *;
     `;
-    const values = [userId, title, date, type, note];
+    const values = [userId, title, date, type, note || null];
     const { rows } = await pool.query(query, values);
     return rows[0];
 };

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io' as io;
 import 'dart:math';
 import 'dart:ui' as ui;
@@ -9,9 +8,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
+import '../../data/gift_catalog.dart';
 import '../../app_theme.dart';
 import '../../widgets/confetti_painter.dart';
 import '../../widgets/particle_overlay.dart';
+import '../../widgets/glb_model_viewer.dart';
 
 class GiftOpenScreen extends StatefulWidget {
   const GiftOpenScreen({super.key, required this.gift});
@@ -51,6 +52,16 @@ class _GiftOpenScreenState extends State<GiftOpenScreen>
   String get _senderName =>
       widget.gift['sender_name'] ?? widget.gift['sender_full_name'] ?? 'Người gửi';
   bool get _isPending => widget.gift['status'] == 'pending';
+
+  GiftModel? get _selectedModel {
+    final models = GiftCatalog.getModels(_theme);
+    for (final model in models) {
+      if (model.id == _modelId) {
+        return model;
+      }
+    }
+    return null;
+  }
 
   Color get _themeColor =>
       _theme == 'tet' ? const Color(0xFFc0392b) : const Color(0xFFe84393);
@@ -132,7 +143,7 @@ class _GiftOpenScreenState extends State<GiftOpenScreen>
         Uri.parse('$_apiBaseUrl/api/gifts/${widget.gift['id']}/open'),
         headers: {
           'Content-Type': 'application/json',
-          if (token != null) 'Cookie': 'accessToken=$token',
+          if (token != null) 'Authorization': 'Bearer $token',
         },
       ).timeout(const Duration(seconds: 10));
     } catch (_) {}
@@ -347,7 +358,8 @@ class _GiftOpenScreenState extends State<GiftOpenScreen>
           children: [
             // Model display
             Container(
-              width: 200, height: 200,
+              width: 220,
+              height: 220,
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.9),
                 shape: BoxShape.circle,
@@ -360,16 +372,31 @@ class _GiftOpenScreenState extends State<GiftOpenScreen>
                 ],
               ),
               child: Center(
-                child: Icon(
-                  _getModelIcon(),
-                  color: _themeColor,
-                  size: 80,
+                child: _selectedModel != null
+                    ? ClipOval(
+                        child: SizedBox(
+                          width: 196,
+                          height: 196,
+                          child: GlbModelViewer(
+                            key: ValueKey(_selectedModel!.id),
+                            assetPath: _selectedModel!.assetPath,
+                            alt: _selectedModel!.name,
+                            autoRotate: true,
+                            cameraControls: true,
+                            backgroundColor: Colors.transparent,
+                          ),
+                        ),
+                      )
+                    : Icon(
+                        Icons.card_giftcard,
+                        color: _themeColor,
+                        size: 80,
+                      ),
                 ),
-              ),
             ),
             const SizedBox(height: 24),
             Text(
-              _getModelName(),
+              _selectedModel?.name ?? _getModelName(),
               style: TextStyle(
                 color: _themeColor,
                 fontSize: 24,
@@ -464,19 +491,6 @@ class _GiftOpenScreenState extends State<GiftOpenScreen>
         ),
       ),
     );
-  }
-
-  IconData _getModelIcon() {
-    if (_modelId.contains('lixi') || _modelId.contains('red')) return Icons.redeem;
-    if (_modelId.contains('gold')) return Icons.card_giftcard;
-    if (_modelId.contains('hoamai') || _modelId.contains('bouquet')) return Icons.local_florist;
-    if (_modelId.contains('dragon')) return Icons.pets;
-    if (_modelId.contains('phucloc') || _modelId.contains('event')) return Icons.emoji_events;
-    if (_modelId.contains('heart')) return Icons.favorite;
-    if (_modelId.contains('teddy')) return Icons.smart_toy;
-    if (_modelId.contains('choco')) return Icons.cake;
-    if (_modelId.contains('ribbon')) return Icons.card_giftcard;
-    return Icons.card_giftcard;
   }
 
   String _getModelName() {

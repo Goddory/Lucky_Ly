@@ -41,7 +41,7 @@ class _GiftNotificationScreenState extends State<GiftNotificationScreen> {
       final response = await http.get(
         Uri.parse('$_apiBaseUrl/api/gifts/received'),
         headers: {
-          if (token != null) 'Cookie': 'accessToken=$token',
+          if (token != null) 'Authorization': 'Bearer $token',
         },
       ).timeout(const Duration(seconds: 15));
 

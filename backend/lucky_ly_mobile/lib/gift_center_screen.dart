@@ -3,14 +3,6 @@ import 'design_selection_screen.dart';
 import 'money_transfer_screen.dart';
 import 'app_theme.dart';
 
-class _C {
-  static const primary = Color(0xFF0EA5D8);
-  static const bg = Color(0xFFF2F6FA);
-  static const card = Colors.white;
-  static const textDark = Color(0xFF1E293B);
-  static const textMuted = Color(0xFF64748B);
-}
-
 class GiftCenterScreen extends StatelessWidget {
   const GiftCenterScreen({super.key});
 

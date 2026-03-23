@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'main.dart';
 import 'core/database/database_helper.dart';
 import 'core/services/sync_manager.dart';
@@ -31,6 +33,8 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+
   late AnimationController _entryController;
   late Animation<double> _fadeIn;
 
@@ -1007,7 +1011,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       // Auto-trigger sync optionally
       // SyncManager.pushData();
     } catch (e) {
-      _showSnack('Lưu offline thất bại.');
+      _showSnack('Lưu offline thất bại: $e');
       setState(() => isSaving = false);
     }
   }
@@ -1053,15 +1057,46 @@ class _ProfileScreenState extends State<ProfileScreen>
       if (confirmed != true || !mounted) return;
     }
 
-    // Gọi API logout
+    final normalizedEmail = email.trim().toLowerCase();
+
+    // Gọi API logout và thu hồi refresh token phiên hiện tại
     try {
-      await http.post(
-        Uri.parse('${widget.apiBaseUrl}/api/auth/logout'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refreshToken': widget.refreshToken}),
-      );
+      final storedRefreshToken = normalizedEmail.isNotEmpty
+          ? await _secureStorage.read(key: 'refresh_token_$normalizedEmail')
+          : null;
+
+      final refreshToken =
+          (storedRefreshToken != null && storedRefreshToken.isNotEmpty)
+          ? storedRefreshToken
+          : widget.refreshToken;
+
+      if (refreshToken.isNotEmpty) {
+        await http.post(
+          Uri.parse('${widget.apiBaseUrl}/api/auth/logout'),
+          headers: {
+            'Content-Type': 'application/json',
+            if (widget.accessToken.isNotEmpty)
+              'Authorization': 'Bearer ${widget.accessToken}',
+          },
+          body: jsonEncode({'refreshToken': refreshToken}),
+        );
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('access_token');
+      await prefs.remove('last_login_email');
+
+      if (normalizedEmail.isNotEmpty) {
+        await _secureStorage.delete(key: 'refresh_token_$normalizedEmail');
+      }
     } catch (_) {
       // Logout locally dù API fail
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('access_token');
+      await prefs.remove('last_login_email');
+      if (normalizedEmail.isNotEmpty) {
+        await _secureStorage.delete(key: 'refresh_token_$normalizedEmail');
+      }
     }
 
     if (!mounted) return;

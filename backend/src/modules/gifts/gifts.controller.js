@@ -49,7 +49,13 @@ export const listSentGifts = async (req, res, next) => {
 
 export const getGiftDetail = async (req, res, next) => {
   try {
-    const gift = await giftsService.getGiftById(req.params.id);
+    const sender = await userService.getUserProfile(req.user.userId);
+    const gift = await giftsService.getGiftByIdForUser(
+      req.params.id,
+      req.user.userId,
+      sender.email
+    );
+
     if (!gift) {
       return res.status(404).json({ message: 'Gift not found.' });
     }
