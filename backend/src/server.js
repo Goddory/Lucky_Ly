@@ -22,7 +22,7 @@ async function start() {
       console.error('⚠️ MongoDB Connection Failed (Proceeding without Mongo):', e?.message || e);
     }
     
-    app.listen(env.port, () => {
+    app.listen(env.port, '0.0.0.0', () => {
       console.log(`Auth API running on port ${env.port}`);
     });
   } catch (err) {

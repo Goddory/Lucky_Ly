@@ -24,7 +24,7 @@ class CalendarPopup extends StatefulWidget {
 }
 
 class _CalendarPopupState extends State<CalendarPopup> {
-  DateTime _focusedDay = DateTime.now();
+  DateTime _focusedDay = DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day);
   DateTime? _selectedDay;
   Map<DateTime, List<EventModel>> _events = {};
   bool _isLoading = true;
@@ -42,7 +42,8 @@ class _CalendarPopupState extends State<CalendarPopup> {
       final events = await CalendarApiService.fetchEvents();
       final Map<DateTime, List<EventModel>> grouped = {};
       for (var e in events) {
-        final d = DateTime(e.date.year, e.date.month, e.date.day);
+        final localDate = e.date.toLocal(); // Convert parsed UTC to local so year/month/day matches user's timezone
+        final d = DateTime.utc(localDate.year, localDate.month, localDate.day);
         if (grouped[d] == null) grouped[d] = [];
         grouped[d]!.add(e);
       }
@@ -58,7 +59,8 @@ class _CalendarPopupState extends State<CalendarPopup> {
   }
 
   List<EventModel> _getEventsForDay(DateTime day) {
-    final d = DateTime(day.year, day.month, day.day);
+    // TableCalendar passes `day` in UTC
+    final d = DateTime.utc(day.year, day.month, day.day);
     return _events[d] ?? [];
   }
 
@@ -115,7 +117,11 @@ class _CalendarPopupState extends State<CalendarPopup> {
                           selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                           eventLoader: _getEventsForDay,
                           startingDayOfWeek: StartingDayOfWeek.monday,
+                          holidayPredicate: (day) {
+                            return _getEventsForDay(day).any((e) => e.type == 'holiday');
+                          },
                           calendarStyle: CalendarStyle(
+                            holidayTextStyle: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
                             selectedDecoration: BoxDecoration(
                               color: AppTheme.of(context).primary,
                               shape: BoxShape.circle,
@@ -124,10 +130,44 @@ class _CalendarPopupState extends State<CalendarPopup> {
                               color: AppTheme.of(context).primary.withValues(alpha: 0.3),
                               shape: BoxShape.circle,
                             ),
-                            markerDecoration: BoxDecoration(
-                              color: AppTheme.of(context).accent,
-                              shape: BoxShape.circle,
-                            ),
+                            markerDecoration: const BoxDecoration(), // Disable default marker
+                          ),
+                          calendarBuilders: CalendarBuilders(
+                            markerBuilder: (context, day, events) {
+                              if (events.isEmpty) return const SizedBox();
+                              
+                              final hasHoliday = events.any((e) => e.type == 'holiday');
+                              final hasNote = events.any((e) => e.type != 'holiday');
+                              
+                              return Positioned(
+                                bottom: 6,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (hasHoliday)
+                                      Container(
+                                        margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                                        width: 6,
+                                        height: 6,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.redAccent,
+                                        ),
+                                      ),
+                                    if (hasNote)
+                                      Container(
+                                        margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                                        width: 6,
+                                        height: 6,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: AppTheme.of(context).primary,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
                           onDaySelected: (selectedDay, focusedDay) {
                             setState(() {
@@ -228,7 +268,7 @@ class _CalendarPopupState extends State<CalendarPopup> {
           controller: _ctrl,
           maxLines: 3,
           decoration: InputDecoration(
-            hintText: 'Nhập nội dung...',
+            hintText: 'Nhập nội dung (ví dụ: Tặng quà sinh nhật)...',
             focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.of(context).primary)),
           ),
         ),
