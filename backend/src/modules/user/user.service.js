@@ -5,7 +5,7 @@ import { env } from '../../config/env.js';
 // Lấy profile user hiện tại từ DB.
 export async function getUserProfile(userId) {
   const result = await pool.query(
-    `SELECT user_id, username, email, full_name, avatar_url, auth_provider, role, created_at
+    `SELECT user_id, username, email, full_name, avatar_url, auth_provider, role, is_searchable, created_at
      FROM users WHERE user_id = $1 LIMIT 1`,
     [userId]
   );
@@ -156,4 +156,27 @@ export async function toggleUserStatusService(userId, isActive) {
   }
 
   return result.rows[0];
+}
+
+export async function updatePrivacySettings(userId, isSearchable) {
+  const result = await pool.query(
+    `UPDATE users SET is_searchable = $1 WHERE user_id = $2
+     RETURNING user_id, username, is_searchable`,
+    [isSearchable, userId]
+  );
+
+  if (result.rowCount === 0) {
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return result.rows[0];
+}
+
+export async function updateFcmToken(userId, fcmToken) {
+  await pool.query(
+    `UPDATE users SET fcm_token = $1 WHERE user_id = $2`,
+    [fcmToken, userId]
+  );
 }

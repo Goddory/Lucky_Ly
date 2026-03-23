@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'profile_screen.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'gift_center_screen.dart';
 import 'design_selection_screen.dart';
 import 'celebrate_screen.dart';
 import 'offers_screen.dart';
@@ -14,6 +13,10 @@ import 'widgets/calendar_popup.dart';
 import 'widgets/theme_particles.dart';
 import 'screens/avaturn_screen.dart';
 import 'screens/gifts/gift_notification_screen.dart';
+import 'screens/chat/chat_list_screen.dart';
+import 'screens/social/friend_management_screen.dart';
+import 'providers/auth_provider.dart';
+import 'core/services/socket_service.dart';
 
 // Constants moved to app_theme.dart
 
@@ -54,11 +57,81 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      
+      final auth = context.read<AuthProvider>();
+      final socket = context.read<SocketService>();
+
+      // Sync theme
       context.read<ThemeProvider>().syncThemeFromServer(
         apiBaseUrl: widget.apiBaseUrl,
         accessToken: widget.accessToken,
       );
+
+      // Fetch profile
+      auth.fetchProfile();
+
+      // Ensure socket connected
+      if (!socket.isConnected && widget.accessToken.isNotEmpty) {
+        socket.connect(widget.accessToken);
+      }
+
+      // Listen for notifications
+      socket.onNotification((data) {
+        if (mounted) {
+          _showNotificationSnackbar(data);
+        }
+      });
     });
+  }
+
+  void _showNotificationSnackbar(dynamic data) {
+    final String type = data['type'] ?? '';
+    final String message = data['message'] ?? 'Bạn có thông báo mới';
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              _getNotificationIcon(type),
+              color: Colors.white,
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppTheme.of(context).primary,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'Xem',
+          textColor: Colors.white,
+          onPressed: () => _handleNotificationTap(data),
+        ),
+      ),
+    );
+  }
+
+  IconData _getNotificationIcon(String type) {
+    switch (type) {
+      case 'GIFT_RECEIVED': return Icons.card_giftcard;
+      case 'FRIEND_REQUEST': return Icons.group_add;
+      case 'FRIEND_ACCEPTED': return Icons.person_add;
+      case 'NEW_MESSAGE': return Icons.chat_bubble;
+      default: return Icons.notifications;
+    }
+  }
+
+  void _handleNotificationTap(dynamic data) {
+    final String type = data['type'] ?? '';
+    // Navigate based on type
+    if (type == 'FRIEND_REQUEST' || type == 'FRIEND_ACCEPTED') {
+       // Navigate to Friends
+    } else if (type == 'NEW_MESSAGE') {
+       // Navigate to Chat
+    } else if (type.startsWith('GIFT')) {
+       Navigator.push(context, MaterialPageRoute(builder: (_) => const GiftNotificationScreen()));
+    }
   }
 
   @override
@@ -195,7 +268,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       onTap: () => _showNotificationOverlay(context),
                     ),
                     const SizedBox(width: 10),
-                    _HeaderIconBtn(icon: Icons.chat_bubble_outline, badge: 0),
+                    _HeaderIconBtn(
+                      icon: Icons.chat_bubble_outline, 
+                      badge: 0,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatListScreen())),
+                    ),
                   ],
                 ),
               ],
@@ -273,8 +350,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ),
           _QuickAction(
             icon: Icons.card_giftcard, 
-            label: 'Tặng Quà',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GiftCenterScreen())),
+            label: 'Bạn Bè',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FriendManagementScreen())),
           ),
           _QuickAction(
             icon: Icons.auto_awesome_mosaic_outlined, 
