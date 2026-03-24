@@ -123,7 +123,7 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> with Si
               : isSent
                   ? const Text('Đã gửi', style: TextStyle(color: Colors.grey))
                   : ElevatedButton(
-                      onPressed: () => provider.sendRequest(user['user_id']),
+                      onPressed: () => _handleSendFriendRequest(user, provider),
                       child: const Text('Kết bạn'),
                     ),
         );
@@ -180,11 +180,11 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> with Si
                 children: [
                   IconButton(
                     icon: const Icon(Icons.check, color: Colors.green),
-                    onPressed: () => provider.acceptRequest(req['id']),
+                    onPressed: () => _handleAcceptRequest(req, sender, provider),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.red),
-                    onPressed: () => provider.declineRequest(req['id']),
+                    onPressed: () => _handleDeclineRequest(req, sender, provider),
                   ),
                 ],
               ),
@@ -261,5 +261,270 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> with Si
         ],
       ),
     );
+  }
+
+  Future<void> _handleSendFriendRequest(dynamic user, FriendProvider provider) async {
+    if (!mounted) return;
+
+    // Show loading state
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+            ),
+            SizedBox(width: 12),
+            Expanded(child: Text('Đang gửi lời mời...')),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(days: 1),
+      ),
+    );
+
+    try {
+      // Send friend request
+      final success = await provider.sendRequest(user['user_id']);
+
+      if (mounted) {
+        // Hide loading snackbar
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        if (success) {
+          // Show success notification
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Đã gửi lời mời cho ${user['full_name'] ?? user['username']}'),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        } else {
+          // Show error notification
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.error, color: Colors.white),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Không thể gửi lời mời. Vui lòng thử lại.'),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Lỗi: $e'),
+                ),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleAcceptRequest(dynamic req, dynamic sender, FriendProvider provider) async {
+    if (!mounted) return;
+
+    // Show loading state
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+            ),
+            SizedBox(width: 12),
+            Expanded(child: Text('Đang chấp nhận lời mời...')),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(days: 1),
+      ),
+    );
+
+    try {
+      final success = await provider.acceptRequest(req['id']);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Đã kết bạn với ${sender['full_name'] ?? sender['username']}'),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.error, color: Colors.white),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Không thể chấp nhận lời mời. Vui lòng thử lại.'),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Lỗi: $e'),
+                ),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleDeclineRequest(dynamic req, dynamic sender, FriendProvider provider) async {
+    if (!mounted) return;
+
+    // Show loading state
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+            ),
+            SizedBox(width: 12),
+            Expanded(child: Text('Đang từ chối lời mời...')),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(days: 1),
+      ),
+    );
+
+    try {
+      final success = await provider.declineRequest(req['id']);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Đã từ chối lời mời từ ${sender['full_name'] ?? sender['username']}'),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.blue,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.error, color: Colors.white),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Không thể từ chối lời mời. Vui lòng thử lại.'),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Lỗi: $e'),
+                ),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 }

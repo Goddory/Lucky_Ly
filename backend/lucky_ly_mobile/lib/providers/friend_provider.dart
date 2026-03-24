@@ -73,10 +73,26 @@ class FriendProvider extends ChangeNotifier {
 
   Future<bool> sendRequest(int friendId) async {
     try {
-      final res = await _api.post('/api/friends/request', {'friendId': friendId});
+      debugPrint('=== SENDING FRIEND REQUEST ===');
+      debugPrint('Friend ID: $friendId');
+      
+      final requestBody = {'friendId': friendId};
+      debugPrint('Request body: $requestBody');
+      
+      final res = await _api.post('/api/friends/request', requestBody);
+      
+      debugPrint('Status Code: ${res.statusCode}');
+      debugPrint('Response: ${res.body}');
+      
       if (res.statusCode == 201) {
+        final responseData = jsonDecode(res.body);
+        debugPrint('Success: ${responseData['message']}');
+        debugPrint('Request data: ${responseData['request']}');
+        
         await fetchSentRequests();
         return true;
+      } else {
+        debugPrint('Error: ${res.body}');
       }
     } catch (e) {
       debugPrint('Error sending friend request: $e');
@@ -86,11 +102,23 @@ class FriendProvider extends ChangeNotifier {
 
   Future<bool> acceptRequest(int requestId) async {
     try {
+      debugPrint('=== ACCEPTING FRIEND REQUEST ===');
+      debugPrint('Request ID: $requestId');
+      
       final res = await _api.patch('/api/friends/request/$requestId/accept', {});
+      
+      debugPrint('Status Code: ${res.statusCode}');
+      debugPrint('Response: ${res.body}');
+      
       if (res.statusCode == 200) {
+        final responseData = jsonDecode(res.body);
+        debugPrint('Success: ${responseData['message']}');
+        
         await fetchReceivedRequests();
         await fetchFriends();
         return true;
+      } else {
+        debugPrint('Error: ${res.body}');
       }
     } catch (e) {
       debugPrint('Error accepting request: $e');
@@ -100,10 +128,22 @@ class FriendProvider extends ChangeNotifier {
 
   Future<bool> declineRequest(int requestId) async {
     try {
+      debugPrint('=== DECLINING FRIEND REQUEST ===');
+      debugPrint('Request ID: $requestId');
+      
       final res = await _api.patch('/api/friends/request/$requestId/decline', {});
+      
+      debugPrint('Status Code: ${res.statusCode}');
+      debugPrint('Response: ${res.body}');
+      
       if (res.statusCode == 200) {
+        final responseData = jsonDecode(res.body);
+        debugPrint('Success: ${responseData['message']}');
+        
         await fetchReceivedRequests();
         return true;
+      } else {
+        debugPrint('Error: ${res.body}');
       }
     } catch (e) {
       debugPrint('Error declining request: $e');
