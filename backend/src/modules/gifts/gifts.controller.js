@@ -1,5 +1,6 @@
 import * as giftsService from './gifts.service.js';
 import * as userService from '../user/user.service.js';
+import { notifyGiftReceived, notifyGiftClaimed } from '../../services/notification.service.js';
 
 export const sendGift = async (req, res, next) => {
   try {
@@ -23,6 +24,63 @@ export const sendGift = async (req, res, next) => {
     });
 
     res.status(201).json({ message: 'Gift sent successfully', gift });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createGiftLink = async (req, res, next) => {
+  try {
+    const senderId = req.user.userId;
+    const { itemType, amount, maxReceivers, message } = req.body;
+
+    const gift = await giftsService.createGiftLink(senderId, { itemType, amount, maxReceivers, message });
+    res.status(201).json({ message: 'Gift link created (valid 24h)', gift });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const claimGift = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    const receiverId = req.user.userId;
+    const result = await giftsService.claimGift(token, receiverId);
+
+    // Notify sender that their gift was claimed
+    const receiver = await userService.getUserProfile(receiverId);
+    notifyGiftClaimed(result.senderId, receiver.username || 'Someone', result.giftId).catch(() => {});
+    // Notify receiver confirmation
+    notifyGiftReceived(receiverId, 'Gift', result.giftId).catch(() => {});
+
+    res.status(200).json({ message: 'Gift claimed successfully!', result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const cancelGift = async (req, res, next) => {
+  try {
+    const giftId = parseInt(req.params.id);
+    const senderId = req.user.userId;
+    const result = await giftsService.cancelGift(giftId, senderId);
+    res.status(200).json({ message: 'Gift cancelled successfully', gift: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const previewGiftByToken = async (req, res, next) => {
+  try {
+    const gift = await giftsService.getGiftByToken(req.params.token);
+    if (!gift) return res.status(404).json({ message: 'Gift not found' });
+
+    const isExpired = new Date() > new Date(gift.expires_at);
+    res.status(200).json({
+      ...gift,
+      is_expired: isExpired,
+      claimable: !isExpired && !gift.is_cancelled && gift.current_receivers < gift.max_receivers
+    });
   } catch (error) {
     next(error);
   }

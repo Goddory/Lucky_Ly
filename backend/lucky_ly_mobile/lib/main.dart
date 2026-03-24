@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart' as google_auth;
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform, kReleaseMode;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sqflite/sqflite.dart';
@@ -15,6 +15,12 @@ import 'package:provider/provider.dart';
 import 'providers/theme_provider.dart';
 import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
 
+import 'package:app_links/app_links.dart';
+import 'dart:async';
+import 'providers/auth_provider.dart';
+import 'providers/friend_provider.dart';
+import 'providers/chat_provider.dart';
+import 'core/services/socket_service.dart';
 
 // Entry point khởi chạy ứng dụng Flutter.
 void main() async {
@@ -62,6 +68,19 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => SocketService()),
+        ChangeNotifierProxyProvider<AuthProvider, FriendProvider>(
+          create: (context) => FriendProvider(context.read<AuthProvider>()),
+          update: (context, auth, previous) => FriendProvider(auth),
+        ),
+        ChangeNotifierProxyProvider2<AuthProvider, SocketService, ChatProvider>(
+          create: (context) => ChatProvider(
+            context.read<AuthProvider>(),
+            context.read<SocketService>(),
+          ),
+          update: (context, auth, socket, previous) => ChatProvider(auth, socket),
+        ),
       ],
       child: const LuckyLyAuthApp(),
     ),
@@ -111,15 +130,18 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen>
     with SingleTickerProviderStateMixin {
-  // Base URL backend auth API — web dùng localhost, mobile emulator dùng 10.0.2.2
+  // Base URL backend auth API
+  // Tự động sử dụng Render API khi build APK (release mode), hoặc localhost khi chạy debug
   static final String _apiBaseUrl =
       const String.fromEnvironment('API_BASE_URL', defaultValue: '').isNotEmpty
       ? const String.fromEnvironment('API_BASE_URL')
-      : (kIsWeb
-        ? 'http://localhost:4000'
-        : (defaultTargetPlatform == TargetPlatform.android
-          ? 'http://10.0.2.2:4000'
-          : 'http://localhost:4000'));
+      : (kReleaseMode 
+          ? 'https://lucky-ly-api.onrender.com' 
+          : (kIsWeb
+              ? 'http://localhost:4000'
+              : (defaultTargetPlatform == TargetPlatform.android
+                  ? 'http://10.0.2.2:4000'
+                  : 'http://localhost:4000')));
 
   // Web OAuth client id / server client id dùng để lấy token từ Google.
   static const String _googleClientId = String.fromEnvironment(
@@ -149,9 +171,13 @@ class _AuthScreenState extends State<AuthScreen>
   late Animation<double> _fadeAnimation;
   late Animation<double> _slideAnimation;
 
+  late AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
+
   @override
   void initState() {
     super.initState();
+    _initDeepLinks();
     _loadSavedAccounts();
     _initDeviceId();
     _tryAutoLoginFromSavedSession();
@@ -172,6 +198,7 @@ class _AuthScreenState extends State<AuthScreen>
 
   @override
   void dispose() {
+    _linkSubscription?.cancel();
     _fadeController.dispose();
     signUpEmailController.dispose();
     signUpPasswordController.dispose();
@@ -179,6 +206,31 @@ class _AuthScreenState extends State<AuthScreen>
     signInLoginController.dispose();
     signInPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _initDeepLinks() async {
+    _appLinks = AppLinks();
+
+    // Check initial link if app was opened via link
+    final initialLink = await _appLinks.getInitialLink();
+    if (initialLink != null) {
+      _handleDeepLink(initialLink);
+    }
+
+    // Subscribe to incoming links
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _handleDeepLink(uri);
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    debugPrint('Incoming deep link: $uri');
+    if ((uri.scheme == 'luckyly' && uri.path == '/claim') || uri.host == 'claim') {
+      final token = uri.queryParameters['token'];
+      if (token != null) {
+         // Handle token
+      }
+    }
   }
 
   Future<void> _loadSavedAccounts() async {
@@ -317,7 +369,7 @@ class _AuthScreenState extends State<AuthScreen>
             ..._buildDeviceInfo(),
           }),
         )
-        .timeout(const Duration(seconds: 15));
+        .timeout(const Duration(seconds: 60));
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       await _secureStorage.delete(key: 'refresh_token_$normalizedEmail');
@@ -362,6 +414,16 @@ class _AuthScreenState extends State<AuthScreen>
       if (refreshed == null || !mounted) {
         return;
       }
+
+      final authProvider = context.read<AuthProvider>();
+      authProvider.setSession(
+        accessToken: refreshed['accessToken']?.toString() ?? '',
+        refreshToken: refreshed['refreshToken']?.toString() ?? '',
+        email: candidateEmail,
+      );
+
+      // Initialize Socket
+      context.read<SocketService>().connect(refreshed['accessToken']!);
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
@@ -845,6 +907,16 @@ class _AuthScreenState extends State<AuthScreen>
                           onTap: () async {
                             final refreshed = await _refreshWithSavedSession(email);
                             if (refreshed != null && mounted) {
+                              final authProvider = context.read<AuthProvider>();
+                              authProvider.setSession(
+                                accessToken: refreshed['accessToken']?.toString() ?? '',
+                                refreshToken: refreshed['refreshToken']?.toString() ?? '',
+                                email: email,
+                              );
+                              
+                              // Initialize Socket
+                              context.read<SocketService>().connect(refreshed['accessToken']!);
+
                               Navigator.pop(ctx);
                               Navigator.of(context).pushReplacement(
                                 MaterialPageRoute(
@@ -968,11 +1040,18 @@ class _AuthScreenState extends State<AuthScreen>
               ..._buildDeviceInfo(),
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final body = _safeDecodeMap(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        final authProvider = context.read<AuthProvider>();
+        authProvider.setSession(
+          accessToken: body['accessToken'],
+          refreshToken: body['refreshToken'],
+          email: email,
+          userData: body['user'],
+        );
         await _saveAccount(email);
         await _navigateToHome(body);
       } else {
@@ -1006,11 +1085,18 @@ class _AuthScreenState extends State<AuthScreen>
               ..._buildDeviceInfo(),
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final body = _safeDecodeMap(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        final authProvider = context.read<AuthProvider>();
+        authProvider.setSession(
+          accessToken: body['accessToken'],
+          refreshToken: body['refreshToken'],
+          email: login,
+          userData: body['user'],
+        );
         await _saveAccount(login);
         await _navigateToHome(body);
       } else {
@@ -1060,6 +1146,13 @@ class _AuthScreenState extends State<AuthScreen>
         final body = _safeDecodeMap(response.body);
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
+          final authProvider = context.read<AuthProvider>();
+          authProvider.setSession(
+            accessToken: body['accessToken'],
+            refreshToken: body['refreshToken'],
+            email: email,
+            userData: body['user'],
+          );
           await _navigateToHome(body);
         } else {
           _showMessage(body['message']?.toString() ?? 'Facebook login failed.');
@@ -1158,6 +1251,13 @@ class _AuthScreenState extends State<AuthScreen>
       final body = _safeDecodeMap(response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        final authProvider = context.read<AuthProvider>();
+        authProvider.setSession(
+          accessToken: body['accessToken'],
+          refreshToken: body['refreshToken'],
+          email: body['user']?['email'] ?? '',
+          userData: body['user'],
+        );
         await _navigateToHome(body);
       } else {
         _showMessage(body['message']?.toString() ?? 'Google login failed.');
@@ -1495,14 +1595,9 @@ class _AuthScreenState extends State<AuthScreen>
     final accessToken = responseBody['accessToken']?.toString() ?? '';
     final refreshToken = responseBody['refreshToken']?.toString() ?? '';
 
-    if (userEmail.isNotEmpty && accessToken.isNotEmpty && refreshToken.isNotEmpty) {
-      await _persistSessionTokens(
-        email: userEmail,
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-      );
-    } else if (userEmail.isNotEmpty) {
-      await _saveAccount(userEmail);
+    // Initialize Socket
+    if (accessToken.isNotEmpty) {
+      context.read<SocketService>().connect(accessToken);
     }
 
     Navigator.of(context).pushReplacement(

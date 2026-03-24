@@ -1,16 +1,18 @@
+import http from 'http';
 import app from './app.js';
 import { env } from './config/env.js';
 import { pool } from './db/pool.js';
 import connectMongo from './database/mongo_client.js';
+import { initSocketServer } from './sockets/chat.socket.js';
+import { initFirebase } from './services/notification.service.js';
 import './config/sqlite.js';
 
-// Hàm khởi động ứng dụng: kiểm tra kết nối DB trước khi mở cổng HTTP.
 async function start() {
   try {
     await pool.query('SELECT 1');
     console.log('✅ Connected to Neon PostgreSQL successfully');
-    
-    // Khởi tạo MongoDB (Không bắt buộc để chạy ứng dụng chính)
+
+    // MongoDB (optional)
     try {
       const mongoResult = await connectMongo();
       if (mongoResult?.connected) {
@@ -23,6 +25,16 @@ async function start() {
     }
     
     app.listen(env.port, '0.0.0.0', () => {
+
+    // Firebase Admin SDK (optional, for push notifications)
+    initFirebase();
+
+    // Create HTTP server and attach Socket.io
+    const server = http.createServer(app);
+    initSocketServer(server);
+    console.log('✅ Socket.io server attached');
+
+    server.listen(env.port, () => {
       console.log(`Auth API running on port ${env.port}`);
     });
   } catch (err) {

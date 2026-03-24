@@ -14,6 +14,8 @@ import eventsRoutes from './modules/events/events.routes.js';
 import statsRoutes from './modules/stats/stats.routes.js';
 import themeRoutes from './modules/theme/theme.routes.js';
 import giftsRoutes from './modules/gifts/gifts.routes.js';
+import friendsRoutes from './modules/friends/friends.routes.js';
+import chatRoutes from './modules/chat/chat.routes.js';
 
 const app = express();
 
@@ -51,6 +53,8 @@ app.use('/api/events', eventsRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/theme', themeRoutes);
 app.use('/api/gifts', giftsRoutes);
+app.use('/api/friends', friendsRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.use(notFoundHandler);
 

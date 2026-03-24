@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'providers/auth_provider.dart';
 import 'main.dart';
 import 'core/database/database_helper.dart';
 import 'core/services/sync_manager.dart';
@@ -35,8 +34,6 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
-  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
-
   late AnimationController _entryController;
   late Animation<double> _fadeIn;
 
@@ -69,19 +66,19 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
     _entryController.forward();
 
-    fullName = widget.userData['full_name']?.toString() ?? 'User';
-    email = widget.userData['email']?.toString() ?? '';
-    username = widget.userData['username']?.toString() ?? '';
-    avatarUrl = widget.userData['avatar_url']?.toString() ?? '';
-    authProvider = widget.userData['auth_provider']?.toString() ?? 'local';
-    userRole = widget.userData['role']?.toString().toLowerCase() ?? 'user';
+    final auth = context.read<AuthProvider>();
+    final userData = auth.userData ?? widget.userData;
+
+    fullName = userData['full_name']?.toString() ?? 'User';
+    email = userData['email']?.toString() ?? '';
+    username = userData['username']?.toString() ?? '';
+    avatarUrl = userData['avatar_url']?.toString() ?? '';
+    authProvider = userData['auth_provider']?.toString() ?? 'local';
+    userRole = userData['role']?.toString().toLowerCase() ?? 'user';
 
     fullNameController = TextEditingController(text: fullName);
     emailController = TextEditingController(text: email);
     avatarUrlController = TextEditingController(text: avatarUrl);
-
-    _loadLocalUser();
-    _loadRemoteUser();
   }
 
   String _resolveCurrentUserId() {
@@ -108,46 +105,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  Future<void> _loadRemoteUser() async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse('${widget.apiBaseUrl}/api/users/me'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ${widget.accessToken}',
-            },
-          )
-          .timeout(const Duration(seconds: 10));
 
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        return;
-      }
-
-      final decoded = jsonDecode(response.body);
-      if (decoded is! Map<String, dynamic>) return;
-      final user = decoded['user'];
-      if (user is! Map<String, dynamic>) return;
-
-      if (!mounted) return;
-      setState(() {
-        userRole = user['role']?.toString().toLowerCase() ?? userRole;
-        fullName = user['full_name']?.toString() ?? fullName;
-        email = user['email']?.toString() ?? email;
-        username = user['username']?.toString() ?? username;
-        avatarUrl = user['avatar_url']?.toString() ?? avatarUrl;
-        authProvider = user['auth_provider']?.toString() ?? authProvider;
-
-        if (!isEditing) {
-          fullNameController.text = fullName;
-          emailController.text = email;
-          avatarUrlController.text = avatarUrl;
-        }
-      });
-    } catch (_) {
-      // Keep current local profile state if remote sync fails.
-    }
-  }
 
   @override
   void dispose() {
@@ -160,25 +118,77 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fadeIn,
-      child: Column(
-        children: [
-          _buildStaticHeader(),
-          Expanded(
-            child: ListView(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.zero,
-              children: [
-                _buildProfileCard(),
-                _buildInfoSection(),
-                _buildSettingsSection(),
-                _buildLogoutButton(),
-                const SizedBox(height: 120),
-              ],
-            ),
+    return Consumer<AuthProvider>(
+      builder: (context, auth, child) {
+        final userData = auth.userData ?? {};
+        fullName = userData['full_name']?.toString() ?? fullName;
+        email = userData['email']?.toString() ?? email;
+        avatarUrl = userData['avatar_url']?.toString() ?? avatarUrl;
+        userRole = userData['role']?.toString() ?? userRole;
+        final bool isSearchable = userData['is_searchable'] == true;
+
+        return FadeTransition(
+          opacity: _fadeIn,
+          child: Column(
+            children: [
+              _buildStaticHeader(),
+              Expanded(
+                child: ListView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  children: [
+                    _buildProfileCard(),
+                    _buildInfoSection(),
+                    _buildPrivacySection(isSearchable, auth),
+                    _buildSettingsSection(),
+                    _buildLogoutButton(),
+                    const SizedBox(height: 120),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        );
+      }
+    );
+  }
+
+  Widget _buildPrivacySection(bool isSearchable, AuthProvider auth) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 20,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.visibility, color: Colors.blue),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Chế độ công khai', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  Text('Cho phép người khác tìm thấy bạn', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
+            ),
+            Switch(
+              value: isSearchable,
+              onChanged: (val) => auth.updatePrivacy(val),
+              activeColor: Colors.blue,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1056,48 +1066,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       if (confirmed != true || !mounted) return;
     }
 
-    final normalizedEmail = email.trim().toLowerCase();
-
-    // Gọi API logout và thu hồi refresh token phiên hiện tại
-    try {
-      final storedRefreshToken = normalizedEmail.isNotEmpty
-          ? await _secureStorage.read(key: 'refresh_token_$normalizedEmail')
-          : null;
-
-      final refreshToken =
-          (storedRefreshToken != null && storedRefreshToken.isNotEmpty)
-          ? storedRefreshToken
-          : widget.refreshToken;
-
-      if (refreshToken.isNotEmpty) {
-        await http.post(
-          Uri.parse('${widget.apiBaseUrl}/api/auth/logout'),
-          headers: {
-            'Content-Type': 'application/json',
-            if (widget.accessToken.isNotEmpty)
-              'Authorization': 'Bearer ${widget.accessToken}',
-          },
-          body: jsonEncode({'refreshToken': refreshToken}),
-        );
-      }
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('access_token');
-      await prefs.remove('last_login_email');
-
-      if (normalizedEmail.isNotEmpty) {
-        await _secureStorage.delete(key: 'refresh_token_$normalizedEmail');
-      }
-    } catch (_) {
-      // Logout locally dù API fail
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('access_token');
-      await prefs.remove('last_login_email');
-      if (normalizedEmail.isNotEmpty) {
-        await _secureStorage.delete(key: 'refresh_token_$normalizedEmail');
-      }
-    }
-
+    context.read<AuthProvider>().logout();
     if (!mounted) return;
 
     // Quay về màn hình đăng nhập

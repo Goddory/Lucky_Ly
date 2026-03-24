@@ -1,5 +1,5 @@
 import { updateProfileSchema, changePasswordSchema } from './user.validation.js';
-import { getUserProfile, updateUserProfile, changeUserPassword, getAllUsersService, toggleUserStatusService } from './user.service.js';
+import { getUserProfile, updateUserProfile, changeUserPassword, getAllUsersService, toggleUserStatusService, updatePrivacySettings, updateFcmToken } from './user.service.js';
 
 // GET /api/users/me — Lấy thông tin profile user hiện tại.
 export async function getMe(req, res, next) {
@@ -57,6 +57,32 @@ export async function toggleUserStatus(req, res, next) {
     const { isActive } = req.body;
     const user = await toggleUserStatusService(id, isActive);
     res.status(200).json({ message: 'User status updated', user });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updatePrivacy(req, res, next) {
+  try {
+    const { isSearchable } = req.body;
+    if (typeof isSearchable !== 'boolean') {
+      return res.status(400).json({ message: 'isSearchable (boolean) is required' });
+    }
+    const result = await updatePrivacySettings(req.user.userId, isSearchable);
+    res.status(200).json({ message: 'Privacy settings updated', user: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateDeviceToken(req, res, next) {
+  try {
+    const { fcmToken } = req.body;
+    if (!fcmToken) {
+      return res.status(400).json({ message: 'fcmToken is required' });
+    }
+    await updateFcmToken(req.user.userId, fcmToken);
+    res.status(200).json({ message: 'FCM token updated' });
   } catch (err) {
     next(err);
   }
