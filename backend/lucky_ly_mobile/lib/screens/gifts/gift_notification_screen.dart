@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../app_theme.dart';
 import 'gift_open_screen.dart';
+import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+
 
 class GiftNotificationScreen extends StatefulWidget {
   const GiftNotificationScreen({super.key});
@@ -90,7 +92,7 @@ class _GiftNotificationScreenState extends State<GiftNotificationScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: const CustomLoading(size: 80))
           : _error != null
               ? Center(
                   child: Column(
@@ -126,14 +128,7 @@ class _GiftNotificationScreenState extends State<GiftNotificationScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: appTheme.primary.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.card_giftcard, color: appTheme.primary, size: 56),
-          ),
+          const CustomLoading(size: 100),
           const SizedBox(height: 20),
           Text(
             'Chưa có quà nào',

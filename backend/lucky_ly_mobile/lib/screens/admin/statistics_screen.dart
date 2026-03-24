@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:fl_chart/fl_chart.dart';
 import '../../app_theme.dart';
+import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+
 
 class StatisticsScreen extends StatefulWidget {
   final String apiBaseUrl;
@@ -157,7 +159,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
           _buildHeroHeader(context),
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: theme.primary))
+                ? Center(child: const CustomLoading(size: 80))
                 : RefreshIndicator(
                     onRefresh: _fetchOverview,
                     child: SingleChildScrollView(
@@ -464,7 +466,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
           borderRadius: BorderRadius.circular(20),
           boxShadow: AppTheme.softShadow,
         ),
-        child: Center(child: CircularProgressIndicator(color: currentMetric.color)),
+        child: Center(child: const CustomLoading(size: 80)),
       );
     }
 

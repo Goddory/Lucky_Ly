@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../data/gift_catalog.dart';
 import '../../app_theme.dart';
 import '../../widgets/glb_model_viewer.dart';
+import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+
 
 class GiftPreviewScreen extends StatefulWidget {
   const GiftPreviewScreen({
@@ -359,10 +361,7 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
+                      child: const CustomLoading(size: 80),
                     )
                   : const Icon(Icons.send_rounded),
               label: Text(_isSending ? 'Đang gửi...' : 'Gửi quà 🎁'),

@@ -13,6 +13,8 @@ import '../../app_theme.dart';
 import '../../widgets/confetti_painter.dart';
 import '../../widgets/particle_overlay.dart';
 import '../../widgets/glb_model_viewer.dart';
+import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+
 
 class GiftOpenScreen extends StatefulWidget {
   const GiftOpenScreen({super.key, required this.gift});
@@ -296,7 +298,7 @@ class _GiftOpenScreenState extends State<GiftOpenScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CircularProgressIndicator(),
+              const CustomLoading(size: 80),
               const SizedBox(height: 16),
               Text('Đang chuẩn bị...', style: TextStyle(color: _themeColor, fontWeight: FontWeight.w600)),
             ],

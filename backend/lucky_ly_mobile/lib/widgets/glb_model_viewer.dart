@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+
 
 class GlbModelViewer extends StatefulWidget {
   const GlbModelViewer({
@@ -98,7 +100,7 @@ class _GlbModelViewerState extends State<GlbModelViewer> {
         child: SizedBox(
           width: 24,
           height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2.2),
+          child: const CustomLoading(size: 80),
         ),
       );
     }

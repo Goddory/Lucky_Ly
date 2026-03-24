@@ -5,6 +5,8 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../core/database/database_helper.dart';
+import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+
 
 class AvaturnScreen extends StatefulWidget {
   // Domain Avaturn chinh thuc cua Lucky Ly.
@@ -73,7 +75,7 @@ class _AvaturnScreenState extends State<AvaturnScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
+        builder: (context) => const Center(child: const CustomLoading(size: 80)),
       );
 
       final response = await http.get(Uri.parse(url));
@@ -124,7 +126,7 @@ class _AvaturnScreenState extends State<AvaturnScreen> {
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),
-          if (_isLoading) const Center(child: CircularProgressIndicator()),
+          if (_isLoading) const Center(child: const CustomLoading(size: 80)),
         ],
       ),
     );

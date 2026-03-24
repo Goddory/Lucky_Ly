@@ -13,6 +13,8 @@ import 'widgets/calendar_popup.dart';
 import 'widgets/theme_particles.dart';
 import 'screens/avaturn_screen.dart';
 import 'screens/gifts/gift_notification_screen.dart';
+import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+
 import 'screens/chat/chat_list_screen.dart';
 import 'screens/social/friend_management_screen.dart';
 import 'providers/auth_provider.dart';
@@ -318,9 +320,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           Positioned(top: -10, right: -10, child: _AnimatedFloatingWidget(durationSeconds: 2.5, offsetFactor: 12, child: Transform.rotate(angle: 0.3, child: Opacity(opacity: 0.35, child: Text('🌼', style: TextStyle(fontSize: 90)))))),
           Positioned(top: 40, left: MediaQuery.of(context).size.width / 2 - 30, child: _AnimatedFloatingWidget(durationSeconds: 2.0, offsetFactor: 8, child: Opacity(opacity: 0.4, child: Text('🏮', style: TextStyle(fontSize: 45))))),
         ] else if (isVal) ...[
-          Positioned(top: -10, left: 15, child: _AnimatedFloatingWidget(durationSeconds: 2.5, offsetFactor: 10, child: Transform.rotate(angle: -0.15, child: Opacity(opacity: 0.4, child: Text('💖', style: TextStyle(fontSize: 70)))))),
-          Positioned(top: -20, right: 10, child: _AnimatedFloatingWidget(durationSeconds: 3.2, offsetFactor: 15, child: Transform.rotate(angle: 0.2, child: Opacity(opacity: 0.35, child: Text('💌', style: TextStyle(fontSize: 80)))))),
-          Positioned(top: 30, left: MediaQuery.of(context).size.width / 2, child: _AnimatedFloatingWidget(durationSeconds: 2.0, offsetFactor: 8, child: Opacity(opacity: 0.4, child: Text('💕', style: TextStyle(fontSize: 45))))),
+          Positioned(top: -10, left: 15, child: _AnimatedFloatingWidget(durationSeconds: 2.5, offsetFactor: 10, child: Transform.rotate(angle: -0.15, child: Opacity(opacity: 0.8, child: Image.asset('assets/images/ValentineTheme/Chocobar.png', width: 70, height: 70))))),
+          Positioned(top: -20, right: 10, child: _AnimatedFloatingWidget(durationSeconds: 3.2, offsetFactor: 15, child: Transform.rotate(angle: 0.2, child: Opacity(opacity: 0.8, child: Image.asset('assets/images/ValentineTheme/Lich1402.png', width: 80, height: 80))))),
+          Positioned(top: 30, left: MediaQuery.of(context).size.width / 2, child: _AnimatedFloatingWidget(durationSeconds: 2.0, offsetFactor: 8, child: Opacity(opacity: 0.8, child: Image.asset('assets/images/ValentineTheme/Cungtentinhyeu.png', width: 45, height: 45)))),
         ],
       ],
     );
@@ -779,7 +781,7 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     if (!_controller.value.isInitialized) {
-      return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(backgroundColor: Colors.black, body: Center(child: const CustomLoading(size: 80)));
     }
     return Scaffold(
       backgroundColor: Colors.black,

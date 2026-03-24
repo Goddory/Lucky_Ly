@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 import '../core/database/database_helper.dart';
+import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+
 
 class Avatar3DScreen extends StatefulWidget {
   const Avatar3DScreen({super.key});
@@ -84,7 +86,7 @@ class _Avatar3DScreenState extends State<Avatar3DScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: Color(0xFF0EA5D8)),
+            const CustomLoading(size: 80),
             SizedBox(height: 16),
             Text(
               'Đang tải model 3D...',

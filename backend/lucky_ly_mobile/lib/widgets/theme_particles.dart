@@ -75,23 +75,24 @@ class _ThemeParticlesState extends State<ThemeParticles> with SingleTickerProvid
           Widget childWidget;
           
           if (isValentine) {
-            if (p.type <= 1) {
-              // Keep the current falling heart
-              childWidget = Icon(Icons.favorite, color: Colors.pinkAccent.withValues(alpha: 0.3), size: p.size);
-            } else if (p.type == 2) {
-              // Animated pulsing heart
-              final scale = 1.0 + sin(p.phase) * 0.2;
-              childWidget = Transform.scale(
-                scale: scale,
-                child: Text('💖', style: TextStyle(fontSize: p.size)),
-              );
+            String assetPath;
+            if (p.type == 0) {
+              assetPath = 'assets/images/ValentineTheme/Lich1402.png';
+            } else if (p.type == 1) {
+              assetPath = 'assets/images/ValentineTheme/Cungtentinhyeu.png';
             } else {
-              // Rotating stacked hearts
+              assetPath = 'assets/images/ValentineTheme/Chocobar.png';
+            }
+            Widget imgWidget = Image.asset(assetPath, width: p.size * 2, height: p.size * 2, fit: BoxFit.contain);
+            
+            if (p.type == 1) {
+              final scale = 1.0 + sin(p.phase) * 0.2;
+              childWidget = Transform.scale(scale: scale, child: imgWidget);
+            } else if (p.type == 2) {
               final rotation = sin(p.phase) * 0.2;
-              childWidget = Transform.rotate(
-                angle: rotation,
-                child: Text('💕', style: TextStyle(fontSize: p.size)),
-              );
+              childWidget = Transform.rotate(angle: rotation, child: imgWidget);
+            } else {
+              childWidget = imgWidget;
             }
           } else {
             // Tet & Other holidays
