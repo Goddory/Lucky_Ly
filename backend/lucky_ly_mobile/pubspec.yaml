@@ -55,6 +55,7 @@ dependencies:
   fl_chart: ^1.2.0
   model_viewer_plus: ^1.10.0
   ar_flutter_plugin: ^0.7.3
+  lottie: ^3.1.2
 
 dev_dependencies:
   flutter_test:
@@ -85,6 +86,9 @@ flutter:
     - assets/stickers/valentine/
     - assets/models/tet/
     - assets/models/valentine/
+    - assets/images/TetTheme/
+    - assets/images/ValentineTheme/
+    - assets/animations/
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

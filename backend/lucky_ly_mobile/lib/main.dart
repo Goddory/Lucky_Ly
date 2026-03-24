@@ -13,6 +13,8 @@ import 'home_screen.dart';
 import 'app_theme.dart';
 import 'package:provider/provider.dart';
 import 'providers/theme_provider.dart';
+import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+
 
 // Entry point khởi chạy ứng dụng Flutter.
 void main() async {
@@ -1462,10 +1464,7 @@ class _AuthScreenState extends State<AuthScreen>
                         ? const SizedBox(
                             width: 24,
                             height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 3,
-                            ),
+                            child: const CustomLoading(size: 80),
                           )
                         : Text(
                             step == 1
@@ -1886,10 +1885,7 @@ class _PrimaryGradientButtonState extends State<_PrimaryGradientButton>
                 ? const SizedBox(
                     height: 28,
                     width: 28,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 3,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
+                    child: const CustomLoading(size: 80),
                   )
                 : Text(
                     widget.text,

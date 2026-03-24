@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../app_theme.dart';
+import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+
 
 class UsersManagementScreen extends StatefulWidget {
   final String apiBaseUrl;
@@ -143,7 +145,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
           Expanded(
             child: _isLoading
                 ? Center(
-                    child: CircularProgressIndicator(color: theme.primary),
+                    child: const CustomLoading(size: 80),
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(

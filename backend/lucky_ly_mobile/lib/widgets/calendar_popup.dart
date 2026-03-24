@@ -6,6 +6,8 @@ import '../app_theme.dart';
 import '../providers/theme_provider.dart';
 import '../core/models/event_model.dart';
 import '../core/services/calendar_api_service.dart';
+import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+
 
 class CalendarPopup extends StatefulWidget {
   const CalendarPopup({super.key});
@@ -106,7 +108,7 @@ class _CalendarPopupState extends State<CalendarPopup> {
           ),
           Expanded(
             child: _isLoading 
-                ? Center(child: CircularProgressIndicator(color: AppTheme.of(context).primary))
+                ? Center(child: const CustomLoading(size: 80))
                 : SingleChildScrollView(
                     child: Column(
                       children: [
