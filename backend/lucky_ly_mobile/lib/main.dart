@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart' as google_auth;
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform, kReleaseMode;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sqflite/sqflite.dart';
@@ -128,15 +128,18 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen>
     with SingleTickerProviderStateMixin {
-  // Base URL backend auth API — web dùng localhost, mobile emulator dùng 10.0.2.2
+  // Base URL backend auth API
+  // Tự động sử dụng Render API khi build APK (release mode), hoặc localhost khi chạy debug
   static final String _apiBaseUrl =
       const String.fromEnvironment('API_BASE_URL', defaultValue: '').isNotEmpty
       ? const String.fromEnvironment('API_BASE_URL')
-      : (kIsWeb
-        ? 'http://localhost:4000'
-        : (defaultTargetPlatform == TargetPlatform.android
-          ? 'http://10.0.2.2:4000'
-          : 'http://localhost:4000'));
+      : (kReleaseMode 
+          ? 'https://lucky-ly-api.onrender.com' 
+          : (kIsWeb
+              ? 'http://localhost:4000'
+              : (defaultTargetPlatform == TargetPlatform.android
+                  ? 'http://10.0.2.2:4000'
+                  : 'http://localhost:4000')));
 
   // Web OAuth client id / server client id dùng để lấy token từ Google.
   static const String _googleClientId = String.fromEnvironment(
@@ -364,7 +367,7 @@ class _AuthScreenState extends State<AuthScreen>
             ..._buildDeviceInfo(),
           }),
         )
-        .timeout(const Duration(seconds: 15));
+        .timeout(const Duration(seconds: 60));
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       await _secureStorage.delete(key: 'refresh_token_$normalizedEmail');
@@ -1035,7 +1038,7 @@ class _AuthScreenState extends State<AuthScreen>
               ..._buildDeviceInfo(),
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final body = _safeDecodeMap(response.body);
 
@@ -1080,7 +1083,7 @@ class _AuthScreenState extends State<AuthScreen>
               ..._buildDeviceInfo(),
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final body = _safeDecodeMap(response.body);
 
