@@ -45,19 +45,26 @@ pause
 exit /b %EXIT_CODE%
 
 :app_local
-cd /d "%~dp0\lucky_ly_mobile"
+cd /d "%~dp0lucky_ly_mobile"
 echo.
 echo Starting Flutter App (Local Connection)...
-echo (Defaulting to localhost / 10.0.2.2 emulator config)
+echo Detecting Local Network IP for real USB devices...
+for /f "delims=[] tokens=2" %%a in ('ping -4 -n 1 %COMPUTERNAME% ^| findstr "["') do set LOCAL_IP=%%a
+if "%LOCAL_IP%"=="" set LOCAL_IP=10.0.2.2
+echo Detected Machine IP: %LOCAL_IP%
 echo.
-call flutter run
+call flutter run --dart-define=API_BASE_URL=http://%LOCAL_IP%:4000
 pause
 exit /b 0
 
 :app_cloud
-cd /d "%~dp0\lucky_ly_mobile"
+cd /d "%~dp0lucky_ly_mobile"
+echo.
+echo [WAKE UP] Sending ping to Render Cloud to wake up the server (Spin-up)...
+start /b curl -s https://lucky-ly-api.onrender.com/api/health > NUL 2>&1
 echo.
 echo Starting Flutter App (Cloud Connection: https://lucky-ly-api.onrender.com)...
+echo (By the time the app finishes compiling, the server should be awake!)
 echo.
 call flutter run --dart-define=API_BASE_URL=https://lucky-ly-api.onrender.com
 pause
