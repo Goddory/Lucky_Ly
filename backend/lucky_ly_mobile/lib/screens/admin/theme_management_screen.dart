@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../app_theme.dart';
 import '../../providers/theme_provider.dart';
+import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+
 
 class ThemeManagementScreen extends StatefulWidget {
   final String apiBaseUrl;
@@ -110,7 +112,7 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
     if (!_isInitialized && provider.isSyncing) {
       return Scaffold(
         backgroundColor: appTheme.bg,
-        body: const Center(child: CircularProgressIndicator()),
+        body: const Center(child: const CustomLoading(size: 80)),
       );
     }
 
@@ -154,10 +156,7 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
+                          child: const CustomLoading(size: 80),
                         )
                       : const Text(
                           'Lưu cấu hình',

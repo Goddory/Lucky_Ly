@@ -29,8 +29,8 @@ class CalendarApiService {
         final data = jsonDecode(response.body);
         if (data is List) {
           return data
-              .whereType<Map<String, dynamic>>()
-              .map(EventModel.fromJson)
+              .where((e) => e is Map)
+              .map((e) => EventModel.fromJson(Map<String, dynamic>.from(e as Map)))
               .toList();
         }
 
@@ -38,8 +38,8 @@ class CalendarApiService {
           final rawEvents = data['data'] ?? data['events'];
           if (rawEvents is List) {
             return rawEvents
-                .whereType<Map<String, dynamic>>()
-                .map(EventModel.fromJson)
+                .where((e) => e is Map)
+                .map((e) => EventModel.fromJson(Map<String, dynamic>.from(e as Map)))
                 .toList();
           }
         }

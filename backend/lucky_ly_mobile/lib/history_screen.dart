@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
+import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -45,7 +47,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           _buildFilterBar(),
           Expanded(
             child: _isLoading 
-              ? Center(child: CircularProgressIndicator(color: AppTheme.of(context).primary))
+              ? Center(child: const CustomLoading(size: 80))
               : _transactions.isEmpty 
                 ? _buildEmptyState()
                 : ListView.builder(
@@ -67,14 +69,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppTheme.of(context).primary.withValues(alpha: 0.05),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.history_toggle_off, size: 64, color: AppTheme.of(context).primary.withValues(alpha: 0.3)),
-          ),
+          const CustomLoading(size: 100),
           const SizedBox(height: 24),
           Text('Chưa có giao dịch nào', style: TextStyle(color: AppTheme.of(context).textMuted, fontSize: 16, fontWeight: FontWeight.w600)),
         ],

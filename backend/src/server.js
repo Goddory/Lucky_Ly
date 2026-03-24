@@ -23,6 +23,8 @@ async function start() {
     } catch (e) {
       console.error('⚠️ MongoDB Connection Failed (Proceeding without Mongo):', e?.message || e);
     }
+    
+    app.listen(env.port, '0.0.0.0', () => {
 
     // Firebase Admin SDK (optional, for push notifications)
     initFirebase();

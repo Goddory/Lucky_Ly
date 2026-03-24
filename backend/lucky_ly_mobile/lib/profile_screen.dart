@@ -11,6 +11,8 @@ import 'providers/theme_provider.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
 import 'screens/avaturn_screen.dart' as screens;
 import 'screens/avatar_3d_screen.dart' as screens;
+import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -915,10 +917,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ? const SizedBox(
                             width: 24,
                             height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
+                            child: const CustomLoading(size: 80),
                           )
                         : const Text(
                             'Xác nhận đổi mật khẩu',
