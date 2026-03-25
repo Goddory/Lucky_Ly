@@ -4,7 +4,7 @@ color 0A
 setlocal
 
 echo ========================================
-echo    LUCKY LY - START MENU (BACKEND & APP)
+echo    LUCKY LY - START MENU (BACKEND ^& APP)
 echo ========================================
 echo.
 echo [1] Start Backend Server Locally (Port 4000)
