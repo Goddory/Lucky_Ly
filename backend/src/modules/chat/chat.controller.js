@@ -5,8 +5,8 @@ export const getRoomOrCreate = async (req, res, next) => {
     const { otherUserId } = req.body;
     if (!otherUserId) return res.status(400).json({ message: 'otherUserId is required' });
 
-    const roomId = await chatService.getOrCreatePrivateRoom(req.user.userId, parseInt(otherUserId));
-    res.status(200).json({ roomId });
+    const roomId = await chatService.getOrCreatePrivateRoom(req.user.userId, otherUserId);
+    res.status(200).json({ room_id: roomId });
   } catch (error) {
     next(error);
   }
@@ -25,7 +25,7 @@ export const postMessage = async (req, res, next) => {
     }
 
     const message = await chatService.sendMessage(
-      parseInt(roomId), req.user.userId, parseInt(receiverId),
+      roomId, req.user.userId, receiverId,
       content, messageType || 'text', giftId || null
     );
     res.status(201).json(message);
@@ -40,9 +40,9 @@ export const getMessages = async (req, res, next) => {
     const { limit, beforeId } = req.query;
 
     const messages = await chatService.getMessages(
-      parseInt(roomId), req.user.userId,
+      roomId, req.user.userId,
       limit ? parseInt(limit) : 50,
-      beforeId ? parseInt(beforeId) : null
+      beforeId || null
     );
     res.status(200).json(messages);
   } catch (error) {
@@ -52,7 +52,7 @@ export const getMessages = async (req, res, next) => {
 
 export const markAsRead = async (req, res, next) => {
   try {
-    await chatService.markMessagesAsRead(parseInt(req.params.roomId), req.user.userId);
+    await chatService.markMessagesAsRead(req.params.roomId, req.user.userId);
     res.status(200).json({ message: 'Messages marked as read' });
   } catch (error) {
     next(error);
