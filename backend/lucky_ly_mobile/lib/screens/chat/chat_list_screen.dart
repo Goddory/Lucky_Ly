@@ -42,18 +42,28 @@ class _ChatListScreenState extends State<ChatListScreen> {
               final room = provider.rooms[index];
               final otherUser = room['other_participant'];
               final lastMsg = room['last_message'] ?? 'Bắt đầu trò chuyện';
-              final time = room['last_message_at'] != null 
-                  ? DateTime.parse(room['last_message_at']) 
-                  : null;
-              final unread = room['unread_count'] ?? 0;
+              final timeStr = room['last_message_at'];
+              final time = timeStr != null ? DateTime.parse(timeStr) : null;
+              final unread = int.tryParse(room['unread_count']?.toString() ?? '0') ?? 0;
+
+              if (otherUser == null) {
+                return const SizedBox.shrink(); // Skip rooms with no other participant
+              }
 
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundImage: otherUser['avatar_url'] != null ? NetworkImage(otherUser['avatar_url']) : null,
-                  child: otherUser['avatar_url'] == null ? const Icon(Icons.person) : null,
+                  backgroundImage: (otherUser['avatar_url'] != null && otherUser['avatar_url'].isNotEmpty) 
+                      ? NetworkImage(otherUser['avatar_url']) 
+                      : null,
+                  child: (otherUser['avatar_url'] == null || otherUser['avatar_url'].isEmpty) 
+                      ? const Icon(Icons.person) 
+                      : null,
                 ),
-                title: Text(otherUser['full_name'] ?? otherUser['username'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text(lastMsg, maxLines: 1, overflow: TextOverflow.ellipsis),
+                title: Text(
+                  otherUser['full_name'] ?? otherUser['username'] ?? 'Người dùng',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(lastMsg.toString(), maxLines: 1, overflow: TextOverflow.ellipsis),
                 trailing: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.end,

@@ -94,7 +94,6 @@ flutter:
     - assets/stickers/valentine/
     - assets/models/tet/
     - assets/models/valentine/
-    - assets/images/TetTheme/
     - assets/images/ValentineTheme/
     - assets/animations/
   #   - images/a_dot_burr.jpeg

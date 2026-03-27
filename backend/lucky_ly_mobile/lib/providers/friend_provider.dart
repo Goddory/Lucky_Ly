@@ -71,7 +71,7 @@ class FriendProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> sendRequest(int friendId) async {
+  Future<bool> sendRequest(String friendId) async {
     try {
       debugPrint('=== SENDING FRIEND REQUEST ===');
       debugPrint('Friend ID: $friendId');
@@ -100,7 +100,7 @@ class FriendProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> acceptRequest(int requestId) async {
+  Future<bool> acceptRequest(String requestId) async {
     try {
       debugPrint('=== ACCEPTING FRIEND REQUEST ===');
       debugPrint('Request ID: $requestId');
@@ -126,7 +126,7 @@ class FriendProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> declineRequest(int requestId) async {
+  Future<bool> declineRequest(String requestId) async {
     try {
       debugPrint('=== DECLINING FRIEND REQUEST ===');
       debugPrint('Request ID: $requestId');
@@ -151,7 +151,7 @@ class FriendProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> unfriend(int friendId) async {
+  Future<bool> unfriend(String friendId) async {
     try {
       final res = await _api.delete('/api/friends/$friendId');
       if (res.statusCode == 200) {

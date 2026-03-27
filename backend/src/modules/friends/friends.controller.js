@@ -3,8 +3,8 @@ import { notifyFriendRequest, notifyFriendAccepted } from '../../services/notifi
 
 export const sendRequest = async (req, res, next) => {
   try {
-    const result = await friendsService.sendFriendRequest(req.user.userId, parseInt(req.body.friendId));
-    notifyFriendRequest(parseInt(req.body.friendId), req.user.username || 'Someone').catch(() => {});
+    const result = await friendsService.sendFriendRequest(req.user.userId, req.body.friendId);
+    notifyFriendRequest(req.body.friendId, req.user.username || 'Someone').catch(() => {});
     res.status(201).json({ message: 'Friend request sent', request: result });
   } catch (error) {
     next(error);
@@ -13,7 +13,7 @@ export const sendRequest = async (req, res, next) => {
 
 export const acceptRequest = async (req, res, next) => {
   try {
-    const result = await friendsService.acceptFriendRequest(parseInt(req.params.id), req.user.userId);
+    const result = await friendsService.acceptFriendRequest(req.params.id, req.user.userId);
     notifyFriendAccepted(result.user_id, req.user.username || 'Someone').catch(() => {});
     res.status(200).json({ message: 'Friend request accepted', friendship: result });
   } catch (error) {
@@ -23,7 +23,7 @@ export const acceptRequest = async (req, res, next) => {
 
 export const declineRequest = async (req, res, next) => {
   try {
-    const result = await friendsService.declineFriendRequest(parseInt(req.params.id), req.user.userId);
+    const result = await friendsService.declineFriendRequest(req.params.id, req.user.userId);
     res.status(200).json({ message: 'Friend request declined', request: result });
   } catch (error) {
     next(error);
@@ -32,7 +32,7 @@ export const declineRequest = async (req, res, next) => {
 
 export const removeFriend = async (req, res, next) => {
   try {
-    await friendsService.unfriend(req.user.userId, parseInt(req.params.friendId));
+    await friendsService.unfriend(req.user.userId, req.params.friendId);
     res.status(200).json({ message: 'Unfriended successfully' });
   } catch (error) {
     next(error);

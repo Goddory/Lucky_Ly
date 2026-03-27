@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 import '../gifts/themed_gift_builder_screen.dart';
 
 class ChatRoomScreen extends StatefulWidget {
-  final int roomId;
+  final String roomId;
   final dynamic otherUser;
 
   const ChatRoomScreen({
@@ -67,8 +67,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final socket = context.read<SocketService>();
     socket.sendMessage({
       'roomId': widget.roomId,
+      'receiverId': widget.otherUser['user_id'],
       'content': text,
-      'type': 'TEXT',
+      'messageType': 'text',
     }, (ack) {
       if (ack != null && ack['error'] != null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ack['error'])));
@@ -137,7 +138,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   Widget _buildMessageBubble(dynamic msg, bool isMe) {
-    final bool isGift = msg['type'] == 'GIFT';
+    final bool isGift = msg['message_type'] == 'gift';
     final DateTime time = DateTime.parse(msg['created_at']);
     
     return Align(

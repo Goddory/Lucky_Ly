@@ -108,17 +108,21 @@ export async function markMessagesAsRead(roomId, userId) {
 export async function getUserRooms(userId) {
   const { rows } = await pool.query(
     `SELECT cr.id AS room_id, cr.room_type, cr.updated_at,
-       (SELECT json_agg(json_build_object(
+       (SELECT json_build_object(
          'user_id', u.user_id, 'username', u.username,
          'full_name', u.full_name, 'avatar_url', u.avatar_url
-       )) FROM chat_room_participants p
+       ) FROM chat_room_participants p
          JOIN users u ON p.user_id = u.user_id
          WHERE p.room_id = cr.id AND p.user_id != $1
-       ) AS other_participants,
-       (SELECT json_build_object('content', lm.content, 'message_type', lm.message_type, 'created_at', lm.created_at, 'sender_id', lm.sender_id)
+         LIMIT 1
+       ) AS other_participant,
+       (SELECT lm.content
          FROM chat_messages lm WHERE lm.room_id = cr.id ORDER BY lm.created_at DESC LIMIT 1
        ) AS last_message,
-       (SELECT COUNT(*) FROM chat_messages cm
+       (SELECT lm.created_at
+         FROM chat_messages lm WHERE lm.room_id = cr.id ORDER BY lm.created_at DESC LIMIT 1
+       ) AS last_message_at,
+       (SELECT COUNT(*)::int FROM chat_messages cm
          WHERE cm.room_id = cr.id AND cm.sender_id != $1 AND cm.is_read = FALSE
        ) AS unread_count
      FROM chat_rooms cr

@@ -9,7 +9,7 @@ class ChatProvider extends ChangeNotifier {
   final SocketService socketService;
 
   List<dynamic> _rooms = [];
-  Map<int, List<dynamic>> _messages = {}; // roomId -> messages
+  Map<String, List<dynamic>> _messages = {}; // roomId -> messages
   bool _isLoading = false;
 
   ChatProvider(this.authProvider, this.socketService) {
@@ -22,7 +22,7 @@ class ChatProvider extends ChangeNotifier {
 
   void _initSocketListeners() {
     socketService.onMessage((data) {
-      final int messageRoomId = data['room_id'];
+      final String messageRoomId = data['room_id'];
       if (_messages.containsKey(messageRoomId)) {
         _messages[messageRoomId]!.insert(0, data);
         notifyListeners();
@@ -33,7 +33,8 @@ class ChatProvider extends ChangeNotifier {
         _rooms[roomIndex]['last_message'] = data['content'];
         _rooms[roomIndex]['last_message_at'] = data['created_at'];
         if (data['sender_id'] != authProvider.userData?['user_id']) {
-          _rooms[roomIndex]['unread_count'] = (_rooms[roomIndex]['unread_count'] ?? 0) + 1;
+          final currentCount = int.tryParse(_rooms[roomIndex]['unread_count']?.toString() ?? '0') ?? 0;
+          _rooms[roomIndex]['unread_count'] = currentCount + 1;
         }
         notifyListeners();
       }
@@ -58,9 +59,9 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  List<dynamic> getMessages(int roomId) => _messages[roomId] ?? [];
+  List<dynamic> getMessages(String roomId) => _messages[roomId] ?? [];
 
-  Future<void> fetchMessages(int roomId) async {
+  Future<void> fetchMessages(String roomId) async {
     try {
       final res = await _api.get('/api/chat/rooms/$roomId/messages');
       if (res.statusCode == 200) {
@@ -72,7 +73,7 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  Future<int?> getOrCreateRoom(int otherUserId) async {
+  Future<String?> getOrCreateRoom(String otherUserId) async {
     try {
       final res = await _api.post('/api/chat/rooms', {'otherUserId': otherUserId});
       if (res.statusCode == 200 || res.statusCode == 201) {
@@ -85,7 +86,7 @@ class ChatProvider extends ChangeNotifier {
     return null;
   }
 
-  void markAsRead(int roomId) {
+  void markAsRead(String roomId) {
     socketService.markRead(roomId);
     final roomIndex = _rooms.indexWhere((r) => r['room_id'] == roomId);
     if (roomIndex != -1) {

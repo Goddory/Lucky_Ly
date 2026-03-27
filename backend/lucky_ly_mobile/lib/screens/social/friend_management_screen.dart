@@ -4,6 +4,7 @@ import '../../providers/friend_provider.dart';
 import '../../app_theme.dart';
 import '../chat/chat_room_screen.dart';
 import '../../providers/chat_provider.dart';
+import '../../core/services/socket_service.dart';
 
 class FriendManagementScreen extends StatefulWidget {
   const FriendManagementScreen({super.key});
@@ -25,6 +26,24 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> with Si
       provider.fetchFriends();
       provider.fetchReceivedRequests();
       provider.fetchSentRequests();
+      
+      _initNotificationListener();
+    });
+  }
+
+  void _initNotificationListener() {
+    final socketService = context.read<SocketService>();
+    socketService.onNotification((data) {
+      if (!mounted) return;
+      
+      final type = data['type'];
+      if (type == 'friend_request' || type == 'friend_accepted') {
+        debugPrint('🔔 Friend notification received: $type. Refreshing lists...');
+        final provider = context.read<FriendProvider>();
+        provider.fetchFriends();
+        provider.fetchReceivedRequests();
+        provider.fetchSentRequests();
+      }
     });
   }
 
@@ -32,6 +51,14 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> with Si
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    
+    // Clean up socket listener
+    try {
+      context.read<SocketService>().offNotification();
+    } catch (e) {
+      debugPrint('Error cleaning up socket listener: $e');
+    }
+    
     super.dispose();
   }
 
@@ -167,24 +194,23 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> with Si
           itemCount: provider.receivedRequests.length,
           itemBuilder: (context, index) {
             final req = provider.receivedRequests[index];
-            final sender = req['sender'];
             return ListTile(
               leading: CircleAvatar(
-                backgroundImage: sender['avatar_url'] != null ? NetworkImage(sender['avatar_url']) : null,
-                child: sender['avatar_url'] == null ? const Icon(Icons.person) : null,
+                backgroundImage: req['avatar_url'] != null ? NetworkImage(req['avatar_url']) : null,
+                child: req['avatar_url'] == null ? const Icon(Icons.person) : null,
               ),
-              title: Text(sender['full_name'] ?? sender['username']),
+              title: Text(req['full_name'] ?? req['username']),
               subtitle: const Text('Muốn kết bạn với bạn'),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
                     icon: const Icon(Icons.check, color: Colors.green),
-                    onPressed: () => _handleAcceptRequest(req, sender, provider),
+                    onPressed: () => _handleAcceptRequest(req, req, provider),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.red),
-                    onPressed: () => _handleDeclineRequest(req, sender, provider),
+                    onPressed: () => _handleDeclineRequest(req, req, provider),
                   ),
                 ],
               ),
@@ -205,13 +231,12 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> with Si
           itemCount: provider.sentRequests.length,
           itemBuilder: (context, index) {
             final req = provider.sentRequests[index];
-            final receiver = req['receiver'];
             return ListTile(
               leading: CircleAvatar(
-                backgroundImage: receiver['avatar_url'] != null ? NetworkImage(receiver['avatar_url']) : null,
-                child: receiver['avatar_url'] == null ? const Icon(Icons.person) : null,
+                backgroundImage: req['avatar_url'] != null ? NetworkImage(req['avatar_url']) : null,
+                child: req['avatar_url'] == null ? const Icon(Icons.person) : null,
               ),
-              title: Text(receiver['full_name'] ?? receiver['username']),
+              title: Text(req['full_name'] ?? req['username']),
               subtitle: const Text('Đang chờ phản hồi...'),
               trailing: TextButton(
                 onPressed: () { /* implementation for cancel request if needed */ },
@@ -377,7 +402,7 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> with Si
     );
 
     try {
-      final success = await provider.acceptRequest(req['id']);
+      final success = await provider.acceptRequest(req['request_id'].toString());
 
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -464,7 +489,7 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> with Si
     );
 
     try {
-      final success = await provider.declineRequest(req['id']);
+      final success = await provider.declineRequest(req['request_id'].toString());
 
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();

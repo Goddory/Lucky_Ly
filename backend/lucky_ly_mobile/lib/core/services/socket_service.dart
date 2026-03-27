@@ -45,11 +45,11 @@ class SocketService extends ChangeNotifier {
   }
 
   // Join/Leave Rooms
-  void joinRoom(int roomId) {
+  void joinRoom(String roomId) {
     _socket?.emit('join_room', roomId);
   }
 
-  void leaveRoom(int roomId) {
+  void leaveRoom(String roomId) {
     _socket?.emit('leave_room', roomId);
   }
 
@@ -58,15 +58,15 @@ class SocketService extends ChangeNotifier {
     _socket?.emitWithAck('send_message', data, ack: callback);
   }
 
-  void markRead(int roomId) {
+  void markRead(String roomId) {
     _socket?.emit('mark_read', roomId);
   }
 
-  void sendTyping(int roomId) {
+  void sendTyping(String roomId) {
     _socket?.emit('typing', {'roomId': roomId});
   }
 
-  void stopTyping(int roomId) {
+  void stopTyping(String roomId) {
     _socket?.emit('stop_typing', {'roomId': roomId});
   }
 
