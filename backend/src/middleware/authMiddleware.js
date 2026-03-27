@@ -10,10 +10,12 @@ export const authenticateToken = (req, res, next) => {
     const token = bearerToken || cookieToken;
 
     if (!token) {
+        console.log('DEBUG: No token found in cookies or authorization header');
         return res.status(401).json({ message: 'Access denied. No token provided.' });
     }
 
     try {
+        console.log('DEBUG: Verifying token...');
         const decoded = authUtils.verifyAccessToken(token);
         req.user = {
             ...decoded,
@@ -28,6 +30,7 @@ export const authenticateToken = (req, res, next) => {
 
         next();
     } catch (error) {
+        console.error('DEBUG: Token verification failed:', error.message);
         res.status(403).json({ message: 'Invalid or expired token.' });
     }
 };

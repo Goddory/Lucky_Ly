@@ -1590,6 +1590,19 @@ class _AuthScreenState extends State<AuthScreen>
 
   Future<void> _navigateToHome(Map<String, dynamic> responseBody) async {
     if (!mounted) return;
+    
+    // Lưu token vào SharedPreferences để dùng ở các màn hình khác (ví dụ: PaymentScreen)
+    final prefs = await SharedPreferences.getInstance();
+    final accessToken = responseBody['accessToken']?.toString() ?? '';
+    final refreshToken = responseBody['refreshToken']?.toString() ?? '';
+    
+    if (accessToken.isNotEmpty) {
+      await prefs.setString('accessToken', accessToken);
+    }
+    if (refreshToken.isNotEmpty) {
+      await prefs.setString('refreshToken', refreshToken);
+    }
+
     final user = responseBody['user'] as Map<String, dynamic>? ?? {};
     final userEmail = user['email']?.toString().trim().toLowerCase() ?? '';
     final accessToken = responseBody['accessToken']?.toString() ?? '';

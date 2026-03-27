@@ -36,7 +36,7 @@ async function start() {
       console.log(`Auth API running on port ${env.port}`);
     });
   } catch (err) {
-    console.error('Failed to start server:', err);
+    console.error('Failed to connect to primary PostgreSQL:', err);
     process.exit(1);
   }
 }
