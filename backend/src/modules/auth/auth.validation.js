@@ -17,9 +17,13 @@ export const registerSchema = z.object({
 });
 
 export const loginSchema = z.object({
-  login: z.string().trim().min(3).max(255),
+  identifier: z.string().trim().min(3).max(255).optional(),
+  login: z.string().trim().min(3).max(255).optional(),
   password: z.string().min(8).max(72)
-}).merge(sessionDeviceInfoSchema);
+}).merge(sessionDeviceInfoSchema).refine(data => data.identifier || data.login, {
+  message: 'Username/Email (identifier or login) is required',
+  path: ['identifier']
+});
 
 export const refreshSchema = z.object({
   refreshToken: z.string().min(40).max(500)

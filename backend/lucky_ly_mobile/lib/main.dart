@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
@@ -20,11 +23,21 @@ import 'dart:async';
 import 'providers/auth_provider.dart';
 import 'providers/friend_provider.dart';
 import 'providers/chat_provider.dart';
+import 'providers/store_provider.dart';
 import 'core/services/socket_service.dart';
 
 // Entry point khởi chạy ứng dụng Flutter.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Khởi tạo WebView Platform để tránh lỗi "not been set"
+  if (WebViewPlatform.instance == null) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+        WebViewPlatform.instance = AndroidWebViewPlatform();
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+        WebViewPlatform.instance = WebKitWebViewPlatform();
+    }
+  }
 
   // Initialize SQLite factory on desktop before any openDatabase usage.
   if (!kIsWeb &&
@@ -80,6 +93,10 @@ void main() async {
             context.read<SocketService>(),
           ),
           update: (context, auth, socket, previous) => ChatProvider(auth, socket),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, StoreProvider>(
+          create: (context) => StoreProvider(context.read<AuthProvider>()),
+          update: (context, auth, previous) => StoreProvider(auth),
         ),
       ],
       child: const LuckyLyAuthApp(),

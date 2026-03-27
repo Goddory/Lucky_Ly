@@ -1,6 +1,7 @@
 import * as authUtils from '../utils/authUtils.js';
+import { pool } from '../db/pool.js';
 
-export const authenticateToken = (req, res, next) => {
+export const authenticateToken = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     const bearerToken = authHeader && authHeader.startsWith('Bearer ')
         ? authHeader.split(' ')[1]
@@ -15,19 +16,30 @@ export const authenticateToken = (req, res, next) => {
 
     try {
         const decoded = authUtils.verifyAccessToken(token);
-        req.user = {
-            ...decoded,
-            userId: decoded.userId ?? decoded.sub,
-            email: decoded.email ?? null,
-            username: decoded.username ?? null
-        };
+        const userId = decoded.userId ?? decoded.sub;
 
-        if (!req.user.userId) {
+        if (!userId) {
             return res.status(403).json({ message: 'Invalid token payload.' });
         }
+
+        // Fetch role from DB
+        const { rows } = await pool.query(
+            'SELECT role FROM users WHERE user_id = $1 LIMIT 1',
+            [userId]
+        );
+
+        req.user = {
+            ...decoded,
+            userId,
+            sub: userId,
+            email: decoded.email ?? null,
+            username: decoded.username ?? null,
+            role: rows[0]?.role ?? 'user'
+        };
 
         next();
     } catch (error) {
         res.status(403).json({ message: 'Invalid or expired token.' });
     }
 };
+

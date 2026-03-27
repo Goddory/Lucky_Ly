@@ -142,7 +142,7 @@ export async function registerUser(payload) {
 
 // Nghiệp vụ đăng nhập: xác thực thông tin đăng nhập, cấp mới access/refresh token.
 export async function loginUser(payload) {
-  const loginValue = payload.login.trim();
+  const loginValue = (payload.identifier || payload.login || '').trim();
   const query = `
     SELECT user_id, username, email, full_name, avatar_url, password_hash, is_active, role
     FROM users
