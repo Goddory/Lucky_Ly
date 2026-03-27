@@ -1,0 +1,26 @@
+sku,product_name,category,stock_quantity,reorder_level,supplier,warehouse_location,last_restocked,status
+SKU001,Thiệp Chúc Mừng Sinh Nhật,Thiệp,9999,100,Lucky Ly Studio,Digital,2025-03-01,active
+SKU002,Thiệp Valentine,Thiệp,9999,100,Lucky Ly Studio,Digital,2025-03-01,active
+SKU003,Thiệp Tết Nguyên Đán,Thiệp,9999,50,Lucky Ly Studio,Digital,2025-01-15,seasonal
+SKU004,Hoa Hồng Virtual,Hoa,9999,200,Virtual Garden Co,Digital,2025-03-10,active
+SKU005,Hoa Tulip AR,Hoa,5000,100,Virtual Garden Co,Digital,2025-02-20,active
+SKU006,Bó Hoa Hướng Dương,Hoa,7500,100,Virtual Garden Co,Digital,2025-03-05,active
+SKU007,Gấu Bông AR,Thú Nhồi Bông,3000,50,AR Plush Factory,Digital,2025-02-28,active
+SKU008,Mèo May Mắn AR,Thú Nhồi Bông,2000,30,AR Plush Factory,Digital,2025-01-20,active
+SKU009,Socola Virtual Box,Socola,8000,150,Sweet Dreams VR,Digital,2025-03-01,active
+SKU010,Socola Heart Premium,Socola,4000,80,Sweet Dreams VR,Digital,2025-02-10,active
+SKU011,Pháo Hoa 3D Effect,Hiệu Ứng,9999,100,FX Magic Studio,Digital,2025-03-15,active
+SKU012,Confetti Rain Effect,Hiệu Ứng,9999,100,FX Magic Studio,Digital,2025-03-15,active
+SKU013,Sparkle Glow Effect,Hiệu Ứng,9999,100,FX Magic Studio,Digital,2025-03-15,active
+SKU014,Vương Miện AR,Phụ Kiện,1500,20,Royal AR Craft,Digital,2025-02-15,active
+SKU015,Nhẫn AR Magic,Phụ Kiện,1000,15,Royal AR Craft,Digital,2025-02-15,active
+SKU016,Bóng Bay Virtual,Trang Trí,9999,200,Party VR Supply,Digital,2025-03-10,active
+SKU017,Banner Chúc Mừng,Trang Trí,9999,100,Party VR Supply,Digital,2025-03-10,active
+SKU018,Đèn Lồng AR,Trang Trí,5000,50,Party VR Supply,Digital,2025-01-15,seasonal
+SKU019,Bánh Kem Virtual 3D,Bánh,6000,80,VR Bakery,Digital,2025-03-01,active
+SKU020,Cupcake Dễ Thương,Bánh,8000,100,VR Bakery,Digital,2025-03-01,active
+SKU021,Thiệp Giáng Sinh,Thiệp,9999,50,Lucky Ly Studio,Digital,2024-12-01,seasonal
+SKU022,Hoa Lan Virtual,Hoa,3000,50,Virtual Garden Co,Digital,2025-03-10,active
+SKU023,Trái Tim Neon Effect,Hiệu Ứng,9999,100,FX Magic Studio,Digital,2025-02-14,active
+SKU024,Cánh Bướm AR,Phụ Kiện,2000,30,Royal AR Craft,Digital,2025-03-01,active
+SKU025,Ngôi Sao Rơi Effect,Hiệu Ứng,9999,100,FX Magic Studio,Digital,2025-03-15,active

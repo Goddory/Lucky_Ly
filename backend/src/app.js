@@ -15,6 +15,7 @@ import eventsRoutes from './modules/events/events.routes.js';
 import statsRoutes from './modules/stats/stats.routes.js';
 import themeRoutes from './modules/theme/theme.routes.js';
 import giftsRoutes from './modules/gifts/gifts.routes.js';
+import storeRoutes from './modules/store/store.routes.js';
 import friendsRoutes from './modules/friends/friends.routes.js';
 import chatRoutes from './modules/chat/chat.routes.js';
 
@@ -59,6 +60,7 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+app.use('/uploads', express.static('uploads'));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/designs', designRoutes);
@@ -70,6 +72,7 @@ app.use('/api/theme', themeRoutes);
 app.use('/api/gifts', giftsRoutes);
 app.use('/api/friends', friendsRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/store', storeRoutes);
 
 app.use(notFoundHandler);
 

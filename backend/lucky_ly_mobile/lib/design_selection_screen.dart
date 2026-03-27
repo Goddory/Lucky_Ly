@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'mobile_studio_screen.dart';
 import 'app_theme.dart';
+import 'screens/store/store_dashboard_screen.dart';
+import 'providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class DesignSelectionScreen extends StatelessWidget {
   const DesignSelectionScreen({super.key, required this.type});
@@ -59,6 +62,23 @@ class DesignSelectionScreen extends StatelessWidget {
               onTap: () {},
               theme: theme,
             ),
+            const SizedBox(height: 24),
+            // Phân quyền: Chỉ creator/admin mới thấy dashboard
+            if (context.read<AuthProvider>().userData?['role'] == 'store_creator' || 
+                context.read<AuthProvider>().userData?['role'] == 'admin') ...[
+              Text(
+                'Dành cho Nhà sáng tạo',
+                style: TextStyle(color: theme.textDark, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              _buildOption(
+                context,
+                icon: Icons.storefront_outlined,
+                title: 'Quản lý Cửa hàng (Dashboard)',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StoreDashboardScreen())),
+                theme: theme,
+              ),
+            ],
           ],
         ),
       ),
