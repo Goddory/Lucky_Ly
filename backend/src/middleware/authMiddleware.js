@@ -1,7 +1,13 @@
 import * as authUtils from '../utils/authUtils.js';
 
 export const authenticateToken = (req, res, next) => {
-    const token = req.cookies?.accessToken || (req.headers.authorization && req.headers.authorization.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
+    const authHeader = req.headers.authorization;
+    const bearerToken = authHeader && authHeader.startsWith('Bearer ')
+        ? authHeader.split(' ')[1]
+        : null;
+
+    const cookieToken = req.cookies?.accessToken ?? null;
+    const token = bearerToken || cookieToken;
 
     if (!token) {
         console.log('DEBUG: No token found in cookies or authorization header');
@@ -11,11 +17,17 @@ export const authenticateToken = (req, res, next) => {
     try {
         console.log('DEBUG: Verifying token...');
         const decoded = authUtils.verifyAccessToken(token);
-        console.log('DEBUG: Token verified. Decoded:', JSON.stringify(decoded));
-        // Correcting the ID extraction to check for 'sub' as used by authService.buildAccessToken
-        const userId = decoded.sub || decoded.userId || decoded.id;
-        console.log('DEBUG: Extracted userId:', userId);
-        req.user = { id: userId, ...decoded };
+        req.user = {
+            ...decoded,
+            userId: decoded.userId ?? decoded.sub,
+            email: decoded.email ?? null,
+            username: decoded.username ?? null
+        };
+
+        if (!req.user.userId) {
+            return res.status(403).json({ message: 'Invalid token payload.' });
+        }
+
         next();
     } catch (error) {
         console.error('DEBUG: Token verification failed:', error.message);

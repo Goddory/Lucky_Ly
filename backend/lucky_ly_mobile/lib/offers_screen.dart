@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
+import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+
 
 class OffersScreen extends StatefulWidget {
   const OffersScreen({super.key});
@@ -29,15 +31,15 @@ class _OffersScreenState extends State<OffersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: AppTheme.of(context).bg,
       appBar: AppBar(
         title: const Text('Ưu đãi & Khuyến mãi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        flexibleSpace: Container(decoration: const BoxDecoration(gradient: AppTheme.primaryGradient)),
+        flexibleSpace: Container(decoration: BoxDecoration(gradient: AppTheme.of(context).primaryGradient)),
         elevation: 0,
         automaticallyImplyLeading: false,
       ),
       body: _isLoading 
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? Center(child: const CustomLoading(size: 80))
           : _offers.isEmpty 
               ? _buildEmptyState()
               : ListView.builder(
@@ -55,16 +57,9 @@ class _OffersScreenState extends State<OffersScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.05),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.local_offer_outlined, size: 64, color: AppTheme.primary.withValues(alpha: 0.3)),
-          ),
+          const CustomLoading(size: 100),
           const SizedBox(height: 24),
-          Text('Hiện chưa có ưu đãi nào', style: TextStyle(color: AppTheme.textMuted, fontSize: 16, fontWeight: FontWeight.w600)),
+          Text('Hiện chưa có ưu đãi nào', style: TextStyle(color: AppTheme.of(context).textMuted, fontSize: 16, fontWeight: FontWeight.w600)),
         ],
       ),
     );

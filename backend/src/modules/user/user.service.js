@@ -5,7 +5,7 @@ import { env } from '../../config/env.js';
 // Lấy profile user hiện tại từ DB.
 export async function getUserProfile(userId) {
   const result = await pool.query(
-    `SELECT user_id, username, email, full_name, avatar_url, auth_provider, created_at
+    `SELECT user_id, username, email, full_name, avatar_url, auth_provider, role, is_searchable, created_at
      FROM users WHERE user_id = $1 LIMIT 1`,
     [userId]
   );
@@ -58,7 +58,7 @@ export async function updateUserProfile(userId, payload) {
 
   const result = await pool.query(
     `UPDATE users SET ${fields.join(', ')} WHERE user_id = $${paramIndex}
-     RETURNING user_id, username, email, full_name, avatar_url, auth_provider, created_at`,
+     RETURNING user_id, username, email, full_name, avatar_url, auth_provider, role, created_at`,
     values
   );
 
@@ -124,4 +124,59 @@ export async function changeUserPassword(userId, currentPassword, newPassword) {
   } finally {
     client.release();
   }
+}
+
+// Lấy danh sách tất cả users (Dành cho Admin)
+export async function getAllUsersService() {
+  const result = await pool.query(
+    `SELECT user_id as id, username, email, full_name as name, avatar_url, auth_provider, created_at, is_active as "isActive", role
+     FROM users ORDER BY created_at DESC`
+  );
+  return result.rows;
+}
+
+// Khóa/Mở Khóa tài khoản
+export async function toggleUserStatusService(userId, isActive) {
+  const result = await pool.query(
+    `UPDATE users SET is_active = $1 WHERE user_id = $2 AND role != 'admin' RETURNING user_id, is_active`,
+    [isActive, userId]
+  );
+  
+  if (result.rowCount === 0) {
+    const error = new Error('User not found or cannot modify an admin account');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (isActive === false) {
+    await pool.query(
+      'UPDATE auth_refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL',
+      [userId]
+    );
+  }
+
+  return result.rows[0];
+}
+
+export async function updatePrivacySettings(userId, isSearchable) {
+  const result = await pool.query(
+    `UPDATE users SET is_searchable = $1 WHERE user_id = $2
+     RETURNING user_id, username, is_searchable`,
+    [isSearchable, userId]
+  );
+
+  if (result.rowCount === 0) {
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return result.rows[0];
+}
+
+export async function updateFcmToken(userId, fcmToken) {
+  await pool.query(
+    `UPDATE users SET fcm_token = $1 WHERE user_id = $2`,
+    [fcmToken, userId]
+  );
 }

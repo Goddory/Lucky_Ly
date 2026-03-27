@@ -72,6 +72,10 @@ export const login = async (req, res) => {
         }
 
         const user = userResult.rows[0];
+        
+        if (user.is_active === false) {
+            return res.status(403).json({ message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.' });
+        }
         const isPasswordValid = await authUtils.comparePassword(password, user.password_hash);
 
         if (!isPasswordValid) {
@@ -127,22 +131,51 @@ export const logout = async (req, res) => {
 
 export const googleLogin = async (req, res) => {
     try {
-        const { idToken } = req.body;
+        const { idToken, accessToken: googleAccessToken } = req.body;
 
-        if (!idToken) {
-            return res.status(400).json({ message: 'idToken is required' });
+        if (!idToken && !googleAccessToken) {
+            return res.status(400).json({ message: 'idToken or accessToken is required' });
         }
 
-        const client = new OAuth2Client(env.googleClientId);
-        const ticket = await client.verifyIdToken({
-            idToken,
-            audience: env.googleClientId,
-        });
+        let googleId = '';
+        let email = '';
+        let fullName = '';
 
-        const payload = ticket.getPayload();
-        const googleId = payload.sub;
-        const email = payload.email;
-        const fullName = payload.name || email.split('@')[0];
+        if (idToken) {
+            if (!env.googleClientId) {
+                return res.status(500).json({ message: 'Google auth is not configured on server' });
+            }
+
+            const client = new OAuth2Client(env.googleClientId);
+            const ticket = await client.verifyIdToken({
+                idToken,
+                audience: env.googleClientId,
+            });
+
+            const payload = ticket.getPayload();
+            googleId = payload?.sub || '';
+            email = payload?.email || '';
+            fullName = payload?.name || (email ? email.split('@')[0] : 'Google User');
+        } else {
+            const googleResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: {
+                    Authorization: `Bearer ${googleAccessToken}`,
+                },
+            });
+
+            if (!googleResponse.ok) {
+                return res.status(401).json({ message: 'Invalid or expired Google access token' });
+            }
+
+            const payload = await googleResponse.json();
+            googleId = payload?.sub || '';
+            email = payload?.email || '';
+            fullName = payload?.name || (email ? email.split('@')[0] : 'Google User');
+        }
+
+        if (!googleId || !email) {
+            return res.status(401).json({ message: 'Invalid Google account payload' });
+        }
 
         // Check if user already exists with this Google account
         let userResult = await query(
@@ -154,6 +187,9 @@ export const googleLogin = async (req, res) => {
 
         if (userResult.rows.length > 0) {
             user = userResult.rows[0];
+            if (user.is_active === false) {
+                 return res.status(403).json({ message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.' });
+            }
         } else {
             // Check if email already exists (local account)
             const emailCheck = await query(
@@ -162,12 +198,16 @@ export const googleLogin = async (req, res) => {
             );
 
             if (emailCheck.rows.length > 0) {
+                user = emailCheck.rows[0];
+                if (user.is_active === false) {
+                    return res.status(403).json({ message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.' });
+                }
+                
                 // Link Google to existing account
                 await query(
                     'UPDATE users SET auth_provider = $1, provider_uid = $2 WHERE email = $3',
                     ['google', googleId, email]
                 );
-                user = emailCheck.rows[0];
             } else {
                 // Create new user
                 const username = `google_${googleId.slice(-8)}_${Date.now().toString(36)}`;

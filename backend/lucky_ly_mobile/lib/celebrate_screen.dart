@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
+import 'screens/gifts/themed_gift_builder_screen.dart';
 
 class CelebrateScreen extends StatelessWidget {
   const CelebrateScreen({super.key});
@@ -16,10 +17,10 @@ class CelebrateScreen extends StatelessWidget {
     ];
 
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: AppTheme.of(context).bg,
       appBar: AppBar(
         title: const Text('Chào mừng lễ hội', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        flexibleSpace: Container(decoration: const BoxDecoration(gradient: AppTheme.primaryGradient)),
+        flexibleSpace: Container(decoration: BoxDecoration(gradient: AppTheme.of(context).primaryGradient)),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -33,7 +34,7 @@ class CelebrateScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
-                color: AppTheme.textDark,
+                color: AppTheme.of(context).textDark,
                 letterSpacing: -0.5,
               ),
             ),
@@ -54,6 +55,7 @@ class CelebrateScreen extends StatelessWidget {
                   h['name'] as String,
                   h['image'] as IconData,
                   h['color'] as Color,
+                  context,
                 );
               },
             ),
@@ -63,12 +65,24 @@ class CelebrateScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHolidayCard(String name, IconData icon, Color color) {
+  Widget _buildHolidayCard(String name, IconData icon, Color color, BuildContext context) {
     return AnimatedInteractiveScale(
-      onTap: () {},
+      onTap: () {
+        String? giftTheme;
+        if (name.contains('Tết')) giftTheme = 'tet';
+        if (name.contains('Valentine')) giftTheme = 'valentine';
+        if (giftTheme != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ThemedGiftBuilderScreen(theme: giftTheme!),
+            ),
+          );
+        }
+      },
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.card,
+          color: AppTheme.of(context).card,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -96,7 +110,7 @@ class CelebrateScreen extends StatelessWidget {
               child: Text(
                 name,
                 style: TextStyle(
-                  color: AppTheme.textDark, 
+                  color: AppTheme.of(context).textDark, 
                   fontWeight: FontWeight.w700, 
                   fontSize: 11,
                   height: 1.2,

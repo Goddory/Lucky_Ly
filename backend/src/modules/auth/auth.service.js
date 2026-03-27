@@ -31,14 +31,49 @@ function buildAccessToken(user) {
   );
 }
 
+function normalizeSessionMeta(sessionMeta = {}) {
+  const clean = (value) => {
+    const normalized = String(value ?? '').trim();
+    return normalized.length > 0 ? normalized : null;
+  };
+
+  return {
+    deviceId: clean(sessionMeta.deviceId),
+    deviceName: clean(sessionMeta.deviceName),
+    platform: clean(sessionMeta.platform),
+    userAgent: clean(sessionMeta.userAgent),
+    ipAddress: clean(sessionMeta.ipAddress)
+  };
+}
+
 // Lưu refresh token đã băm vào DB kèm thời hạn hiệu lực.
-async function persistRefreshToken(client, userId, plainRefreshToken) {
+async function persistRefreshToken(client, userId, plainRefreshToken, sessionMeta = {}) {
+  const meta = normalizeSessionMeta(sessionMeta);
   const tokenHash = hashToken(plainRefreshToken);
   const query = `
-    INSERT INTO auth_refresh_tokens (user_id, token_hash, expires_at)
-    VALUES ($1, $2, NOW() + ($3 || ' days')::interval)
+    INSERT INTO auth_refresh_tokens (
+      user_id,
+      token_hash,
+      device_id,
+      device_name,
+      platform,
+      user_agent,
+      ip_address,
+      last_used_at,
+      expires_at
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW() + ($8 || ' days')::interval)
   `;
-  await client.query(query, [userId, tokenHash, String(env.refreshTokenTtlDays)]);
+  await client.query(query, [
+    userId,
+    tokenHash,
+    meta.deviceId,
+    meta.deviceName,
+    meta.platform,
+    meta.userAgent,
+    meta.ipAddress,
+    String(env.refreshTokenTtlDays)
+  ]);
 }
 
 // Nghiệp vụ đăng ký: tạo user, tạo ví mặc định và cấp bộ token đầu tiên trong transaction.
@@ -68,7 +103,7 @@ export async function registerUser(payload) {
     const insertUserQuery = `
       INSERT INTO users (username, password_hash, email, full_name, avatar_url)
       VALUES ($1, $2, $3, $4, $5)
-      RETURNING user_id, username, email, full_name, avatar_url, created_at
+      RETURNING user_id, username, email, full_name, avatar_url, role, created_at
     `;
 
     const userResult = await client.query(insertUserQuery, [
@@ -88,7 +123,7 @@ export async function registerUser(payload) {
     ]);
 
     const refreshToken = generateRefreshToken();
-    await persistRefreshToken(client, user.user_id, refreshToken);
+    await persistRefreshToken(client, user.user_id, refreshToken, payload);
 
     await client.query('COMMIT');
 
@@ -109,7 +144,7 @@ export async function registerUser(payload) {
 export async function loginUser(payload) {
   const loginValue = payload.login.trim();
   const query = `
-    SELECT user_id, username, email, full_name, avatar_url, password_hash
+    SELECT user_id, username, email, full_name, avatar_url, password_hash, is_active, role
     FROM users
     WHERE username = $1 OR email = $2
     LIMIT 1
@@ -123,6 +158,12 @@ export async function loginUser(payload) {
 
   if (!user) {
     throw invalidError;
+  }
+
+  if (user.is_active === false) {
+    const error = new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.');
+    error.statusCode = 403;
+    throw error;
   }
 
   if (!user.password_hash) {
@@ -140,7 +181,7 @@ export async function loginUser(payload) {
   try {
     await client.query('BEGIN');
     const refreshToken = generateRefreshToken();
-    await persistRefreshToken(client, user.user_id, refreshToken);
+    await persistRefreshToken(client, user.user_id, refreshToken, payload);
     await client.query('COMMIT');
 
     return {
@@ -149,7 +190,8 @@ export async function loginUser(payload) {
         username: user.username,
         email: user.email,
         full_name: user.full_name,
-        avatar_url: user.avatar_url
+        avatar_url: user.avatar_url,
+        role: user.role ?? 'user'
       },
       accessToken: buildAccessToken(user),
       refreshToken
@@ -172,7 +214,7 @@ export async function loginFacebookUser(payload) {
 
     // Tìm user: Ưu tiên facebook_id, sau đó tìm theo email (nếu có email)
     let userQuery = `
-      SELECT user_id, username, email, full_name, avatar_url, facebook_id
+      SELECT user_id, username, email, full_name, avatar_url, facebook_id, is_active, role
       FROM users
       WHERE facebook_id = $1
     `;
@@ -186,6 +228,12 @@ export async function loginFacebookUser(payload) {
 
     const result = await client.query(userQuery, queryParams);
     let user = result.rows[0];
+
+    if (user && user.is_active === false) {
+      const error = new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.');
+      error.statusCode = 403;
+      throw error;
+    }
 
     // Cập nhật facebook_id nếu tìm thấy user qua email nhưng chưa có facebook_id
     if (user && !user.facebook_id) {
@@ -204,7 +252,7 @@ export async function loginFacebookUser(payload) {
       const insertUserQuery = `
         INSERT INTO users (username, email, full_name, avatar_url, facebook_id, auth_provider)
         VALUES ($1, $2, $3, $4, $5, 'facebook')
-        RETURNING user_id, username, email, full_name, avatar_url, facebook_id, created_at
+        RETURNING user_id, username, email, full_name, avatar_url, facebook_id, role, created_at
       `;
       const finalEmail = (email && email.trim() !== '') ? email.trim().toLowerCase() : null;
 
@@ -219,7 +267,7 @@ export async function loginFacebookUser(payload) {
     }
 
     const refreshToken = generateRefreshToken();
-    await persistRefreshToken(client, user.user_id, refreshToken);
+    await persistRefreshToken(client, user.user_id, refreshToken, payload);
     await client.query('COMMIT');
 
     return {
@@ -228,7 +276,8 @@ export async function loginFacebookUser(payload) {
         username: user.username,
         email: user.email,
         full_name: user.full_name,
-        avatar_url: user.avatar_url
+        avatar_url: user.avatar_url,
+        role: user.role ?? 'user'
       },
       accessToken: buildAccessToken(user),
       refreshToken
@@ -242,8 +291,9 @@ export async function loginFacebookUser(payload) {
 }
 
 // Nghiệp vụ refresh token rotation: kiểm tra token cũ, thu hồi và thay bằng token mới.
-export async function rotateRefreshToken(currentRefreshToken) {
+export async function rotateRefreshToken(currentRefreshToken, sessionMeta = {}) {
   const tokenHash = hashToken(currentRefreshToken);
+  const meta = normalizeSessionMeta(sessionMeta);
   const client = await pool.connect();
 
   try {
@@ -279,17 +329,36 @@ export async function rotateRefreshToken(currentRefreshToken) {
 
     const newTokenResult = await client.query(
       `
-      INSERT INTO auth_refresh_tokens (user_id, token_hash, expires_at)
-      VALUES ($1, $2, NOW() + ($3 || ' days')::interval)
+      INSERT INTO auth_refresh_tokens (
+        user_id,
+        token_hash,
+        device_id,
+        device_name,
+        platform,
+        user_agent,
+        ip_address,
+        last_used_at,
+        expires_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW() + ($8 || ' days')::interval)
       RETURNING token_id
       `,
-      [tokenRow.user_id, newHash, String(env.refreshTokenTtlDays)]
+      [
+        tokenRow.user_id,
+        newHash,
+        meta.deviceId,
+        meta.deviceName,
+        meta.platform,
+        meta.userAgent,
+        meta.ipAddress,
+        String(env.refreshTokenTtlDays)
+      ]
     );
 
     await client.query(
       `
       UPDATE auth_refresh_tokens
-      SET revoked_at = NOW(), replaced_by = $2
+      SET revoked_at = NOW(), replaced_by = $2, last_used_at = NOW()
       WHERE token_id = $1
       `,
       [tokenRow.token_id, newTokenResult.rows[0].token_id]
@@ -314,22 +383,25 @@ export async function rotateRefreshToken(currentRefreshToken) {
 }
 
 // Thu hồi refresh token khi logout hoặc khi cần vô hiệu hóa phiên.
-export async function revokeRefreshToken(refreshToken) {
+export async function revokeRefreshToken(refreshToken, userId = null) {
   const tokenHash = hashToken(refreshToken);
+  const whereUserFilter = userId ? 'AND user_id = $2' : '';
+  const params = userId ? [tokenHash, userId] : [tokenHash];
   const result = await pool.query(
     `
     UPDATE auth_refresh_tokens
-    SET revoked_at = NOW()
-    WHERE token_hash = $1 AND revoked_at IS NULL
+    SET revoked_at = NOW(), last_used_at = NOW()
+    WHERE token_hash = $1 AND revoked_at IS NULL ${whereUserFilter}
     `,
-    [tokenHash]
+    params
   );
 
   return result.rowCount > 0;
 }
 
 // Nghiệp vụ đăng nhập Google: xác minh token, tìm hoặc tạo user, cấp token.
-export async function loginWithGoogle({ idToken, accessToken }) {
+export async function loginWithGoogle(payload) {
+  const { idToken, accessToken } = payload;
   let email, name, picture, googleUid;
 
   if (idToken) {
@@ -371,7 +443,7 @@ export async function loginWithGoogle({ idToken, accessToken }) {
     await client.query('BEGIN');
 
     const existing = await client.query(
-      'SELECT user_id, username, email, full_name, avatar_url FROM users WHERE email = $1 LIMIT 1',
+      'SELECT user_id, username, email, full_name, avatar_url, is_active, role FROM users WHERE email = $1 LIMIT 1',
       [email.toLowerCase()]
     );
 
@@ -379,6 +451,12 @@ export async function loginWithGoogle({ idToken, accessToken }) {
 
     if (existing.rowCount > 0) {
       user = existing.rows[0];
+      
+      if (user.is_active === false) {
+        const error = new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.');
+        error.statusCode = 403;
+        throw error;
+      }
       await client.query(
         `UPDATE users SET auth_provider = 'google', provider_uid = $1,
          avatar_url = COALESCE(avatar_url, $2)
@@ -394,7 +472,7 @@ export async function loginWithGoogle({ idToken, accessToken }) {
       const insertResult = await client.query(
         `INSERT INTO users (username, email, full_name, avatar_url, auth_provider, provider_uid)
          VALUES ($1, $2, $3, $4, 'google', $5)
-         RETURNING user_id, username, email, full_name, avatar_url, created_at`,
+         RETURNING user_id, username, email, full_name, avatar_url, role, created_at`,
         [username, email.toLowerCase(), name || email.split('@')[0], picture, googleUid]
       );
       user = insertResult.rows[0];
@@ -406,7 +484,7 @@ export async function loginWithGoogle({ idToken, accessToken }) {
     }
 
     const refreshToken = generateRefreshToken();
-    await persistRefreshToken(client, user.user_id, refreshToken);
+    await persistRefreshToken(client, user.user_id, refreshToken, payload);
 
     await client.query('COMMIT');
 
@@ -421,6 +499,49 @@ export async function loginWithGoogle({ idToken, accessToken }) {
   } finally {
     client.release();
   }
+}
+
+// Liệt kê các phiên đăng nhập đang hoạt động theo thiết bị của user.
+export async function listActiveSessions(userId) {
+  const { rows } = await pool.query(
+    `
+    SELECT token_id, device_id, device_name, platform, user_agent, ip_address, created_at, last_used_at, expires_at
+    FROM auth_refresh_tokens
+    WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > NOW()
+    ORDER BY last_used_at DESC, created_at DESC
+    `,
+    [userId]
+  );
+
+  return rows;
+}
+
+// Thu hồi toàn bộ phiên hoạt động của user.
+export async function revokeAllRefreshTokens(userId) {
+  const { rowCount } = await pool.query(
+    `
+    UPDATE auth_refresh_tokens
+    SET revoked_at = NOW(), last_used_at = NOW()
+    WHERE user_id = $1 AND revoked_at IS NULL
+    `,
+    [userId]
+  );
+
+  return rowCount;
+}
+
+// Thu hồi một phiên theo token_id (chỉ trong phạm vi user hiện tại).
+export async function revokeSessionByTokenId(userId, tokenId) {
+  const { rowCount } = await pool.query(
+    `
+    UPDATE auth_refresh_tokens
+    SET revoked_at = NOW(), last_used_at = NOW()
+    WHERE user_id = $1 AND token_id = $2 AND revoked_at IS NULL
+    `,
+    [userId, tokenId]
+  );
+
+  return rowCount > 0;
 }
 
 // ============================================

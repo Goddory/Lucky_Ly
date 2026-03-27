@@ -5,11 +5,18 @@ import rateLimit from 'express-rate-limit';
 import { ZodError } from 'zod';
 import { env } from './config/env.js';
 import { errorHandler, notFoundHandler } from './db/middlewares/errorHandler.js';
+import { activityLogger } from './middleware/logger.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import userRoutes from './modules/user/user.routes.js';
 import designRoutes from './modules/designs/designs.routes.js';
 import syncRoutes from './routes/sync.routes.js';
 import paymentRoutes from './modules/payment/payment.routes.js';
+import eventsRoutes from './modules/events/events.routes.js';
+import statsRoutes from './modules/stats/stats.routes.js';
+import themeRoutes from './modules/theme/theme.routes.js';
+import giftsRoutes from './modules/gifts/gifts.routes.js';
+import friendsRoutes from './modules/friends/friends.routes.js';
+import chatRoutes from './modules/chat/chat.routes.js';
 
 const app = express();
 
@@ -36,6 +43,9 @@ app.use(
 );
 app.use(express.json({ limit: '100kb' }));
 
+// Global console logger for all activities
+app.use(activityLogger);
+
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
@@ -54,6 +64,12 @@ app.use('/api/users', userRoutes);
 app.use('/api/designs', designRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/events', eventsRoutes);
+app.use('/api/stats', statsRoutes);
+app.use('/api/theme', themeRoutes);
+app.use('/api/gifts', giftsRoutes);
+app.use('/api/friends', friendsRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.use(notFoundHandler);
 

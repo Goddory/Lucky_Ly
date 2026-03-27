@@ -1,38 +1,38 @@
+import http from 'http';
 import app from './app.js';
 import { env } from './config/env.js';
 import { pool } from './db/pool.js';
 import connectMongo from './database/mongo_client.js';
-import mongoose from 'mongoose';
+import { initSocketServer } from './sockets/chat.socket.js';
+import { initFirebase } from './services/notification.service.js';
+import './config/sqlite.js';
 
-// Bắt lỗi toàn cục để tránh crash server
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-process.on('uncaughtException', (err) => {
-    console.error('Uncaught Exception:', err);
-});
-
-mongoose.connection.on('error', (err) => {
-    console.error('Mongoose connection error:', err);
-});
-
-// Hàm khởi động ứng dụng: kiểm tra kết nối DB trước khi mở cổng HTTP.
 async function start() {
   try {
     await pool.query('SELECT 1');
     console.log('✅ Connected to Neon PostgreSQL successfully');
-    
-    // Khởi tạo MongoDB (Tạm thời tắt để phục vụ thanh toán k bị crash)
-    /*
+
+    // MongoDB (optional)
     try {
-      await connectMongo();
-    } catch(e) {
-      console.error('❌ MongoDB Connection Error:', e);
+      const mongoResult = await connectMongo();
+      if (mongoResult?.connected) {
+        console.log('✅ Connected to MongoDB successfully');
+      } else {
+        console.error(`⚠️ MongoDB Connection Failed (Proceeding without Mongo): ${mongoResult?.reason || 'unknown reason'}`);
+      }
+    } catch (e) {
+      console.error('⚠️ MongoDB Connection Failed (Proceeding without Mongo):', e?.message || e);
     }
-    */
     
-    app.listen(env.port, () => {
+    // Firebase Admin SDK (optional, for push notifications)
+    initFirebase();
+
+    // Create HTTP server and attach Socket.io
+    const server = http.createServer(app);
+    initSocketServer(server);
+    console.log('✅ Socket.io server attached');
+
+    server.listen(env.port, '0.0.0.0', () => {
       console.log(`Auth API running on port ${env.port}`);
     });
   } catch (err) {

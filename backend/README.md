@@ -5,6 +5,7 @@ Run:
 
 1. `database/init_lucky_ly_postgres.sql` (root project)
 2. `backend/database/add_auth_refresh_tokens.sql`
+3. `backend/database/migration_add_refresh_token_device_fields.sql` (for existing DB)
 
 ## 2) Configure env
 
@@ -30,6 +31,9 @@ Server starts at `http://localhost:4000`.
 - `POST /api/auth/login`
 - `POST /api/auth/refresh`
 - `POST /api/auth/logout`
+- `GET /api/auth/sessions`
+- `POST /api/auth/logout-device`
+- `POST /api/auth/logout-all`
 - `GET /api/health`
 
 ## 5) Security implemented

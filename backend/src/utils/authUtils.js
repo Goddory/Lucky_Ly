@@ -1,10 +1,8 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import dotenv from 'dotenv';
+import { env } from '../config/env.js';
 
-dotenv.config();
-
-const ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_SECRET || 'default_access_secret';
+const ACCESS_TOKEN_SECRET = env.jwt.accessSecret || 'default_access_secret';
 const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET || 'default_refresh_secret';
 
 export const hashPassword = async (password) => {

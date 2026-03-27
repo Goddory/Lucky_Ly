@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
+import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -30,10 +32,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: AppTheme.of(context).bg,
       appBar: AppBar(
         title: const Text('Lịch sử giao dịch', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        flexibleSpace: Container(decoration: const BoxDecoration(gradient: AppTheme.primaryGradient)),
+        flexibleSpace: Container(decoration: BoxDecoration(gradient: AppTheme.of(context).primaryGradient)),
         elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
@@ -45,7 +47,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           _buildFilterBar(),
           Expanded(
             child: _isLoading 
-              ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+              ? Center(child: const CustomLoading(size: 80))
               : _transactions.isEmpty 
                 ? _buildEmptyState()
                 : ListView.builder(
@@ -67,16 +69,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.05),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.history_toggle_off, size: 64, color: AppTheme.primary.withValues(alpha: 0.3)),
-          ),
+          const CustomLoading(size: 100),
           const SizedBox(height: 24),
-          Text('Chưa có giao dịch nào', style: TextStyle(color: AppTheme.textMuted, fontSize: 16, fontWeight: FontWeight.w600)),
+          Text('Chưa có giao dịch nào', style: TextStyle(color: AppTheme.of(context).textMuted, fontSize: 16, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -88,7 +83,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Giao dịch gần đây', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppTheme.textDark, letterSpacing: -0.5)),
+          Text('Giao dịch gần đây', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppTheme.of(context).textDark, letterSpacing: -0.5)),
           _buildFilterChip(),
         ],
       ),
@@ -106,15 +101,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: AppTheme.primary.withValues(alpha: 0.08),
+          color: AppTheme.of(context).primary.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.1)),
+          border: Border.all(color: AppTheme.of(context).primary.withValues(alpha: 0.1)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.filter_list, size: 16, color: AppTheme.primary),
+            Icon(Icons.filter_list, size: 16, color: AppTheme.of(context).primary),
             const SizedBox(width: 6),
-            Text(_filter, style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w800, fontSize: 12)),
+            Text(_filter, style: TextStyle(color: AppTheme.of(context).primary, fontWeight: FontWeight.w800, fontSize: 12)),
           ],
         ),
       ),

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { facebookLogin, googleLogin, login, logout, refresh, register, forgotPassword, verifyOtp, resetPassword } from './auth.controller.js';
+import { facebookLogin, googleLogin, login, logout, refresh, register, forgotPassword, verifyOtp, resetPassword, sessions, logoutAll, logoutSession } from './auth.controller.js';
+import { authenticateToken } from '../../middleware/authMiddleware.js';
 
 // Giới hạn tần suất gọi API auth để giảm brute-force/password guessing.
 const authRateLimiter = rateLimit({
@@ -20,6 +21,9 @@ router.post('/facebook-login', authRateLimiter, facebookLogin);
 router.post('/google', authRateLimiter, googleLogin);
 router.post('/refresh', authRateLimiter, refresh);
 router.post('/logout', authRateLimiter, logout);
+router.get('/sessions', authRateLimiter, authenticateToken, sessions);
+router.post('/logout-all', authRateLimiter, authenticateToken, logoutAll);
+router.post('/logout-device', authRateLimiter, authenticateToken, logoutSession);
 
 // Quên mật khẩu
 router.post('/forgot-password', authRateLimiter, forgotPassword);
