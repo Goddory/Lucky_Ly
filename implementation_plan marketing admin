@@ -1,0 +1,128 @@
+# Admin Marketing / Khuyến mãi — Tệp Học sinh/Sinh viên
+
+Mở rộng hệ thống admin để hỗ trợ role **marketing_admin** với các chức năng: quản lý voucher/flash sale, xét duyệt thẻ sinh viên, phân cụm khách hàng (K-Means), và phát hiện churn.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Role mới `marketing_admin`**: Tách biệt khỏi `admin`. Chỉ user có `role = 'marketing_admin'` mới thấy card Marketing trên admin dashboard. Admin gốc vẫn thấy tất cả.
+
+## Datasets Selected (3 bộ từ Campaign Dataset)
+
+| # | File | Records | Dùng cho |
+|---|------|---------|----------|
+| 1 | [marketing_campaign.csv](file:///c:/Users/super/source/repos/Lucky_Ly/datasets/Campain%20Dataset/marketing_campaign.csv) | 2,240 | K-Means clustering (Year_Birth, Income, spending cols, Recency, campaign response) |
+| 2 | [customer_demographics.csv](file:///c:/Users/super/source/repos/Lucky_Ly/datasets/Campain%20Dataset/customer_demographics.csv) | 761 | Youth segmentation (age_range 18-25, income_bracket, family_size) |
+| 3 | [train.csv](file:///c:/Users/super/source/repos/Lucky_Ly/datasets/Campain%20Dataset/train.csv) | 78,370 | Coupon redemption prediction → Churn/engagement analysis |
+
+Thêm 1 bộ tự build: `luckyly_promotions.csv` (1000 records)
+
+---
+
+## Proposed Changes
+
+### 1. Dataset — `luckyly_promotions.csv`
+
+#### [NEW] [luckyly_promotions.csv](file:///c:/Users/super/source/repos/Lucky_Ly/datasets/luckyly_promotions.csv)
+
+1000 records mock data: `voucher_id`, `voucher_code`, `campaign_name`, `discount_type`, `discount_value`, `target_group`, `user_id`, `user_age`, `is_student`, `issued_at`, `expires_at`, `is_used`, `used_at`, `spending_monthly`, `days_since_last_login`, `wallet_balance`
+
+---
+
+### 2. Database Migration
+
+#### [NEW] [create_student_verifications_table.sql](file:///c:/Users/super/source/repos/Lucky_Ly/backend/src/db/migrations/create_student_verifications_table.sql)
+
+```sql
+CREATE TABLE student_verifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    card_image_url TEXT NOT NULL,
+    school_name VARCHAR(255),
+    status VARCHAR(20) DEFAULT 'pending',  -- 'pending','approved','rejected'
+    reviewed_by INTEGER REFERENCES users(id),
+    reviewed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+---
+
+### 3. Backend — Role & Middleware
+
+#### [NEW] [requireMarketingAdmin.js](file:///c:/Users/super/source/repos/Lucky_Ly/backend/src/db/middlewares/requireMarketingAdmin.js)
+
+Cho phép cả `admin` và `marketing_admin` truy cập Marketing endpoints.
+
+---
+
+### 4. Backend Modules
+
+#### [NEW] [promotions/](file:///c:/Users/super/source/repos/Lucky_Ly/backend/src/modules/promotions/) — routes + controller
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/api/promotions` | List promotions + vouchers |
+| POST | `/api/promotions` | Create promotion + auto-gen vouchers |
+| PUT | `/api/promotions/:id` | Update promotion |
+| DELETE | `/api/promotions/:id` | Delete promotion |
+| GET | `/api/promotions/stats` | Dashboard stats |
+| GET | `/api/promotions/segments` | K-Means cluster results |
+
+#### [NEW] [student-verification/](file:///c:/Users/super/source/repos/Lucky_Ly/backend/src/modules/student-verification/) — routes + controller
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/api/student-verification` | List verifications |
+| POST | `/api/student-verification` | Submit card (user) |
+| PUT | `/api/student-verification/:id/review` | Approve/reject (admin) |
+
+#### [MODIFY] [app.js](file:///c:/Users/super/source/repos/Lucky_Ly/backend/src/app.js) — Register new routes
+
+---
+
+### 5. Python ML Script (Offline)
+
+#### [NEW] [clustering_analysis.py](file:///c:/Users/super/source/repos/Lucky_Ly/scripts/clustering_analysis.py)
+
+- Đọc [marketing_campaign.csv](file:///c:/Users/super/source/repos/Lucky_Ly/datasets/Campain%20Dataset/marketing_campaign.csv) + [customer_demographics.csv](file:///c:/Users/super/source/repos/Lucky_Ly/datasets/Campain%20Dataset/customer_demographics.csv) + `luckyly_promotions.csv`
+- K-Means (3 clusters): "Student Budget", "Active Spender", "Casual User"
+- Churn flags: `days_since_last_login > 30` + `wallet_balance < 50k`
+- Export → `scripts/cluster_results.json`
+
+---
+
+### 6. Flutter Admin UI
+
+#### [MODIFY] [admin_dashboard_screen.dart](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/lib/screens/admin/admin_dashboard_screen.dart)
+
+- Thêm card "Marketing & Khuyến mãi" — hiển thị khi `role == 'admin' || role == 'marketing_admin'`
+
+#### [MODIFY] [profile_screen.dart](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/lib/profile_screen.dart)
+
+- Update `_isAdmin` → `_isAdminOrMarketing` để cả `marketing_admin` cũng vào được admin dashboard
+
+#### [NEW] [marketing_dashboard_screen.dart](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/lib/screens/admin/marketing_dashboard_screen.dart)
+
+- Stats cards + 3 navigation cards (Voucher, SV Verification, Segments)
+
+#### [NEW] [voucher_management_screen.dart](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/lib/screens/admin/voucher_management_screen.dart)
+
+- List/Create/Delete promotions with voucher codes
+
+#### [NEW] [student_verification_screen.dart](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/lib/screens/admin/student_verification_screen.dart)
+
+- Tabs: Pending / Approved / Rejected + image viewer + approve/reject actions
+
+#### [NEW] [customer_segments_screen.dart](file:///c:/Users/super/source/repos/Lucky_Ly/backend/lucky_ly_mobile/lib/screens/admin/customer_segments_screen.dart)
+
+- 3 cluster cards + churn risk list + "Gửi WELCOME_BACK" button
+
+---
+
+## Verification Plan
+
+1. **Role gating**: `marketing_admin` thấy Marketing card, `user` không thấy
+2. **Voucher CRUD**: Create → List → Delete qua API
+3. **Student verification**: Submit → Pending → Approve/Reject
+4. **Python script**: Run → Verify `cluster_results.json` output

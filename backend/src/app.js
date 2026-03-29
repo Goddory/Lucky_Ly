@@ -2,6 +2,8 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
+import { mkdirSync } from 'fs';
 import { ZodError } from 'zod';
 import { env } from './config/env.js';
 import { errorHandler, notFoundHandler } from './db/middlewares/errorHandler.js';
@@ -18,8 +20,13 @@ import giftsRoutes from './modules/gifts/gifts.routes.js';
 import storeRoutes from './modules/store/store.routes.js';
 import friendsRoutes from './modules/friends/friends.routes.js';
 import chatRoutes from './modules/chat/chat.routes.js';
+import promotionsRoutes from './modules/promotions/promotions.routes.js';
+import studentVerificationRoutes from './modules/student-verification/student-verification.routes.js';
 
 const app = express();
+
+// Ensure upload directories exist
+mkdirSync('uploads/store', { recursive: true });
 
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -43,6 +50,7 @@ app.use(
   })
 );
 app.use(express.json({ limit: '100kb' }));
+app.use(cookieParser());
 
 // Global console logger for all activities
 app.use(activityLogger);
@@ -73,6 +81,8 @@ app.use('/api/gifts', giftsRoutes);
 app.use('/api/friends', friendsRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/store', storeRoutes);
+app.use('/api/promotions', promotionsRoutes);
+app.use('/api/student-verification', studentVerificationRoutes);
 
 app.use(notFoundHandler);
 

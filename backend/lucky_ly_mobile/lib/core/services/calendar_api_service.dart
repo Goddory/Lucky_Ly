@@ -1,77 +1,88 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/event_model.dart';
+import 'api_client.dart';
 
 class CalendarApiService {
-  static final String _baseUrl =
-      const String.fromEnvironment('API_BASE_URL', defaultValue: '').isNotEmpty
-      ? '${const String.fromEnvironment('API_BASE_URL')}/api/events'
-      : (kIsWeb ? 'http://localhost:4000/api/events' : 
-        (defaultTargetPlatform == TargetPlatform.android ? 'http://10.0.2.2:4000/api/events' : 'http://localhost:4000/api/events'));
+  static String get _baseUrl => '${ApiClient.getBaseUrl()}/api/events';
 
-  static Future<List<EventModel>> fetchEvents() async {
+  static Future<String?> _getToken({String? overrideToken}) async {
+    if (overrideToken != null && overrideToken.isNotEmpty) return overrideToken;
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    print('[Calendar] Token from SharedPreferences: ${token != null ? "${token.substring(0, 15)}..." : "NULL"}');
+    return token;
+  }
+
+  /// Fetch all events (user notes + holidays from backend)
+  static Future<List<EventModel>> fetchEvents({String? accessToken}) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token');
-      
-      if (token == null) return [];
+      final token = await _getToken(overrideToken: accessToken);
+      if (token == null) {
+        print('[Calendar] No token found - skipping fetch');
+        return [];
+      }
+
+      final url = Uri.parse(_baseUrl);
+      print('[Calendar] GET $url');
 
       final response = await http.get(
-        Uri.parse(_baseUrl),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      ).timeout(const Duration(seconds: 15));
+
+      print('[Calendar] GET status: ${response.statusCode}');
+      print('[Calendar] GET body preview: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        List rawList = [];
+
         if (data is List) {
-          return data
-              .where((e) => e is Map)
-              .map((e) => EventModel.fromJson(Map<String, dynamic>.from(e as Map)))
-              .toList();
+          rawList = data;
+        } else if (data is Map<String, dynamic>) {
+          rawList = data['data'] ?? data['events'] ?? [];
         }
 
-        if (data is Map<String, dynamic>) {
-          final rawEvents = data['data'] ?? data['events'];
-          if (rawEvents is List) {
-            return rawEvents
-                .where((e) => e is Map)
-                .map((e) => EventModel.fromJson(Map<String, dynamic>.from(e as Map)))
-                .toList();
-          }
-        }
+        return rawList
+            .where((e) => e is Map)
+            .map((e) => EventModel.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
       }
-      print('Fetch Events Error: ${response.statusCode} - ${response.body}');
+
+      print('[Calendar] GET error: ${response.statusCode} - ${response.body}');
       return [];
     } catch (e) {
-      print('Fetch Events Exception: $e');
+      print('[Calendar] fetchEvents exception: $e');
       return [];
     }
   }
 
-  static Future<EventModel?> createEvent(String title, DateTime date, {String type = 'personal_note'}) async {
+  /// Create a new event/note
+  static Future<Map<String, dynamic>> createEvent({
+    required String title,
+    required DateTime date,
+    String? note,
+    String type = 'personal_note',
+    String? accessToken,
+  }) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token');
-      
+      final token = await _getToken(overrideToken: accessToken);
       if (token == null) {
-        print('Create Event Error: No access token found');
-        return null;
+        return {'success': false, 'error': 'Chưa đăng nhập. Vui lòng đăng nhập lại.'};
       }
 
       final url = Uri.parse(_baseUrl);
-      print('Create Event URL: $url');
-      print('Create Event Token: ${token.substring(0, 20)}...');
-      
       final body = {
-        'title': title,
+        'title': title.length > 200 ? '${title.substring(0, 200)}...' : title,
+        'note': note ?? '',
         'date': date.toIso8601String(),
         'type': type,
       };
-      print('Create Event Body: $body');
+
+      print('[Calendar] POST $url');
+      print('[Calendar] POST body: $body');
 
       final response = await http.post(
         url,
@@ -80,39 +91,46 @@ class CalendarApiService {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 15));
 
-      print('Create Event Status: ${response.statusCode}');
-      print('Create Event Response: ${response.body}');
+      print('[Calendar] POST status: ${response.statusCode}');
+      print('[Calendar] POST response: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         try {
           final data = jsonDecode(response.body);
-          
-          // Backend returns { message: "...", event: {...} }
           if (data is Map<String, dynamic>) {
             final rawEvent = data['event'] ?? data['data'];
-            
             if (rawEvent != null && rawEvent is Map<String, dynamic>) {
-              print('Parsed event: $rawEvent');
-              return EventModel.fromJson(rawEvent);
-            } else {
-              print('Create Event Error: Could not find event in response. Keys: ${data.keys}');
+              return {'success': true, 'event': EventModel.fromJson(rawEvent)};
             }
           }
-          return null;
-        } catch (parseError) {
-          print('Create Event Parse Error: $parseError');
-          return null;
+          return {'success': true, 'event': null};
+        } catch (_) {
+          return {'success': true, 'event': null};
         }
-      } else {
-        print('Create Event Error: ${response.statusCode}');
-        print('Response body: ${response.body}');
-        return null;
       }
+
+      String errorMsg = 'Lỗi server (HTTP ${response.statusCode})';
+      try {
+        final errData = jsonDecode(response.body);
+        if (errData is Map) {
+          errorMsg = errData['message'] ?? errData['error'] ?? errorMsg;
+        }
+      } catch (_) {}
+
+      return {'success': false, 'error': errorMsg};
+    } on http.ClientException catch (e) {
+      return {'success': false, 'error': 'Không thể kết nối server: $e'};
     } catch (e) {
-      print('Create Event Exception: $e');
-      return null;
+      final msg = e.toString();
+      if (msg.contains('TimeoutException')) {
+        return {'success': false, 'error': 'Server không phản hồi (timeout). Kiểm tra kết nối mạng.'};
+      }
+      if (msg.contains('SocketException') || msg.contains('Connection refused')) {
+        return {'success': false, 'error': 'Không thể kết nối đến server. Backend có đang chạy không?'};
+      }
+      return {'success': false, 'error': 'Lỗi: $msg'};
     }
   }
 }

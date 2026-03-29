@@ -181,7 +181,7 @@ export async function runApriori(minSupport = 0.1, minConfidence = 0.5) {
     });
   } else {
     // Fallback: dùng dataset retail_sales.csv nếu DB trống
-    const csvPath = join(__dirname, '..', '..', '..', '..', 'datasets', 'retail_sales.csv');
+    const csvPath = join(__dirname, '..', '..', '..', '..', 'datasets', 'Store Dataset', 'retail_sales.csv');
     try {
       const csvContent = readFileSync(csvPath, 'utf-8');
       const lines = csvContent.trim().split('\n');
@@ -239,7 +239,7 @@ export async function saveCombo(comboData) {
 // ========== DATASET LOADING ==========
 
 export async function loadDatasetToInventory(userId) {
-  const csvPath = join(__dirname, '..', '..', '..', '..', 'datasets', 'luckyly_store_inventory.csv');
+  const csvPath = join(__dirname, '..', '..', '..', '..', 'datasets', 'Store Dataset', 'luckyly_store_inventory.csv');
   const csvContent = readFileSync(csvPath, 'utf-8');
   const lines = csvContent.trim().split('\n');
   const headers = lines[0].split(',');
@@ -296,10 +296,21 @@ export async function getOverviewStats(userId) {
     [userId]
   );
 
+  const revenueStats = await pool.query(
+    `SELECT COALESCE(SUM(total_amount), 0) as total_revenue,
+            COUNT(*) as total_orders
+     FROM store_transactions`
+  );
+
+  const comboCount = await pool.query('SELECT COUNT(*) as count FROM store_combos');
+
   return {
     totalItems: parseInt(itemCount.rows[0].count),
     totalStock: parseInt(totalStock.rows[0].total),
     categories: categoryCount.rows,
-    recentItems: recentItems.rows
+    recentItems: recentItems.rows,
+    totalRevenue: parseFloat(revenueStats.rows[0].total_revenue || 0),
+    totalOrders: parseInt(revenueStats.rows[0].total_orders || 0),
+    totalCombos: parseInt(comboCount.rows[0].count || 0)
   };
 }

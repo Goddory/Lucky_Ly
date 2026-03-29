@@ -1622,8 +1622,6 @@ class _AuthScreenState extends State<AuthScreen>
 
     final user = responseBody['user'] as Map<String, dynamic>? ?? {};
     final userEmail = user['email']?.toString().trim().toLowerCase() ?? '';
-    final accessToken = responseBody['accessToken']?.toString() ?? '';
-    final refreshToken = responseBody['refreshToken']?.toString() ?? '';
 
     // Initialize Socket
     if (accessToken.isNotEmpty) {

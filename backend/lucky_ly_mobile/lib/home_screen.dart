@@ -21,6 +21,8 @@ import 'screens/chat/chat_list_screen.dart';
 import 'screens/social/friend_management_screen.dart';
 import 'providers/auth_provider.dart';
 import 'core/services/socket_service.dart';
+import 'screens/admin/marketing_dashboard_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // Constants moved to app_theme.dart
 
@@ -142,13 +144,72 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Future<void> _saveTokenToPrefs() async {
     if (widget.accessToken.isNotEmpty) {
       final prefs = await SharedPreferences.getInstance();
+      // Save under both keys for compatibility
       await prefs.setString('accessToken', widget.accessToken);
+      await prefs.setString('access_token', widget.accessToken);
       if (widget.refreshToken.isNotEmpty) {
         await prefs.setString('refreshToken', widget.refreshToken);
       }
-      debugPrint('DEBUG: Token saved to SharedPreferences from HomeScreen');
+      
+      // Also sync with AuthProvider
+      if (mounted) {
+        final auth = context.read<AuthProvider>();
+        if (auth.accessToken == null || auth.accessToken!.isEmpty) {
+          auth.setSession(
+            accessToken: widget.accessToken,
+            refreshToken: widget.refreshToken,
+            email: widget.userEmail,
+          );
+        }
+      }
+      debugPrint('DEBUG: Token saved to SharedPreferences from HomeScreen (both keys)');
     }
   }
+
+  bool _isMarketingAdmin() {
+    final role = widget.userData['role']?.toString().toLowerCase();
+    return role == 'marketing_admin' || role == 'marketing_admin';
+  }
+
+  Widget _buildWelcomeHeader() {
+    final isMarketing = _isMarketingAdmin();
+    final name = widget.userData['username'] ?? 'Bạn Thủ';
+    
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: Opacity(
+        opacity: 0.9,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              isMarketing ? 'Xin chào Marketing Admin!' : 'Xin chào $name!',
+              style: GoogleFonts.chakraPetch(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFFFE512E).withValues(alpha: 0.8),
+                letterSpacing: 0.5,
+              ),
+            ),
+            if (isMarketing)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  'Hôm nay chúng ta sẽ bùng nổ chiến dịch gì?',
+                  style: GoogleFonts.beVietnamPro(
+                    fontSize: 12,
+                    color: const Color(0xFFFE512E).withValues(alpha: 0.6),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Marketing Admin logic integrated into _buildPremiumServiceGrid
 
   @override
   void dispose() {
@@ -180,6 +241,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             physics: const BouncingScrollPhysics(),
                             slivers: [
                               _buildSliverHeader(context),
+                              SliverToBoxAdapter(child: _buildWelcomeHeader()),
                               SliverToBoxAdapter(child: _buildQuickActions()),
                               SliverToBoxAdapter(child: _buildWalletCard()),
                               const SliverToBoxAdapter(child: SizedBox(height: 8)),
@@ -437,9 +499,25 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           MaterialPageRoute(builder: (_) => const AvaturnScreen()),
         ),
       ),
+      if (_isMarketingAdmin())
+        _ServiceItem(
+          'Marketing Hub',
+          Icons.campaign,
+          Colors.pinkAccent,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MarketingDashboardScreen(
+                apiBaseUrl: widget.apiBaseUrl,
+                accessToken: widget.accessToken,
+              ),
+            ),
+          ),
+        ),
       _ServiceItem('Thanh toán', Icons.money_off, AppTheme.of(context).primary),
       _ServiceItem('Hóa đơn', Icons.receipt_long, AppTheme.of(context).accent),
-      _ServiceItem('Thêm', Icons.grid_view, AppTheme.of(context).textMuted),
+      if (!_isMarketingAdmin())
+        _ServiceItem('Thêm', Icons.grid_view, AppTheme.of(context).textMuted),
     ];
 
     return SliverPadding(
@@ -1102,13 +1180,12 @@ class _ServiceGridTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedInteractiveScale(
-      onTap: () {
+      onTap: service.onTap ?? () {
         final label = service.label;
         if (label == 'Nạp ĐT' || label == 'Thanh toán' || label == 'Chuyển tiền' || label == 'Ngân hàng') {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentScreen()));
         }
       },
-      onTap: service.onTap ?? () {},
       child: Container(
         decoration: BoxDecoration(
           color: AppTheme.of(context).card,

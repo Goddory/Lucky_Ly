@@ -80,7 +80,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
     if (_selectedFilter == 'Đã khóa')
       return _users.where((u) => u['isActive'] == false).toList();
     if (_selectedFilter == 'Quản trị')
-      return _users.where((u) => u['role'] == 'admin').toList();
+      return _users.where((u) => u['role']?.toString().toLowerCase() == 'admin').toList();
     return _users;
   }
 
@@ -89,7 +89,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
     if (index < 0 || index >= filteredUsers.length) return;
 
     final user = filteredUsers[index];
-    if (user['role'] == 'admin') {
+    if (user['role']?.toString().toLowerCase() == 'admin') {
       _showSnack('Không thể khóa tài khoản Quản trị viên');
       return;
     }
@@ -310,7 +310,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
   Widget _buildUserTile(Map<String, dynamic> user, int index) {
     final theme = AppTheme.of(context);
     final bool isActive = user['isActive'];
-    final bool isAdmin = user['role'] == 'admin';
+    final bool isAdmin = user['role']?.toString().toLowerCase() == 'admin';
     final String name = user['name'];
 
     return Badge(

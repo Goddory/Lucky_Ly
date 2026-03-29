@@ -1,0 +1,502 @@
+{
+  "generated_at": "2026-03-28T16:20:54.689308",
+  "datasets_used": {
+    "marketing_campaign": 2240,
+    "customer_demographics": 760,
+    "luckyly_promotions": 1000
+  },
+  "campaign_stats": {
+    "avg_income": 0.0,
+    "avg_spend": 0.0,
+    "avg_recency": 0.0
+  },
+  "clusters": [
+    {
+      "id": 0,
+      "name": "Active Spender",
+      "count": 106,
+      "avg_spending": 1251.97,
+      "avg_age": 35.5,
+      "student_pct": 0.0,
+      "avg_days_inactive": 49.7,
+      "avg_wallet": 563.16,
+      "voucher_usage_rate": 41.9
+    },
+    {
+      "id": 1,
+      "name": "Casual User",
+      "count": 168,
+      "avg_spending": 311.46,
+      "avg_age": 20.5,
+      "student_pct": 92.3,
+      "avg_days_inactive": 44.2,
+      "avg_wallet": 121.09,
+      "voucher_usage_rate": 67.8
+    },
+    {
+      "id": 2,
+      "name": "Student Budget",
+      "count": 158,
+      "avg_spending": 294.73,
+      "avg_age": 20.7,
+      "student_pct": 92.4,
+      "avg_days_inactive": 44.6,
+      "avg_wallet": 119.3,
+      "voucher_usage_rate": 14.5
+    }
+  ],
+  "churn_users": [
+    {
+      "user_id": "336",
+      "age": 16,
+      "is_student": true,
+      "days_inactive": 40,
+      "wallet": 6.42,
+      "spending": 153.07,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "387",
+      "age": 23,
+      "is_student": true,
+      "days_inactive": 71,
+      "wallet": 27.93,
+      "spending": 114.29,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "441",
+      "age": 17,
+      "is_student": true,
+      "days_inactive": 87,
+      "wallet": 32.0,
+      "spending": 118.78,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "221",
+      "age": 22,
+      "is_student": true,
+      "days_inactive": 88,
+      "wallet": 22.37,
+      "spending": 302.41,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "403",
+      "age": 24,
+      "is_student": true,
+      "days_inactive": 33,
+      "wallet": 5.52,
+      "spending": 199.02,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "65",
+      "age": 21,
+      "is_student": true,
+      "days_inactive": 83,
+      "wallet": 13.72,
+      "spending": 150.9,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "414",
+      "age": 22,
+      "is_student": true,
+      "days_inactive": 46,
+      "wallet": 21.11,
+      "spending": 420.05,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "220",
+      "age": 20,
+      "is_student": true,
+      "days_inactive": 71,
+      "wallet": 49.64,
+      "spending": 88.33,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "334",
+      "age": 20,
+      "is_student": true,
+      "days_inactive": 86,
+      "wallet": 45.78,
+      "spending": 61.64,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "342",
+      "age": 18,
+      "is_student": true,
+      "days_inactive": 48,
+      "wallet": 15.79,
+      "spending": 126.49,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "468",
+      "age": 21,
+      "is_student": true,
+      "days_inactive": 37,
+      "wallet": 18.03,
+      "spending": 379.56,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "270",
+      "age": 23,
+      "is_student": true,
+      "days_inactive": 65,
+      "wallet": 43.11,
+      "spending": 236.38,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "313",
+      "age": 21,
+      "is_student": true,
+      "days_inactive": 82,
+      "wallet": 16.87,
+      "spending": 492.07,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "245",
+      "age": 18,
+      "is_student": true,
+      "days_inactive": 64,
+      "wallet": 40.78,
+      "spending": 235.83,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "119",
+      "age": 23,
+      "is_student": true,
+      "days_inactive": 36,
+      "wallet": 39.89,
+      "spending": 264.85,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "199",
+      "age": 22,
+      "is_student": true,
+      "days_inactive": 70,
+      "wallet": 17.92,
+      "spending": 96.48,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "144",
+      "age": 19,
+      "is_student": true,
+      "days_inactive": 50,
+      "wallet": 35.53,
+      "spending": 265.55,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "498",
+      "age": 16,
+      "is_student": true,
+      "days_inactive": 84,
+      "wallet": 0.29,
+      "spending": 477.95,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "494",
+      "age": 23,
+      "is_student": true,
+      "days_inactive": 89,
+      "wallet": 2.47,
+      "spending": 462.72,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "250",
+      "age": 18,
+      "is_student": true,
+      "days_inactive": 52,
+      "wallet": 40.06,
+      "spending": 111.81,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "67",
+      "age": 18,
+      "is_student": true,
+      "days_inactive": 57,
+      "wallet": 11.6,
+      "spending": 191.04,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "34",
+      "age": 16,
+      "is_student": true,
+      "days_inactive": 88,
+      "wallet": 49.76,
+      "spending": 332.01,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "216",
+      "age": 22,
+      "is_student": true,
+      "days_inactive": 32,
+      "wallet": 24.72,
+      "spending": 249.94,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "185",
+      "age": 17,
+      "is_student": true,
+      "days_inactive": 69,
+      "wallet": 31.87,
+      "spending": 403.82,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "388",
+      "age": 23,
+      "is_student": true,
+      "days_inactive": 46,
+      "wallet": 18.11,
+      "spending": 275.51,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "247",
+      "age": 20,
+      "is_student": true,
+      "days_inactive": 46,
+      "wallet": 37.38,
+      "spending": 145.18,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "263",
+      "age": 23,
+      "is_student": true,
+      "days_inactive": 52,
+      "wallet": 32.25,
+      "spending": 144.82,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "353",
+      "age": 24,
+      "is_student": true,
+      "days_inactive": 90,
+      "wallet": 37.8,
+      "spending": 233.89,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "95",
+      "age": 19,
+      "is_student": true,
+      "days_inactive": 46,
+      "wallet": 20.15,
+      "spending": 220.74,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "428",
+      "age": 23,
+      "is_student": true,
+      "days_inactive": 36,
+      "wallet": 30.83,
+      "spending": 394.58,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "68",
+      "age": 24,
+      "is_student": true,
+      "days_inactive": 86,
+      "wallet": 30.64,
+      "spending": 364.0,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "300",
+      "age": 20,
+      "is_student": true,
+      "days_inactive": 66,
+      "wallet": 10.91,
+      "spending": 325.91,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "292",
+      "age": 20,
+      "is_student": true,
+      "days_inactive": 38,
+      "wallet": 13.57,
+      "spending": 164.49,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "429",
+      "age": 23,
+      "is_student": true,
+      "days_inactive": 49,
+      "wallet": 10.09,
+      "spending": 456.48,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "36",
+      "age": 17,
+      "is_student": true,
+      "days_inactive": 49,
+      "wallet": 12.48,
+      "spending": 174.78,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "167",
+      "age": 17,
+      "is_student": true,
+      "days_inactive": 63,
+      "wallet": 21.27,
+      "spending": 418.01,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "424",
+      "age": 22,
+      "is_student": true,
+      "days_inactive": 88,
+      "wallet": 34.91,
+      "spending": 157.66,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "278",
+      "age": 16,
+      "is_student": true,
+      "days_inactive": 88,
+      "wallet": 14.14,
+      "spending": 437.17,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "83",
+      "age": 18,
+      "is_student": true,
+      "days_inactive": 68,
+      "wallet": 32.16,
+      "spending": 328.38,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "203",
+      "age": 22,
+      "is_student": true,
+      "days_inactive": 60,
+      "wallet": 13.92,
+      "spending": 134.95,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "29",
+      "age": 18,
+      "is_student": true,
+      "days_inactive": 35,
+      "wallet": 5.83,
+      "spending": 172.72,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "283",
+      "age": 21,
+      "is_student": true,
+      "days_inactive": 77,
+      "wallet": 4.21,
+      "spending": 419.61,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "38",
+      "age": 17,
+      "is_student": true,
+      "days_inactive": 41,
+      "wallet": 26.64,
+      "spending": 54.64,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "299",
+      "age": 18,
+      "is_student": true,
+      "days_inactive": 36,
+      "wallet": 18.72,
+      "spending": 105.64,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "446",
+      "age": 23,
+      "is_student": true,
+      "days_inactive": 63,
+      "wallet": 7.36,
+      "spending": 485.28,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "151",
+      "age": 17,
+      "is_student": true,
+      "days_inactive": 56,
+      "wallet": 12.4,
+      "spending": 402.19,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "301",
+      "age": 18,
+      "is_student": true,
+      "days_inactive": 48,
+      "wallet": 38.34,
+      "spending": 407.7,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "450",
+      "age": 21,
+      "is_student": true,
+      "days_inactive": 48,
+      "wallet": 40.4,
+      "spending": 274.43,
+      "cluster": "Casual User"
+    },
+    {
+      "user_id": "61",
+      "age": 23,
+      "is_student": true,
+      "days_inactive": 65,
+      "wallet": 10.49,
+      "spending": 130.83,
+      "cluster": "Student Budget"
+    },
+    {
+      "user_id": "128",
+      "age": 17,
+      "is_student": true,
+      "days_inactive": 45,
+      "wallet": 26.66,
+      "spending": 215.17,
+      "cluster": "Casual User"
+    }
+  ],
+  "total_churn": 51,
+  "churn_rate": 11.8
+}

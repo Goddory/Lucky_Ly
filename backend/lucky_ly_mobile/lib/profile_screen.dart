@@ -44,7 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   late String authProvider;
   late String userRole;
 
-  bool get _isAdmin => userRole == 'admin';
+  bool get _isAdmin => userRole.toLowerCase() == 'admin' || userRole.toLowerCase() == 'marketing_admin' || userRole.toLowerCase() == 'system_admin';
 
   bool isEditing = false;
   bool isSaving = false;

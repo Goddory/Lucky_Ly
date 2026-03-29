@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path/path.dart' as p;
+import 'package:google_fonts/google_fonts.dart';
 import '../../providers/store_provider.dart';
 import '../../app_theme.dart';
 
@@ -14,6 +14,9 @@ class InventoryScreen extends StatefulWidget {
 }
 
 class _InventoryScreenState extends State<InventoryScreen> {
+  final softPinkBg = const Color(0xFFFFF0F3);
+  final accentPink = const Color(0xFFFF758F);
+
   @override
   void initState() {
     super.initState();
@@ -24,38 +27,38 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme.of(context);
     final store = context.watch<StoreProvider>();
     final inventory = store.inventory;
 
     return Scaffold(
-      backgroundColor: theme.bg,
+      backgroundColor: softPinkBg,
       appBar: AppBar(
-        title: const Text('Kho vật phẩm', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: theme.primary,
+        title: Text('Kho vật phẩm', style: GoogleFonts.comfortaa(color: accentPink, fontWeight: FontWeight.w900)),
+        backgroundColor: softPinkBg,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        centerTitle: true,
+        iconTheme: IconThemeData(color: accentPink),
       ),
       body: RefreshIndicator(
         onRefresh: () => store.fetchInventory(),
         child: store.isLoading && inventory.isEmpty
-            ? const Center(child: CircularProgressIndicator())
+            ? Center(child: CircularProgressIndicator(color: accentPink))
             : inventory.isEmpty
                 ? const _EmptyInventory()
                 : ListView.separated(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     itemCount: inventory.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    separatorBuilder: (_, __) => const SizedBox(height: 16),
                     itemBuilder: (context, index) {
                       final item = inventory[index];
-                      return _InventoryItemTile(item: item, theme: theme);
+                      return _InventoryItemTile(item: item, accentPink: accentPink);
                     },
                   ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showItemDialog(context),
-        backgroundColor: theme.primary,
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: accentPink,
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
       ),
     );
   }
@@ -70,29 +73,35 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
 class _InventoryItemTile extends StatelessWidget {
   final Map<String, dynamic> item;
-  final AppTheme theme;
+  final Color accentPink;
 
-  const _InventoryItemTile({required this.item, required this.theme});
+  const _InventoryItemTile({required this.item, required this.accentPink});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.card,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: AppTheme.softShadow,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 60,
-            height: 60,
+            width: 70,
+            height: 70,
             decoration: BoxDecoration(
-              color: theme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: accentPink.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
             ),
-            child: Icon(Icons.card_giftcard, color: theme.primary),
+            child: Icon(Icons.stars_rounded, color: accentPink, size: 32),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -101,18 +110,18 @@ class _InventoryItemTile extends StatelessWidget {
               children: [
                 Text(
                   item['item_name'] ?? 'Không tên',
-                  style: TextStyle(color: theme.textDark, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.comfortaa(color: const Color(0xFF2B2D42), fontSize: 16, fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${item['category']} • ${item['price']}đ',
-                  style: TextStyle(color: theme.textMuted, fontSize: 13),
+                  style: GoogleFonts.beVietnamPro(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: Icon(Icons.edit_outlined, color: theme.primary, size: 20),
+            icon: Icon(Icons.edit_rounded, color: accentPink, size: 22),
             onPressed: () {
                showDialog(
                 context: context,
@@ -121,7 +130,7 @@ class _InventoryItemTile extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+            icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFFF4D6D), size: 22),
             onPressed: () => _confirmDelete(context),
           ),
         ],

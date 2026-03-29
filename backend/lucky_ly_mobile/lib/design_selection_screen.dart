@@ -65,7 +65,7 @@ class DesignSelectionScreen extends StatelessWidget {
             const SizedBox(height: 24),
             // Phân quyền: Chỉ creator/admin mới thấy dashboard
             if (context.read<AuthProvider>().userData?['role'] == 'store_creator' || 
-                context.read<AuthProvider>().userData?['role'] == 'admin') ...[
+                context.read<AuthProvider>().userData?['role']?.toString().toLowerCase() == 'admin') ...[
               Text(
                 'Dành cho Nhà sáng tạo',
                 style: TextStyle(color: theme.textDark, fontSize: 18, fontWeight: FontWeight.bold),

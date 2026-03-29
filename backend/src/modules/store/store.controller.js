@@ -1,9 +1,9 @@
 import * as storeService from './store.service.js';
-
+import { pool } from '../../db/pool.js';
 export async function getInventoryHandler(req, res, next) {
   try {
     const items = await storeService.getInventory({
-      userId: req.user.sub,
+      userId: req.user.userId,
       category: req.query.category,
       search: req.query.search
     });
@@ -47,14 +47,14 @@ export async function deleteItemHandler(req, res, next) {
 
 export async function getRevenueHandler(req, res, next) {
   try {
-    const stats = await storeService.getRevenueStats(req.user.sub);
+    const stats = await storeService.getRevenueStats(req.user.userId);
     res.json(stats);
   } catch (err) { next(err); }
 }
 
 export async function getOverviewHandler(req, res, next) {
   try {
-    const overview = await storeService.getOverviewStats(req.user.sub);
+    const overview = await storeService.getOverviewStats(req.user.userId);
     res.json(overview);
   } catch (err) { next(err); }
 }
@@ -64,6 +64,15 @@ export async function runAprioriHandler(req, res, next) {
     const minSupport = parseFloat(req.query.minSupport) || 0.1;
     const minConfidence = parseFloat(req.query.minConfidence) || 0.5;
     const result = await storeService.runApriori(minSupport, minConfidence);
+    
+    // Auto save generated combos
+    if (result.combos && result.combos.length > 0) {
+      await pool.query('DELETE FROM store_combos');
+      for (const combo of result.combos) {
+        await storeService.saveCombo(combo);
+      }
+    }
+    
     res.json(result);
   } catch (err) { next(err); }
 }
@@ -84,7 +93,7 @@ export async function saveComboHandler(req, res, next) {
 
 export async function loadDatasetHandler(req, res, next) {
   try {
-    const result = await storeService.loadDatasetToInventory(req.user.sub);
+    const result = await storeService.loadDatasetToInventory(req.user.userId);
     res.json({ message: 'Dataset loaded', ...result });
   } catch (err) { next(err); }
 }

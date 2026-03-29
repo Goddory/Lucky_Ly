@@ -4,7 +4,7 @@ import { pool } from '../../db/pool.js';
 export const createVNPayUrl = async (req, res, next) => {
   try {
     const { amount, orderInfo } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const ipAddr = req.headers['x-forwarded-for'] || req.connection?.remoteAddress || req.socket?.remoteAddress || '127.0.0.1';
     
     const parsedAmount = parseInt(amount);
@@ -19,9 +19,9 @@ export const createVNPayUrl = async (req, res, next) => {
     // Save pending transaction to database
     try {
         await pool.query(
-          `INSERT INTO transactions (user_id, order_id, amount, provider, status) 
-           VALUES ($1, $2, $3, $4, $5)`,
-          [userId, orderId, parsedAmount, 'vnpay', 'pending']
+          `INSERT INTO transactions (sender_id, order_id, amount, provider, status, tx_type) 
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [userId, orderId, parsedAmount, 'vnpay', 'pending', 'topup']
         );
         console.log('DEBUG: Transaction row inserted successfully');
     } catch (dbError) {
@@ -63,14 +63,20 @@ export const vnpayReturn = async (req, res, next) => {
             try {
               await client.query('BEGIN');
               const txRes = await client.query(
-                "UPDATE transactions SET status = 'success', updated_at = NOW() WHERE order_id = $1 AND status = 'pending' RETURNING user_id, amount",
+                "UPDATE transactions SET status = 'success', updated_at = NOW() WHERE order_id = $1 AND status = 'pending' RETURNING sender_id, amount",
                 [orderId]
               );
               if (txRes.rows.length > 0) {
-                const { user_id, amount } = txRes.rows[0];
+                const { sender_id, amount } = txRes.rows[0];
+                // Upsert wallet: create if not exists
+                await client.query(
+                  `INSERT INTO wallets (user_id, balance, currency, status) VALUES ($1, 0, 'VND', 'ACTIVE')
+                   ON CONFLICT (user_id) DO NOTHING`,
+                  [sender_id]
+                );
                 await client.query(
                   "UPDATE wallets SET balance = balance + $1 WHERE user_id = $2",
-                  [amount, user_id]
+                  [amount, sender_id]
                 );
               }
               await client.query('COMMIT');
@@ -144,9 +150,9 @@ export const vnpayIpn = async (req, res, next) => {
 
 export const getTransactionHistory = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const result = await pool.query(
-      "SELECT * FROM transactions WHERE user_id = $1 ORDER BY created_at DESC",
+      "SELECT * FROM transactions WHERE sender_id = $1 ORDER BY created_at DESC",
       [userId]
     );
     res.status(200).json({

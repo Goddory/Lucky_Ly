@@ -6,7 +6,9 @@ import '../app_theme.dart';
 import '../providers/theme_provider.dart';
 import '../core/models/event_model.dart';
 import '../core/services/calendar_api_service.dart';
+import '../core/services/api_client.dart';
 import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+import '../providers/auth_provider.dart';
 
 
 class CalendarPopup extends StatefulWidget {
@@ -30,21 +32,33 @@ class _CalendarPopupState extends State<CalendarPopup> {
   DateTime? _selectedDay;
   Map<DateTime, List<EventModel>> _events = {};
   bool _isLoading = true;
+  String? _errorMsg;
 
   @override
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
+    print('[Calendar] Using API: ${ApiClient.getBaseUrl()}/api/events');
     _fetchEvents();
   }
 
-  Future<void> _fetchEvents() async {
-    setState(() => _isLoading = true);
+  String? get _accessToken {
     try {
-      final events = await CalendarApiService.fetchEvents();
+      return context.read<AuthProvider>().accessToken;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _fetchEvents() async {
+    setState(() { _isLoading = true; _errorMsg = null; });
+    try {
+      final token = _accessToken;
+      print('[Calendar] Token from AuthProvider: ${token != null ? "${token.substring(0, 15)}..." : "NULL"}');
+      final events = await CalendarApiService.fetchEvents(accessToken: token);
       final Map<DateTime, List<EventModel>> grouped = {};
       for (var e in events) {
-        final localDate = e.date.toLocal(); // Convert parsed UTC to local so year/month/day matches user's timezone
+        final localDate = e.date.toLocal();
         final d = DateTime.utc(localDate.year, localDate.month, localDate.day);
         if (grouped[d] == null) grouped[d] = [];
         grouped[d]!.add(e);
@@ -53,10 +67,13 @@ class _CalendarPopupState extends State<CalendarPopup> {
         setState(() {
           _events = grouped;
           _isLoading = false;
+          if (events.isEmpty) {
+            _errorMsg = 'API: ${ApiClient.getBaseUrl()}/api/events\nToken: ${token != null ? "Có" : "KHÔNG CÓ"}\nKhông có dữ liệu trả về.';
+          }
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() { _isLoading = false; _errorMsg = 'Lỗi tải lịch: $e'; });
     }
   }
 
@@ -212,9 +229,28 @@ class _CalendarPopupState extends State<CalendarPopup> {
                         if (selectedEvents.isEmpty)
                           Padding(
                             padding: const EdgeInsets.all(24),
-                            child: Text(
-                              'Không có sự kiện nào trong ngày.',
-                              style: TextStyle(color: AppTheme.of(context).textMuted),
+                            child: Column(
+                              children: [
+                                Text(
+                                  'Không có sự kiện nào trong ngày.',
+                                  style: TextStyle(color: AppTheme.of(context).textMuted),
+                                ),
+                                if (_errorMsg != null) ...[
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.shade50,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.orange.shade200),
+                                    ),
+                                    child: Text(
+                                      _errorMsg!,
+                                      style: TextStyle(fontSize: 11, color: Colors.orange.shade800),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           )
                         else
@@ -245,7 +281,14 @@ class _CalendarPopupState extends State<CalendarPopup> {
                                       color: isHoliday ? Colors.redAccent : AppTheme.of(context).textDark,
                                     ),
                                   ),
-                                  subtitle: Text(isHoliday ? 'Ngày lễ' : 'Cá nhân', style: TextStyle(fontSize: 12, color: AppTheme.of(context).textMuted)),
+                                  subtitle: Text(
+                                    isHoliday 
+                                      ? 'Ngày lễ' 
+                                      : (event.note != null && event.note!.isNotEmpty 
+                                          ? event.note! 
+                                          : 'Cá nhân'), 
+                                    style: TextStyle(fontSize: 12, color: AppTheme.of(context).textMuted)
+                                  ),
                                 ),
                               );
                             },
@@ -261,18 +304,34 @@ class _CalendarPopupState extends State<CalendarPopup> {
   }
 
   void _showAddNoteDialog(BuildContext context) {
-    final _ctrl = TextEditingController();
+    final titleCtrl = TextEditingController();
+    final noteCtrl = TextEditingController();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Thêm ghi chú', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: TextField(
-          controller: _ctrl,
-          maxLines: 3,
-          decoration: InputDecoration(
-            hintText: 'Nhập nội dung (ví dụ: Tặng quà sinh nhật)...',
-            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.of(context).primary)),
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleCtrl,
+              decoration: InputDecoration(
+                hintText: 'Tiêu đề (ví dụ: Tặng quà sinh nhật)...',
+                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.of(context).primary)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: noteCtrl,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'Nội dung chi tiết...',
+                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.of(context).primary)),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -281,36 +340,40 @@ class _CalendarPopupState extends State<CalendarPopup> {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (_ctrl.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Vui lòng nhập nội dung ghi chú'))
+              if (titleCtrl.text.isEmpty && noteCtrl.text.isEmpty) {
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(content: Text('Vui lòng nhập tiêu đề hoặc nội dung'))
                 );
                 return;
               }
-              final txt = _ctrl.text;
+              final titleTxt = titleCtrl.text.isNotEmpty ? titleCtrl.text : 'Ghi chú';
+              final noteTxt = noteCtrl.text;
               Navigator.pop(ctx);
               
-              // Show loading indicator
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Đang lưu ghi chú...'), duration: Duration(seconds: 1))
+              scaffoldMessenger.showSnackBar(
+                const SnackBar(content: Text('Đang lưu ghi chú...'), duration: Duration(seconds: 2))
               );
               
-              try {
-                // Call API
-                final newEvent = await CalendarApiService.createEvent(txt, _selectedDay ?? _focusedDay);
-                if (newEvent != null) {
-                  _fetchEvents(); // reload
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Ghi chú đã được lưu thành công'))
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Không thể lưu ghi chú. Kiểm tra kết nối mạng.'))
-                  );
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Lỗi khi lưu ghi chú: $e'))
+              final result = await CalendarApiService.createEvent(
+                title: titleTxt, 
+                note: noteTxt,
+                date: _selectedDay ?? _focusedDay,
+                accessToken: _accessToken,
+              );
+              
+              if (result['success'] == true) {
+                _fetchEvents();
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(content: Text('✅ Ghi chú đã được lưu thành công!'))
+                );
+              } else {
+                final errorMsg = result['error'] ?? 'Lỗi không xác định';
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text('❌ $errorMsg'),
+                    duration: const Duration(seconds: 5),
+                    backgroundColor: Colors.red.shade700,
+                  )
                 );
               }
             },

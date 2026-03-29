@@ -3,6 +3,7 @@ import '../../app_theme.dart';
 import 'users_management_screen.dart';
 import 'statistics_screen.dart';
 import 'theme_management_screen.dart';
+import 'marketing_dashboard_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   final String apiBaseUrl;
@@ -83,6 +84,23 @@ class AdminDashboardScreen extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (_) => ThemeManagementScreen(
+                          apiBaseUrl: apiBaseUrl,
+                          accessToken: accessToken,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildAdminCard(
+                    context: context,
+                    title: 'Marketing & Khuyến mãi',
+                    subtitle: 'Voucher, Flash sale, Xác thực SV, Phân cụm KH',
+                    icon: Icons.campaign_outlined,
+                    color: const Color(0xFFEC4899),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MarketingDashboardScreen(
                           apiBaseUrl: apiBaseUrl,
                           accessToken: accessToken,
                         ),

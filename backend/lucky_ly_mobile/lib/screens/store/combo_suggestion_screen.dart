@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../providers/store_provider.dart';
 import '../../app_theme.dart';
 
@@ -11,6 +12,9 @@ class ComboSuggestionScreen extends StatefulWidget {
 }
 
 class _ComboSuggestionScreenState extends State<ComboSuggestionScreen> {
+  final softPinkBg = const Color(0xFFFFF0F3);
+  final accentPink = const Color(0xFFFF758F);
+
   @override
   void initState() {
     super.initState();
@@ -21,17 +25,17 @@ class _ComboSuggestionScreenState extends State<ComboSuggestionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme.of(context);
     final store = context.watch<StoreProvider>();
     final combos = store.combos;
 
     return Scaffold(
-      backgroundColor: theme.bg,
+      backgroundColor: softPinkBg,
       appBar: AppBar(
-        title: const Text('Gợi ý Combo', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: theme.primary,
+        title: Text('Gợi ý Combo', style: GoogleFonts.comfortaa(color: accentPink, fontWeight: FontWeight.w900)),
+        backgroundColor: softPinkBg,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        centerTitle: true,
+        iconTheme: IconThemeData(color: accentPink),
       ),
       body: RefreshIndicator(
         onRefresh: () => store.fetchCombos(),
@@ -41,11 +45,11 @@ class _ComboSuggestionScreenState extends State<ComboSuggestionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(theme, store),
-              const SizedBox(height: 24),
+              _buildHeader(accentPink, store),
+              const SizedBox(height: 32),
               Text(
-                'Danh sách Combo đề xuất',
-                style: TextStyle(color: theme.textDark, fontSize: 18, fontWeight: FontWeight.bold),
+                'Danh sách đề xuất',
+                style: GoogleFonts.comfortaa(color: accentPink.withValues(alpha: 0.8), fontSize: 18, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 16),
               if (combos.isEmpty)
@@ -55,10 +59,10 @@ class _ComboSuggestionScreenState extends State<ComboSuggestionScreen> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: combos.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
                   itemBuilder: (context, index) {
                     final combo = combos[index];
-                    return _ComboTile(combo: combo, theme: theme);
+                    return _ComboTile(combo: combo, accentPink: accentPink);
                   },
                 ),
             ],
@@ -68,38 +72,43 @@ class _ComboSuggestionScreenState extends State<ComboSuggestionScreen> {
     );
   }
 
-  Widget _buildHeader(AppTheme theme, StoreProvider store) {
+  Widget _buildHeader(Color accent, StoreProvider store) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: theme.primaryGradient,
-        borderRadius: BorderRadius.circular(24),
+        color: accent,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(color: accent.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10)),
+        ],
       ),
       child: Row(
         children: [
-          const Icon(Icons.auto_awesome, color: Colors.white, size: 48),
+          const Icon(Icons.psychology_rounded, color: Colors.white, size: 50),
           const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Thuật toán Apriori',
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  'AI Apriori',
+                  style: GoogleFonts.comfortaa(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
                 ),
                 Text(
-                  'Phân tích hành vi mua để gợi ý các cặp quà tặng đi kèm.',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13),
+                  'Phân tích hành vi mua để gợi ý quà tặng.',
+                  style: GoogleFonts.beVietnamPro(color: Colors.white.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: () => _runAnalysis(store),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: theme.primary,
+                    foregroundColor: accent,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                   ),
-                  child: const Text('Phân tích lại ngay', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text('Phân tích ngay', style: GoogleFonts.beVietnamPro(fontWeight: FontWeight.w900)),
                 ),
               ],
             ),
@@ -127,19 +136,20 @@ class _ComboSuggestionScreenState extends State<ComboSuggestionScreen> {
 
 class _ComboTile extends StatelessWidget {
   final Map<String, dynamic> combo;
-  final AppTheme theme;
+  final Color accentPink;
 
-  const _ComboTile({required this.combo, required this.theme});
+  const _ComboTile({required this.combo, required this.accentPink});
 
   @override
   Widget build(BuildContext context) {
     final List<dynamic> items = combo['items'] ?? [];
+    final double confidenceValue = double.tryParse(combo['confidence']?.toString() ?? '0') ?? 0.0;
+    
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.card,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: AppTheme.softShadow,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,27 +159,29 @@ class _ComboTile extends StatelessWidget {
             children: [
               Text(
                 combo['name'] ?? 'Combo Gợi ý',
-                style: TextStyle(color: theme.textDark, fontWeight: FontWeight.bold, fontSize: 16),
+                style: GoogleFonts.comfortaa(color: const Color(0xFF2B2D42), fontWeight: FontWeight.w900, fontSize: 16),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: theme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(color: accentPink.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                 child: Text(
-                  'Tin cậy: ${((combo['confidence'] ?? 0) * 100).toStringAsFixed(0)}%',
-                  style: TextStyle(color: theme.primary, fontSize: 12, fontWeight: FontWeight.bold),
+                  'Tin cậy: ${(confidenceValue * 100).toStringAsFixed(0)}%',
+                  style: GoogleFonts.beVietnamPro(color: accentPink, fontSize: 11, fontWeight: FontWeight.w800),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               for (int i = 0; i < items.length; i++) ...[
-                _MiniItemCard(name: items[i].toString(), theme: theme),
+                _MiniItemCard(name: items[i].toString(), accentPink: accentPink),
                 if (i < items.length - 1)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Icon(Icons.add, size: 16, color: Colors.grey),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Icon(Icons.add_rounded, size: 18, color: accentPink.withValues(alpha: 0.3)),
                   ),
               ],
             ],
@@ -182,15 +194,19 @@ class _ComboTile extends StatelessWidget {
 
 class _MiniItemCard extends StatelessWidget {
   final String name;
-  final AppTheme theme;
-  const _MiniItemCard({required this.name, required this.theme});
+  final Color accentPink;
+  const _MiniItemCard({required this.name, required this.accentPink});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(color: theme.bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: theme.divider)),
-      child: Text(name, style: TextStyle(color: theme.textDark, fontSize: 13, fontWeight: FontWeight.w500)),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: accentPink.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: accentPink.withValues(alpha: 0.1)),
+      ),
+      child: Text(name, style: GoogleFonts.beVietnamPro(color: const Color(0xFF2B2D42), fontSize: 13, fontWeight: FontWeight.w700)),
     );
   }
 }

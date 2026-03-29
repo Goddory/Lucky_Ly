@@ -12,10 +12,11 @@ class PaymentScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: theme.bg,
       appBar: AppBar(
-        backgroundColor: AppTheme.primary,
+        backgroundColor: theme.primary,
         title: const Text('Thanh toán', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         centerTitle: true,
         leading: IconButton(
@@ -28,9 +29,9 @@ class PaymentScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Phương thức thanh toán',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textDark),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textDark),
             ),
             const SizedBox(height: 16),
             _PaymentOptionCard(
@@ -45,7 +46,7 @@ class PaymentScreen extends StatelessWidget {
             const SizedBox(height: 12),
             _PaymentOptionCard(
               icon: Icons.credit_card,
-              color: AppTheme.primary,
+              color: theme.primary,
               title: 'Thẻ tín dụng / Ghi nợ',
               subtitle: 'Visa, Mastercard, JCB',
               onTap: () {},
@@ -102,12 +103,13 @@ class _PaymentOptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardTheme = AppTheme.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.card,
+          color: cardTheme.card,
           borderRadius: BorderRadius.circular(16),
           boxShadow: AppTheme.softShadow,
         ),
@@ -128,24 +130,24 @@ class _PaymentOptionCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.textDark,
+                      color: cardTheme.textDark,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: AppTheme.textMuted,
+                      color: cardTheme.textMuted,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppTheme.textLight),
+            Icon(Icons.chevron_right, color: cardTheme.textLight),
           ],
         ),
       ),
@@ -173,6 +175,7 @@ class _MoMoPaymentFlow extends StatefulWidget {
 class _MoMoPaymentFlowState extends State<_MoMoPaymentFlow> {
   final TextEditingController _amountController = TextEditingController(text: '50000');
   bool _isLoading = false;
+  late AppTheme momoTheme;
 
   Future<void> _createAndOpenMoMo() async {
     final amountText = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -237,14 +240,14 @@ class _MoMoPaymentFlowState extends State<_MoMoPaymentFlow> {
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: AppTheme.card,
-          borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
+        decoration: BoxDecoration(
+          color: momoTheme.card,
+          borderRadius: const BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: AppTheme.divider, borderRadius: BorderRadius.circular(2))),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: momoTheme.divider, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.all(16),
@@ -252,9 +255,9 @@ class _MoMoPaymentFlowState extends State<_MoMoPaymentFlow> {
               child: const Icon(Icons.account_balance_wallet, color: Color(0xFFA50064), size: 40),
             ),
             const SizedBox(height: 20),
-            const Text('Nạp Tiền Qua MoMo', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+            Text('Nạp Tiền Qua MoMo', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: momoTheme.textDark)),
             const SizedBox(height: 8),
-            const Text('Nhập số tiền bạn muốn nạp qua MoMo', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+            Text('Nhập số tiền bạn muốn nạp qua MoMo', style: TextStyle(color: momoTheme.textMuted, fontSize: 14)),
             const SizedBox(height: 24),
             TextField(
               controller: _amountController,
@@ -265,7 +268,7 @@ class _MoMoPaymentFlowState extends State<_MoMoPaymentFlow> {
                 suffixText: 'VNĐ',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 filled: true,
-                fillColor: AppTheme.bg,
+                fillColor: momoTheme.bg,
               ),
             ),
             const SizedBox(height: 24),
@@ -313,6 +316,7 @@ class _VNPayPaymentFlow extends StatefulWidget {
 class _VNPayPaymentFlowState extends State<_VNPayPaymentFlow> {
   final TextEditingController _amountController = TextEditingController(text: '50000');
   bool _isLoading = false;
+  late AppTheme vnpayTheme;
 
   Future<void> _createAndOpenVNPay() async {
     final amountText = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -366,14 +370,14 @@ class _VNPayPaymentFlowState extends State<_VNPayPaymentFlow> {
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: AppTheme.card,
-          borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
+        decoration: BoxDecoration(
+          color: vnpayTheme.card,
+          borderRadius: const BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: AppTheme.divider, borderRadius: BorderRadius.circular(2))),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: vnpayTheme.divider, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.all(16),
@@ -381,9 +385,9 @@ class _VNPayPaymentFlowState extends State<_VNPayPaymentFlow> {
               child: const Icon(Icons.account_balance, color: Color(0xFF0C8DB8), size: 40),
             ),
             const SizedBox(height: 20),
-            const Text('Nạp Tiền Qua VNPay', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+            Text('Nạp Tiền Qua VNPay', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: vnpayTheme.textDark)),
             const SizedBox(height: 8),
-            const Text('Nhập số tiền bạn muốn nạp', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+            Text('Nhập số tiền bạn muốn nạp', style: TextStyle(color: vnpayTheme.textMuted, fontSize: 14)),
             const SizedBox(height: 24),
             TextField(
               controller: _amountController,
@@ -394,7 +398,7 @@ class _VNPayPaymentFlowState extends State<_VNPayPaymentFlow> {
                 suffixText: 'VNĐ',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 filled: true,
-                fillColor: AppTheme.bg,
+                fillColor: vnpayTheme.bg,
               ),
             ),
             const SizedBox(height: 24),
@@ -442,6 +446,7 @@ class _ZaloPayPaymentFlow extends StatefulWidget {
 class _ZaloPayPaymentFlowState extends State<_ZaloPayPaymentFlow> {
   final TextEditingController _amountController = TextEditingController(text: '50000');
   bool _isLoading = false;
+  late AppTheme zaloTheme;
 
   Future<void> _createAndOpenZaloPay() async {
     final amountText = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -507,14 +512,14 @@ class _ZaloPayPaymentFlowState extends State<_ZaloPayPaymentFlow> {
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: AppTheme.card,
-          borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
+        decoration: BoxDecoration(
+          color: zaloTheme.card,
+          borderRadius: const BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: AppTheme.divider, borderRadius: BorderRadius.circular(2))),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: zaloTheme.divider, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.all(16),
@@ -522,9 +527,9 @@ class _ZaloPayPaymentFlowState extends State<_ZaloPayPaymentFlow> {
               child: const Icon(Icons.account_balance_wallet, color: Color(0xFF0068FF), size: 40),
             ),
             const SizedBox(height: 20),
-            const Text('Nạp Tiền Qua ZaloPay', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+            Text('Nạp Tiền Qua ZaloPay', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: zaloTheme.textDark)),
             const SizedBox(height: 8),
-            const Text('Nhập số tiền bạn muốn nạp qua ZaloPay', style: TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+            Text('Nhập số tiền bạn muốn nạp qua ZaloPay', style: TextStyle(color: zaloTheme.textMuted, fontSize: 14)),
             const SizedBox(height: 24),
             TextField(
               controller: _amountController,
@@ -535,7 +540,7 @@ class _ZaloPayPaymentFlowState extends State<_ZaloPayPaymentFlow> {
                 suffixText: 'VNĐ',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 filled: true,
-                fillColor: AppTheme.bg,
+                fillColor: zaloTheme.bg,
               ),
             ),
             const SizedBox(height: 24),

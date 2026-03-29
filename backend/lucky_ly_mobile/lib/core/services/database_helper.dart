@@ -1,3 +1,5 @@
+export '../database/database_helper.dart';
+
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
 
@@ -15,4 +17,3 @@ class DatabaseHelper {
 
   Future<void> insertDesign(Map<String, dynamic> data) async {}
 }
-export '../database/database_helper.dart';

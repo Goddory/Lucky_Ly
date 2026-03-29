@@ -29,8 +29,21 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function sanitizeMongoUri(rawMongoUri) {
+  try {
+    if (typeof rawMongoUri !== 'string') return rawMongoUri;
+    const uri = new URL(rawMongoUri);
+    if (uri.searchParams.get('appName') === '') {
+      uri.searchParams.delete('appName');
+    }
+    return uri.toString();
+  } catch {
+    return rawMongoUri;
+  }
+}
+
 const connectMongo = async () => {
-  const mongoUri = process.env.MONGO_URI;
+  const mongoUri = sanitizeMongoUri(process.env.MONGO_URI);
   if (!mongoUri) {
     console.warn('⚠️ MONGO_URI is missing in .env. MongoDB will not be connected.');
     return { connected: false, reason: 'MONGO_URI is missing' };
