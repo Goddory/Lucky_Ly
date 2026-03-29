@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import '../../core/services/api_client.dart';
 import '../../data/gift_catalog.dart';
 import '../../app_theme.dart';
 import '../../widgets/glb_model_viewer.dart';
@@ -31,10 +31,7 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen> {
   final TextEditingController _emailController = TextEditingController();
   bool _isSending = false;
 
-  static final String _apiBaseUrl =
-      const String.fromEnvironment('API_BASE_URL', defaultValue: '').isNotEmpty
-      ? const String.fromEnvironment('API_BASE_URL')
-      : (kIsWeb ? 'http://localhost:4000' : 'http://10.0.2.2:4000');
+  static final String _apiBaseUrl = ApiClient.getBaseUrl();
 
   Color get _themeColor =>
       widget.theme == 'tet' ? const Color(0xFFc0392b) : const Color(0xFFe84393);

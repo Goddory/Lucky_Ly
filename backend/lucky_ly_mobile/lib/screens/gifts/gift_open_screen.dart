@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import '../../core/services/api_client.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../data/gift_catalog.dart';
@@ -26,10 +26,7 @@ class GiftOpenScreen extends StatefulWidget {
 
 class _GiftOpenScreenState extends State<GiftOpenScreen>
     with TickerProviderStateMixin {
-  static final String _apiBaseUrl =
-      const String.fromEnvironment('API_BASE_URL', defaultValue: '').isNotEmpty
-          ? const String.fromEnvironment('API_BASE_URL')
-          : (kIsWeb ? 'http://localhost:4000' : 'http://10.0.2.2:4000');
+  static final String _apiBaseUrl = ApiClient.getBaseUrl();
 
   // State machine
   _OpenPhase _phase = _OpenPhase.initial;

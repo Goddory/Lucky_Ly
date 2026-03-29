@@ -1183,7 +1183,7 @@ class _ServiceGridTile extends StatelessWidget {
       onTap: service.onTap ?? () {
         final label = service.label;
         if (label == 'Nạp ĐT' || label == 'Thanh toán' || label == 'Chuyển tiền' || label == 'Ngân hàng') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentScreen()));
+          Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentScreen()));
         }
       },
       child: Container(

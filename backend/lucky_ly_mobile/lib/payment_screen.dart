@@ -4,9 +4,12 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_theme.dart';
+import 'core/services/api_client.dart';
 
 class PaymentScreen extends StatelessWidget {
-  const PaymentScreen({Key? key, this.apiBaseUrl = 'http://localhost:4000'}) : super(key: key);
+  PaymentScreen({Key? key, String? apiBaseUrl}) 
+    : apiBaseUrl = apiBaseUrl ?? ApiClient.getBaseUrl(), 
+      super(key: key);
   
   final String apiBaseUrl;
 
