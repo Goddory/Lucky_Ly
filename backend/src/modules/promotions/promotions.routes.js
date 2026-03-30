@@ -4,6 +4,7 @@ import { requireMarketingAdmin } from '../../db/middlewares/requireMarketingAdmi
 import {
   getStatsHandler,
   listPromotionsHandler,
+  listAvailablePromotionsHandler,
   createPromotionHandler,
   updatePromotionHandler,
   deletePromotionHandler,
@@ -11,6 +12,8 @@ import {
 } from './promotions.controller.js';
 
 const router = Router();
+
+router.get('/available', requireAuth, listAvailablePromotionsHandler);
 
 router.use(requireAuth);
 router.use(requireMarketingAdmin);

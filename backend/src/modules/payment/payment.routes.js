@@ -38,5 +38,6 @@ router.get('/history', authenticateToken, vnpayController.getTransactionHistory)
 router.get('/wallet/balance', authenticateToken, walletController.getBalance);
 router.post('/wallet/withdraw', authenticateToken, walletController.withdraw);
 router.post('/wallet/transfer', authenticateToken, walletController.transfer);
+router.post('/wallet/admin-add', authenticateToken, walletController.adminAddMoney);
 
 export default router;

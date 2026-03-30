@@ -3,6 +3,13 @@ import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import crypto from 'crypto';
 
+const OPEN_AUDIENCES = new Set(['all', 'user', 'users', 'normal', 'general', 'public']);
+const STUDENT_AUDIENCES = new Set(['student', 'students', 'sv', 'sinh vien', 'sinhvien']);
+
+function normalizeAudience(value) {
+  return String(value ?? 'all').trim().toLowerCase();
+}
+
 // GET /api/promotions/stats — Dashboard stats
 export async function getStatsHandler(req, res, next) {
   try {
@@ -47,6 +54,67 @@ export async function listPromotionsHandler(req, res, next) {
       LIMIT 100
     `);
     res.json(result.rows);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/promotions/available — User-facing promotions filtered by profile
+export async function listAvailablePromotionsHandler(req, res, next) {
+  try {
+    const { userId } = req.user;
+    const userResult = await pool.query(
+      'SELECT student_id FROM users WHERE user_id = $1 LIMIT 1',
+      [userId]
+    );
+
+    if (!userResult.rows.length) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const studentId = userResult.rows[0].student_id;
+    const isStudentVerified = Boolean(studentId && String(studentId).trim());
+
+    const result = await pool.query(`
+      SELECT p.*, 
+        (SELECT COUNT(*) FROM vouchers v WHERE v.promotion_id = p.id) as voucher_count,
+        (SELECT COUNT(*) FROM vouchers v WHERE v.promotion_id = p.id AND v.current_uses < v.max_uses) as available_voucher_count,
+        (
+          SELECT v.code
+          FROM vouchers v
+          WHERE v.promotion_id = p.id
+            AND v.current_uses < v.max_uses
+          ORDER BY v.created_at ASC
+          LIMIT 1
+        ) as sample_voucher_code
+      FROM promotions p
+      WHERE (p.starts_at IS NULL OR p.starts_at <= NOW())
+        AND (p.expires_at IS NULL OR p.expires_at >= NOW())
+        AND EXISTS (
+          SELECT 1
+          FROM vouchers v
+          WHERE v.promotion_id = p.id
+            AND v.current_uses < v.max_uses
+        )
+      ORDER BY p.created_at DESC
+      LIMIT 100
+    `);
+
+    const filtered = result.rows.filter((promotion) => {
+      const audience = normalizeAudience(promotion.target_audience);
+      if (OPEN_AUDIENCES.has(audience)) {
+        return true;
+      }
+      if (STUDENT_AUDIENCES.has(audience)) {
+        return isStudentVerified;
+      }
+      return false;
+    });
+
+    res.json({
+      is_student_verified: isStudentVerified,
+      promotions: filtered
+    });
   } catch (err) {
     next(err);
   }

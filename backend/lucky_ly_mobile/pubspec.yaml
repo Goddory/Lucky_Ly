@@ -64,6 +64,7 @@ dependencies:
   model_viewer_plus: ^1.10.0
   ar_flutter_plugin: ^0.7.3
   lottie: ^3.1.2
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:

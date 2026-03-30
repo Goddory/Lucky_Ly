@@ -23,7 +23,12 @@ import 'screens/social/friend_management_screen.dart';
 import 'providers/auth_provider.dart';
 import 'core/services/socket_service.dart';
 import 'screens/admin/marketing_dashboard_screen.dart';
+import 'screens/admin/users_management_screen.dart';
+import 'screens/admin/statistics_screen.dart';
+import 'screens/admin/theme_management_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 // ─────────────────────────────────────────────────────────────────
 // HOME SCREEN (Stateful Shell)
@@ -53,6 +58,8 @@ class _HomeScreenState extends State<HomeScreen>
   int _currentTab = 0;
   late AnimationController _entryController;
   late Animation<double> _fadeIn;
+  double? _walletBalance;
+  bool _isBalanceLoading = true;
 
   @override
   void initState() {
@@ -78,6 +85,7 @@ class _HomeScreenState extends State<HomeScreen>
           );
 
       auth.fetchProfile();
+      _fetchWalletBalance();
 
       if (!socket.isConnected && widget.accessToken.isNotEmpty) {
         socket.connect(widget.accessToken);
@@ -171,6 +179,40 @@ class _HomeScreenState extends State<HomeScreen>
     return role == 'marketing_admin';
   }
 
+  bool _isAdmin() {
+    final role = widget.userData['role']?.toString().toLowerCase();
+    return role == 'admin' || role == 'marketing_admin';
+  }
+
+  Future<void> _fetchWalletBalance() async {
+    if (!mounted) return;
+    setState(() => _isBalanceLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? prefs.getString('access_token');
+      final response = await http.get(
+        Uri.parse('${widget.apiBaseUrl}/api/payment/wallet/balance'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            _walletBalance = (data['balance'] as num).toDouble();
+            _isBalanceLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching balance: $e');
+      if (mounted) setState(() => _isBalanceLoading = false);
+    }
+  }
+
   @override
   void dispose() {
     _entryController.dispose();
@@ -232,6 +274,10 @@ class _HomeScreenState extends State<HomeScreen>
                           _QuickActionsRow(
                             onCameraTap: () =>
                                 _handleCameraAccess(context),
+                            onTransactionTap: _isAdmin() ? () async {
+                              await showAdminAddMoneySheet(context);
+                              _fetchWalletBalance();
+                            } : null,
                             onCalendarTap: () =>
                                 CalendarPopup.show(context),
                             onFriendsTap: () => Navigator.push(
@@ -243,13 +289,15 @@ class _HomeScreenState extends State<HomeScreen>
                             onStudioTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) =>
-                                      const DesignSelectionScreen(
+                                  builder: (_) => const DesignSelectionScreen(
                                           type: 'item')),
                             ),
                           ),
                           const SizedBox(height: 28),
                           _WalletAndCelebrateSection(
+                            balance: _walletBalance,
+                            isLoading: _isBalanceLoading,
+                            onRefresh: _fetchWalletBalance,
                             onCelebrateTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -257,32 +305,39 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                           ),
                           const SizedBox(height: 24),
-                          _FeatureGrid(
-                            isMarketing: _isMarketingAdmin(),
-                            onAvatarTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const AvaturnScreen()),
+                          if (_isAdmin()) ...[
+                            _AdminGrid(
+                              apiBaseUrl: widget.apiBaseUrl,
+                              accessToken: widget.accessToken,
                             ),
-                            onMarketingTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => MarketingDashboardScreen(
-                                  apiBaseUrl: widget.apiBaseUrl,
-                                  accessToken: widget.accessToken,
+                          ] else ...[
+                            _FeatureGrid(
+                              isMarketing: _isMarketingAdmin(),
+                              onAvatarTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const AvaturnScreen()),
+                              ),
+                              onMarketingTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MarketingDashboardScreen(
+                                    apiBaseUrl: widget.apiBaseUrl,
+                                    accessToken: widget.accessToken,
+                                  ),
                                 ),
                               ),
+                              onPaymentTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => PaymentScreen()),
+                              ),
                             ),
-                            onPaymentTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => PaymentScreen()),
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-                          _OngoingEventsSection(),
-                          const SizedBox(height: 28),
-                          const _PromotionBanner(),
+                            const SizedBox(height: 28),
+                            _OngoingEventsSection(),
+                            const SizedBox(height: 28),
+                            const _PromotionBanner(),
+                          ],
                           const SizedBox(height: 28),
                         ],
                       ),
@@ -583,7 +638,9 @@ class _WelcomeBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final isMarketing = (userData['role']?.toString().toLowerCase() ==
         'marketing_admin');
-    final name = userData['username'] ?? 'Bạn';
+    final rawName =
+      userData['full_name'] ?? userData['fullName'] ?? userData['username'] ?? 'Bạn';
+    final name = rawName.toString().trim().isEmpty ? 'Bạn' : rawName.toString().trim();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -661,12 +718,14 @@ class _WelcomeBanner extends StatelessWidget {
 class _QuickActionsRow extends StatelessWidget {
   const _QuickActionsRow({
     required this.onCameraTap,
+    this.onTransactionTap,
     required this.onCalendarTap,
     required this.onFriendsTap,
     required this.onStudioTap,
   });
 
   final VoidCallback onCameraTap;
+  final VoidCallback? onTransactionTap;
   final VoidCallback onCalendarTap;
   final VoidCallback onFriendsTap;
   final VoidCallback onStudioTap;
@@ -675,7 +734,8 @@ class _QuickActionsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final actions = [
       _ActionDef(Icons.photo_camera_outlined, 'CAMERA', onCameraTap),
-      _ActionDef(Icons.swap_horiz_rounded, 'GIAO DỊCH', null),
+      if (onTransactionTap != null)
+        _ActionDef(Icons.swap_horiz_rounded, 'GIAO DỊCH', onTransactionTap),
       _ActionDef(Icons.calendar_today_outlined, 'LỊCH', onCalendarTap),
       _ActionDef(Icons.group_outlined, 'BẠN BÈ', onFriendsTap),
       _ActionDef(Icons.auto_awesome_mosaic_outlined, 'STUDIO', onStudioTap),
@@ -738,9 +798,17 @@ class _ActionDef {
 // WALLET + CELEBRATE SECTION
 // ═══════════════════════════════════════════════════════════════
 class _WalletAndCelebrateSection extends StatelessWidget {
-  const _WalletAndCelebrateSection({required this.onCelebrateTap});
+  const _WalletAndCelebrateSection({
+    required this.onCelebrateTap,
+    this.balance,
+    required this.isLoading,
+    required this.onRefresh,
+  });
 
   final VoidCallback onCelebrateTap;
+  final double? balance;
+  final bool isLoading;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -768,7 +836,7 @@ class _WalletAndCelebrateSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
@@ -785,19 +853,42 @@ class _WalletAndCelebrateSection extends StatelessWidget {
                       ),
                     ],
                   ),
-                  Icon(Icons.visibility_outlined, color: Colors.white70),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: onRefresh,
+                        child: Icon(Icons.refresh_rounded, color: Colors.white70, size: 18),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(Icons.visibility_outlined, color: Colors.white70),
+                    ],
+                  ),
                 ],
               ),
               const SizedBox(height: 10),
-              const Text(
-                '4.901đ',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -1,
+              if (isLoading)
+                const SizedBox(
+                  height: 42,
+                  child: Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    ),
+                  ),
+                )
+              else
+                Text(
+                  balance != null
+                      ? '${balance!.toStringAsFixed(0).replaceAllMapped(RegExp(r"(\d)(?=(\d{3})+(?!\d))"), (m) => "${m[1]},")}đ'
+                      : '--- đ',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1,
+                  ),
                 ),
-              ),
               const SizedBox(height: 6),
               Container(
                 padding:
@@ -817,11 +908,20 @@ class _WalletAndCelebrateSection extends StatelessWidget {
               const SizedBox(height: 24),
               Row(
                 children: [
-                  _WalletActionBtn('Nạp tiền', Icons.add_circle_outline, onTap: () => showTopUpSheet(context)),
+                  _WalletActionBtn('Nạp tiền', Icons.add_circle_outline, onTap: () async {
+                    await showTopUpSheet(context);
+                    onRefresh();
+                  }),
                   const SizedBox(width: 12),
-                  _WalletActionBtn('Rút tiền', Icons.remove_circle_outline, onTap: () => showWithdrawSheet(context)),
+                  _WalletActionBtn('Rút tiền', Icons.remove_circle_outline, onTap: () async {
+                    await showWithdrawSheet(context);
+                    onRefresh();
+                  }),
                   const SizedBox(width: 12),
-                  _WalletActionBtn('Chuyển', Icons.swap_horiz_rounded, onTap: () => showTransferSheet(context)),
+                  _WalletActionBtn('Chuyển', Icons.swap_horiz_rounded, onTap: () async {
+                    await showTransferSheet(context);
+                    onRefresh();
+                  }),
                 ],
               ),
             ],
@@ -1562,6 +1662,152 @@ class _CameraScreenState extends State<CameraScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN GRID
+// ═══════════════════════════════════════════════════════════════
+class _AdminGrid extends StatelessWidget {
+  const _AdminGrid({
+    required this.apiBaseUrl,
+    required this.accessToken,
+  });
+
+  final String apiBaseUrl;
+  final String accessToken;
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      childAspectRatio: 1.18,
+      children: [
+        _AdminCard(
+          title: 'Quản lý\nNgười dùng',
+          icon: Icons.face_retouching_natural,
+          color: const Color(0xFF9D3ACE),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => UsersManagementScreen(
+                apiBaseUrl: apiBaseUrl,
+                accessToken: accessToken,
+              ),
+            ),
+          ),
+        ),
+        _AdminCard(
+          title: 'Báo cáo và\nThống kê',
+          icon: Icons.hub_outlined,
+          color: const Color(0xFFC0065B),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => StatisticsScreen(
+                apiBaseUrl: apiBaseUrl,
+                accessToken: accessToken,
+              ),
+            ),
+          ),
+        ),
+        _AdminCard(
+          title: 'Quản lý\nGiao diện',
+          icon: Icons.payments_outlined,
+          color: const Color(0xFFC0065B),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ThemeManagementScreen(
+                apiBaseUrl: apiBaseUrl,
+                accessToken: accessToken,
+              ),
+            ),
+          ),
+        ),
+        _AdminCard(
+          title: 'Marketing &\nKhuyến mãi',
+          icon: Icons.receipt_long_outlined,
+          color: const Color(0xFF7C3AED),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MarketingDashboardScreen(
+                apiBaseUrl: apiBaseUrl,
+                accessToken: accessToken,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AdminCard extends StatelessWidget {
+  const _AdminCard({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String title;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AppTheme.of(context);
+
+    return AnimatedInteractiveScale(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        decoration: BoxDecoration(
+          color: theme.card,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 26),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: theme.textDark,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

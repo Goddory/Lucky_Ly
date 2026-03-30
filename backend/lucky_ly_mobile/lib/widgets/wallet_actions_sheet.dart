@@ -10,8 +10,8 @@ import '../core/services/api_client.dart';
 // PUBLIC ENTRY POINTS
 // ─────────────────────────────────────────────────────────────────
 
-void showTopUpSheet(BuildContext context) {
-  showModalBottomSheet(
+Future<void> showTopUpSheet(BuildContext context) async {
+  await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -19,8 +19,8 @@ void showTopUpSheet(BuildContext context) {
   );
 }
 
-void showWithdrawSheet(BuildContext context) {
-  showModalBottomSheet(
+Future<void> showWithdrawSheet(BuildContext context) async {
+  await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -28,8 +28,8 @@ void showWithdrawSheet(BuildContext context) {
   );
 }
 
-void showTransferSheet(BuildContext context) {
-  showModalBottomSheet(
+Future<void> showTransferSheet(BuildContext context) async {
+  await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -37,11 +37,19 @@ void showTransferSheet(BuildContext context) {
   );
 }
 
+Future<void> showAdminAddMoneySheet(BuildContext context) async {
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _AdminAddMoneySheet(apiBaseUrl: ApiClient.getBaseUrl()),
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────
 // DESIGN TOKENS
 // ─────────────────────────────────────────────────────────────────
 const _kPrimary = Color(0xFF952CB1);
-const _kPrimaryLight = Color(0xFFD472F9);
 const _kPink = Color(0xFFBE004C);
 const _kBg = Color(0xFFFFF7FB);
 const _kTextDark = Color(0xFF45274B);
@@ -832,6 +840,167 @@ class _TransferSheetState extends State<_TransferSheet> {
             onPressed: _submit,
             isLoading: _isLoading,
             color: const Color(0xFF7C3AED),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ADMIN: CỘNG TIỀN VÀO VÍ NGƯỜI DÙNG
+// ─────────────────────────────────────────────────────────────────
+class _AdminAddMoneySheet extends StatefulWidget {
+  const _AdminAddMoneySheet({required this.apiBaseUrl});
+  final String apiBaseUrl;
+
+  @override
+  State<_AdminAddMoneySheet> createState() => _AdminAddMoneySheetState();
+}
+
+class _AdminAddMoneySheetState extends State<_AdminAddMoneySheet> {
+  final _emailCtrl = TextEditingController();
+  final _amountCtrl = TextEditingController(text: '100000');
+  final _noteCtrl = TextEditingController(text: 'Hệ thống cộng tiền');
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _amountCtrl.dispose();
+    _noteCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final email = _emailCtrl.text.trim();
+    final amountText = _amountCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (email.isEmpty || amountText.isEmpty) {
+      _showErr('Vui lòng nhập email và số tiền');
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Xác nhận cộng tiền',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(
+          'Cộng ${int.parse(amountText).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}đ\ncho tài khoản $email?',
+          style: const TextStyle(fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Hủy')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFC0065B),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10))),
+            child: const Text('Xác nhận',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    if (!mounted) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ??
+          prefs.getString('access_token');
+
+      final response = await http.post(
+        Uri.parse('${widget.apiBaseUrl}/api/payment/wallet/admin-add'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'toEmail': email,
+          'amount': int.parse(amountText),
+          'note': _noteCtrl.text.trim(),
+        }),
+      );
+
+      if (!mounted) return;
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Cộng tiền thành công!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        _showErr(data['message'] ?? 'Cộng tiền thất bại');
+      }
+    } catch (e) {
+      _showErr('Lỗi kết nối: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showErr(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg), backgroundColor: Colors.red));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SheetShell(
+      icon: Icons.account_balance_wallet,
+      iconColor: const Color(0xFFC0065B),
+      title: 'Quản trị: Cộng tiền',
+      subtitle: 'Nạp tiền trực tiếp vào ví người dùng',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _StyledField(
+            controller: _emailCtrl,
+            hint: 'Email người dùng',
+            inputType: TextInputType.emailAddress,
+            prefix: const Icon(Icons.alternate_email,
+                color: Color(0xFFC0065B), size: 20),
+          ),
+          const SizedBox(height: 12),
+          _QuickAmountChips(
+            amounts: const [100000, 200000, 500000, 1000000, 5000000],
+            onSelected: (v) => _amountCtrl.text = v.toString(),
+          ),
+          const SizedBox(height: 12),
+          _StyledField(
+            controller: _amountCtrl,
+            hint: 'Số tiền nạp',
+            suffix: 'VNĐ',
+            inputType: TextInputType.number,
+            formatters: [FilteringTextInputFormatter.digitsOnly],
+          ),
+          const SizedBox(height: 12),
+          _StyledField(
+            controller: _noteCtrl,
+            hint: 'Lý do/Ghi chú...',
+            prefix: const Icon(Icons.sticky_note_2_outlined,
+                color: Color(0xFFC0065B), size: 20),
+          ),
+          const SizedBox(height: 20),
+          _PrimaryBtn(
+            label: 'Xác nhận nạp tiền',
+            onPressed: _submit,
+            isLoading: _isLoading,
+            color: const Color(0xFFC0065B),
           ),
         ],
       ),

@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/services/api_client.dart';
 import '../../app_theme.dart';
 import 'gift_open_screen.dart';
+import 'ar_gift_screen.dart';
+import '../../data/gift_catalog.dart';
 import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
 
 
@@ -144,10 +146,17 @@ class _GiftNotificationScreenState extends State<GiftNotificationScreen> {
   Widget _buildGiftCard(Map<String, dynamic> gift, AppTheme appTheme) {
     final isPending = gift['status'] == 'pending';
     final theme = gift['theme'] as String? ?? 'tet';
+    final modelId = gift['model_id'] as String? ?? '';
     final senderName = gift['sender_name'] ?? gift['sender_full_name'] ?? 'Người gửi';
     final createdAt = gift['created_at'] ?? '';
     final themeColor = theme == 'tet' ? const Color(0xFFc0392b) : const Color(0xFFe84393);
     final themeIcon = theme == 'tet' ? '🧧' : '💝';
+
+    GiftModel? selectedModel;
+    for (final model in GiftCatalog.getModels(theme)) {
+      if (model.id == modelId) selectedModel = model;
+    }
+    final modelPath = selectedModel?.assetPath ?? '';
 
     return GestureDetector(
       onTap: () {
@@ -178,74 +187,108 @@ class _GiftNotificationScreenState extends State<GiftNotificationScreen> {
             ),
           ],
         ),
-        child: Row(
+        child: Column(
           children: [
-            // Theme icon
-            Container(
-              width: 52, height: 52,
-              decoration: BoxDecoration(
-                color: themeColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Center(
-                child: Text(themeIcon, style: const TextStyle(fontSize: 26)),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+            Row(
+              children: [
+                // Theme icon
+                Container(
+                  width: 52, height: 52,
+                  decoration: BoxDecoration(
+                    color: themeColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Center(
+                    child: Text(themeIcon, style: const TextStyle(fontSize: 26)),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          'Từ $senderName',
-                          style: TextStyle(
-                            color: appTheme.textDark,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Từ $senderName',
+                              style: TextStyle(
+                                color: appTheme.textDark,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          if (isPending)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: themeColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                'Mới',
+                                style: TextStyle(color: themeColor, fontSize: 11, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        theme == 'tet' ? 'Quà Tết' : 'Quà Valentine',
+                        style: TextStyle(
+                          color: themeColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      if (isPending)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: themeColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            'Mới',
-                            style: TextStyle(color: themeColor, fontSize: 11, fontWeight: FontWeight.w700),
-                          ),
-                        ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _formatDate(createdAt),
+                        style: TextStyle(color: appTheme.textLight, fontSize: 11),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    theme == 'tet' ? 'Quà Tết' : 'Quà Valentine',
-                    style: TextStyle(
-                      color: themeColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                ),
+                Icon(
+                  isPending ? Icons.card_giftcard : Icons.check_circle_outline,
+                  color: isPending ? themeColor : Colors.green,
+                  size: 24,
+                ),
+              ],
+            ),
+            if (modelPath.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Divider(height: 1, thickness: 1, color: Colors.grey.withValues(alpha: 0.3)),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ARGiftScreen(gift: gift, modelPath: modelPath),
+                        ),
+                      );
+                    },
+                    icon: Icon(Icons.view_in_ar, size: 18, color: themeColor),
+                    label: Text(
+                      'Camera AR',
+                      style: TextStyle(color: themeColor, fontWeight: FontWeight.bold),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _formatDate(createdAt),
-                    style: TextStyle(color: appTheme.textLight, fontSize: 11),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
                   ),
                 ],
               ),
-            ),
-            Icon(
-              isPending ? Icons.card_giftcard : Icons.check_circle_outline,
-              color: isPending ? themeColor : Colors.green,
-              size: 24,
-            ),
+            ],
           ],
         ),
       ),
