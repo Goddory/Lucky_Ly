@@ -2,6 +2,7 @@ import { Router } from 'express';
 import * as paymentController from './payment.controller.js';
 import * as vnpayController from './vnpay.controller.js';
 import * as zalopayController from './zalopay.controller.js';
+import * as walletController from './wallet.controller.js';
 import { authenticateToken } from '../../middleware/authMiddleware.js';
 
 const router = Router();
@@ -32,5 +33,10 @@ router.post('/zalopay/query', authenticateToken, zalopayController.checkZaloPayS
 
 // Transaction History
 router.get('/history', authenticateToken, vnpayController.getTransactionHistory);
+
+// Wallet Operations
+router.get('/wallet/balance', authenticateToken, walletController.getBalance);
+router.post('/wallet/withdraw', authenticateToken, walletController.withdraw);
+router.post('/wallet/transfer', authenticateToken, walletController.transfer);
 
 export default router;

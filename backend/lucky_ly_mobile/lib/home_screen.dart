@@ -16,6 +16,7 @@ import 'widgets/theme_particles.dart';
 import 'screens/avaturn_screen.dart';
 import 'screens/gifts/gift_notification_screen.dart';
 import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+import 'widgets/wallet_actions_sheet.dart';
 
 import 'screens/chat/chat_list_screen.dart';
 import 'screens/social/friend_management_screen.dart';
@@ -24,8 +25,9 @@ import 'core/services/socket_service.dart';
 import 'screens/admin/marketing_dashboard_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// Constants moved to app_theme.dart
-
+// ─────────────────────────────────────────────────────────────────
+// HOME SCREEN (Stateful Shell)
+// ─────────────────────────────────────────────────────────────────
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
@@ -46,7 +48,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   int _currentTab = 0;
   late AnimationController _entryController;
   late Animation<double> _fadeIn;
@@ -57,36 +60,31 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _saveTokenToPrefs();
     _entryController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 700),
     );
-    _fadeIn = CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic);
+    _fadeIn =
+        CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic);
     _entryController.forward();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      
+
       final auth = context.read<AuthProvider>();
       final socket = context.read<SocketService>();
 
-      // Sync theme
       context.read<ThemeProvider>().syncThemeFromServer(
-        apiBaseUrl: widget.apiBaseUrl,
-        accessToken: widget.accessToken,
-      );
+            apiBaseUrl: widget.apiBaseUrl,
+            accessToken: widget.accessToken,
+          );
 
-      // Fetch profile
       auth.fetchProfile();
 
-      // Ensure socket connected
       if (!socket.isConnected && widget.accessToken.isNotEmpty) {
         socket.connect(widget.accessToken);
       }
 
-      // Listen for notifications
       socket.onNotification((data) {
-        if (mounted) {
-          _showNotificationSnackbar(data);
-        }
+        if (mounted) _showNotificationSnackbar(data);
       });
     });
   }
@@ -94,15 +92,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   void _showNotificationSnackbar(dynamic data) {
     final String type = data['type'] ?? '';
     final String message = data['message'] ?? 'Bạn có thông báo mới';
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            Icon(
-              _getNotificationIcon(type),
-              color: Colors.white,
-            ),
+            Icon(_getNotificationIcon(type), color: Colors.white),
             const SizedBox(width: 12),
             Expanded(child: Text(message)),
           ],
@@ -121,37 +116,42 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   IconData _getNotificationIcon(String type) {
     switch (type) {
-      case 'GIFT_RECEIVED': return Icons.card_giftcard;
-      case 'FRIEND_REQUEST': return Icons.group_add;
-      case 'FRIEND_ACCEPTED': return Icons.person_add;
-      case 'NEW_MESSAGE': return Icons.chat_bubble;
-      default: return Icons.notifications;
+      case 'GIFT_RECEIVED':
+        return Icons.card_giftcard;
+      case 'FRIEND_REQUEST':
+        return Icons.group_add;
+      case 'FRIEND_ACCEPTED':
+        return Icons.person_add;
+      case 'NEW_MESSAGE':
+        return Icons.chat_bubble;
+      default:
+        return Icons.notifications;
     }
   }
 
   void _handleNotificationTap(dynamic data) {
     final String type = data['type'] ?? '';
-    // Navigate based on type
     if (type == 'FRIEND_REQUEST' || type == 'FRIEND_ACCEPTED') {
-       // Navigate to Friends
+      // Navigate to Friends
     } else if (type == 'NEW_MESSAGE') {
-       // Navigate to Chat
+      // Navigate to Chat
     } else if (type.startsWith('GIFT')) {
-       Navigator.push(context, MaterialPageRoute(builder: (_) => const GiftNotificationScreen()));
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const GiftNotificationScreen()),
+      );
     }
   }
 
   Future<void> _saveTokenToPrefs() async {
     if (widget.accessToken.isNotEmpty) {
       final prefs = await SharedPreferences.getInstance();
-      // Save under both keys for compatibility
       await prefs.setString('accessToken', widget.accessToken);
       await prefs.setString('access_token', widget.accessToken);
       if (widget.refreshToken.isNotEmpty) {
         await prefs.setString('refreshToken', widget.refreshToken);
       }
-      
-      // Also sync with AuthProvider
+
       if (mounted) {
         final auth = context.read<AuthProvider>();
         if (auth.accessToken == null || auth.accessToken!.isEmpty) {
@@ -162,54 +162,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           );
         }
       }
-      debugPrint('DEBUG: Token saved to SharedPreferences from HomeScreen (both keys)');
+      debugPrint('DEBUG: Token saved to SharedPreferences (both keys)');
     }
   }
 
   bool _isMarketingAdmin() {
     final role = widget.userData['role']?.toString().toLowerCase();
-    return role == 'marketing_admin' || role == 'marketing_admin';
+    return role == 'marketing_admin';
   }
-
-  Widget _buildWelcomeHeader() {
-    final isMarketing = _isMarketingAdmin();
-    final name = widget.userData['username'] ?? 'Bạn Thủ';
-    
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      child: Opacity(
-        opacity: 0.9,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isMarketing ? 'Xin chào Marketing Admin!' : 'Xin chào $name!',
-              style: GoogleFonts.chakraPetch(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFFFE512E).withValues(alpha: 0.8),
-                letterSpacing: 0.5,
-              ),
-            ),
-            if (isMarketing)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  'Hôm nay chúng ta sẽ bùng nổ chiến dịch gì?',
-                  style: GoogleFonts.beVietnamPro(
-                    fontSize: 12,
-                    color: const Color(0xFFFE512E).withValues(alpha: 0.6),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Marketing Admin logic integrated into _buildPremiumServiceGrid
 
   @override
   void dispose() {
@@ -220,338 +180,144 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.of(context).bg,
+      backgroundColor: const Color(0xFFFFF7FB),
       body: Stack(
         children: [
+          // Theme particles layer
           const ThemeParticles(),
-          _currentTab == 1
-              ? const OffersScreen()
-              : _currentTab == 3
-                  ? const HistoryScreen()
-                  : _currentTab == 4
-                      ? ProfileScreen(
-                          userData: widget.userData,
-                          accessToken: widget.accessToken,
-                          refreshToken: widget.refreshToken,
-                          apiBaseUrl: widget.apiBaseUrl,
-                        )
-                      : FadeTransition(
-                          opacity: _fadeIn,
-                          child: CustomScrollView(
-                            physics: const BouncingScrollPhysics(),
-                            slivers: [
-                              _buildSliverHeader(context),
-                              SliverToBoxAdapter(child: _buildWelcomeHeader()),
-                              SliverToBoxAdapter(child: _buildQuickActions()),
-                              SliverToBoxAdapter(child: _buildWalletCard()),
-                              const SliverToBoxAdapter(child: SizedBox(height: 8)),
-                              _buildPremiumServiceGrid(),
-                              SliverToBoxAdapter(child: _buildEventsSection()),
-                              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-                            ],
-                          ),
-                        ),
-        ],
-      ),
-      bottomNavigationBar: _buildBottomNav(),
-      floatingActionButton: _buildQrFab(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-    );
-  }
 
-  // ─── HEADER ───────────────────────────────────────────────
-  Widget _buildSliverHeader(BuildContext context) {
-    return SliverAppBar(
-      expandedHeight: 96,
-      floating: true,
-      snap: true,
-      pinned: false,
-      automaticallyImplyLeading: false,
-      flexibleSpace: Container(
-        decoration: BoxDecoration(gradient: AppTheme.of(context).primaryGradient),
-        child: Stack(
-          children: [
-            _buildThemeDecorations(context),
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                child: Column(
+          // Content by tab
+          if (_currentTab == 1)
+            const OffersScreen()
+          else if (_currentTab == 3)
+            const HistoryScreen()
+          else if (_currentTab == 4)
+            ProfileScreen(
+              userData: widget.userData,
+              accessToken: widget.accessToken,
+              refreshToken: widget.refreshToken,
+              apiBaseUrl: widget.apiBaseUrl,
+            )
+          else
+            FadeTransition(
+              opacity: _fadeIn,
+              child: SafeArea(
+                bottom: false,
+                child: ListView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: 100),
                   children: [
-                    // Search bar + actions
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                    _LuckyHeader(
+                      userData: widget.userData,
+                      onGiftTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const GiftNotificationScreen()),
+                      ),
+                      onNotifTap: () => _showNotificationOverlay(context),
+                      onChatTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ChatListScreen()),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 20),
+                          _WelcomeBanner(userData: widget.userData),
+                          const SizedBox(height: 28),
+                          _QuickActionsRow(
+                            onCameraTap: () =>
+                                _handleCameraAccess(context),
+                            onCalendarTap: () =>
+                                CalendarPopup.show(context),
+                            onFriendsTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const FriendManagementScreen()),
                             ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 16),
-                            const Icon(Icons.search, color: Colors.white, size: 20),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Tìm kiếm dịch vụ',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
+                            onStudioTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const DesignSelectionScreen(
+                                          type: 'item')),
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+                          _WalletAndCelebrateSection(
+                            onCelebrateTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const CelebrateScreen()),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          _FeatureGrid(
+                            isMarketing: _isMarketingAdmin(),
+                            onAvatarTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const AvaturnScreen()),
+                            ),
+                            onMarketingTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => MarketingDashboardScreen(
+                                  apiBaseUrl: widget.apiBaseUrl,
+                                  accessToken: widget.accessToken,
                                 ),
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                              margin: const EdgeInsets.only(right: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.25),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: AppTheme.softShadow,
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.content_paste, color: Colors.white, size: 16),
-                                  SizedBox(width: 4),
-                                  Text('Dán', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
-                                ],
-                              ),
+                            onPaymentTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => PaymentScreen()),
                             ),
-                            const SizedBox(width: 8),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 28),
+                          _OngoingEventsSection(),
+                          const SizedBox(height: 28),
+                          const _PromotionBanner(),
+                          const SizedBox(height: 28),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 14),
-                    _HeaderIconBtn(
-                      icon: Icons.card_giftcard, 
-                      badge: 0,
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GiftNotificationScreen())),
-                    ),
-                    const SizedBox(width: 10),
-                    _HeaderIconBtn(
-                      icon: Icons.notifications_none_outlined, 
-                      badge: 1,
-                      onTap: () => _showNotificationOverlay(context),
-                    ),
-                    const SizedBox(width: 10),
-                    _HeaderIconBtn(
-                      icon: Icons.chat_bubble_outline, 
-                      badge: 0,
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatListScreen())),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        ),
-            ],
-          ),
-      ),
-    );
-  }
-
-  Widget _buildThemeDecorations(BuildContext context) {
-    final themeType = Provider.of<ThemeProvider>(context).currentTheme;
-    final isTet = themeType == AppThemeType.tet;
-    final isVal = themeType == AppThemeType.valentine;
-    
-    if (!isTet && !isVal) return const SizedBox.shrink();
-
-    return Stack(
-      children: [
-        // Glow effect
-        Positioned(
-          top: -50,
-          left: -50,
-          child: Container(
-            width: 200,
-            height: 200,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  blurRadius: 100,
-                  spreadRadius: 50,
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (isTet) ...[
-          Positioned(top: -20, left: 10, child: _AnimatedFloatingWidget(durationSeconds: 3.0, offsetFactor: 15, child: Transform.rotate(angle: -0.2, child: Opacity(opacity: 0.4, child: Text('🌸', style: TextStyle(fontSize: 80)))))),
-          Positioned(top: -10, right: -10, child: _AnimatedFloatingWidget(durationSeconds: 2.5, offsetFactor: 12, child: Transform.rotate(angle: 0.3, child: Opacity(opacity: 0.35, child: Text('🌼', style: TextStyle(fontSize: 90)))))),
-          Positioned(top: 40, left: MediaQuery.of(context).size.width / 2 - 30, child: _AnimatedFloatingWidget(durationSeconds: 2.0, offsetFactor: 8, child: Opacity(opacity: 0.4, child: Text('🏮', style: TextStyle(fontSize: 45))))),
-        ] else if (isVal) ...[
-          Positioned(top: -10, left: 15, child: _AnimatedFloatingWidget(durationSeconds: 2.5, offsetFactor: 10, child: Transform.rotate(angle: -0.15, child: Opacity(opacity: 0.8, child: Image.asset('assets/images/ValentineTheme/Chocobar.png', width: 70, height: 70))))),
-          Positioned(top: -20, right: 10, child: _AnimatedFloatingWidget(durationSeconds: 3.2, offsetFactor: 15, child: Transform.rotate(angle: 0.2, child: Opacity(opacity: 0.8, child: Image.asset('assets/images/ValentineTheme/Lich1402.png', width: 80, height: 80))))),
-          Positioned(top: 30, left: MediaQuery.of(context).size.width / 2, child: _AnimatedFloatingWidget(durationSeconds: 2.0, offsetFactor: 8, child: Opacity(opacity: 0.8, child: Image.asset('assets/images/ValentineTheme/Cungtentinhyeu.png', width: 45, height: 45)))),
-        ],
-      ],
-    );
-  }
-
-  // ─── QUICK ACTIONS ROW ────────────────────────────────────
-  Widget _buildQuickActions() {
-    return Container(
-      decoration: BoxDecoration(gradient: AppTheme.of(context).primaryGradient),
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _QuickAction(
-            icon: Icons.camera_alt_outlined, 
-            label: 'Máy ảnh',
-            onTap: () => _handleCameraAccess(context),
-          ),
-          _QuickAction(
-            icon: Icons.swap_horiz, 
-            label: 'Nạp/Rút'
-          ),
-          _QuickAction(
-            icon: Icons.calendar_month_outlined, 
-            label: 'Lịch',
-            onTap: () => CalendarPopup.show(context),
-          ),
-          _QuickAction(
-            icon: Icons.card_giftcard, 
-            label: 'Bạn Bè',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FriendManagementScreen())),
-          ),
-          _QuickAction(
-            icon: Icons.auto_awesome_mosaic_outlined, 
-            label: 'Xưởng Studio',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DesignSelectionScreen(type: 'item'))),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── WALLET CARD ──────────────────────────────────────────
-  Widget _buildWalletCard() {
-    return Transform.translate(
-      offset: const Offset(0, -12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          decoration: BoxDecoration(
-            color: AppTheme.of(context).card,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: AppTheme.softShadow,
-          ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: [
-                _WalletItem(
-                  label: 'Ví Lucky Ly',
-                  amount: '4.901đ',
-                  icon: Icons.account_balance_wallet,
-                  iconColor: AppTheme.of(context).primary,
-                ),
-                _WalletDivider(),
-                GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CelebrateScreen()),
-                  ),
-                  behavior: HitTestBehavior.opaque,
-                  child: _WalletItem(
-                    label: 'Celebrate',
-                    amount: 'Mẫu Lễ Hội',
-                    icon: Icons.celebration,
-                    iconColor: Colors.pinkAccent,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-
-  Widget _buildPremiumServiceGrid() {
-    final services = [
-      _ServiceItem(
-        'Tạo Avatar',
-        Icons.person_add_alt_1,
-        Colors.purpleAccent,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AvaturnScreen()),
-        ),
-      ),
-      if (_isMarketingAdmin())
-        _ServiceItem(
-          'Marketing Hub',
-          Icons.campaign,
-          Colors.pinkAccent,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MarketingDashboardScreen(
-                apiBaseUrl: widget.apiBaseUrl,
-                accessToken: widget.accessToken,
               ),
             ),
-          ),
-        ),
-      _ServiceItem('Thanh toán', Icons.money_off, AppTheme.of(context).primary),
-      _ServiceItem('Hóa đơn', Icons.receipt_long, AppTheme.of(context).accent),
-      if (!_isMarketingAdmin())
-        _ServiceItem('Thêm', Icons.grid_view, AppTheme.of(context).textMuted),
-    ];
 
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          mainAxisSpacing: 2,
-          crossAxisSpacing: 2,
-          childAspectRatio: 1.15, // Higher ratio = less vertical space
-        ),
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final s = services[index];
-            return _ServiceGridTile(service: s);
-          },
-          childCount: services.length,
-        ),
+          // Bottom Navigation overlay
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: _LuckyBottomNav(
+              currentTab: _currentTab,
+              onTabChanged: (i) => setState(() => _currentTab = i),
+              onCameraFab: () => _handleCameraAccess(context),
+            ),
+          ),
+        ],
       ),
     );
   }
 
+  // ── NOTIFICATION OVERLAY ───────────────────────────────────
   void _showNotificationOverlay(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
+      builder: (ctx) => Container(
         padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: AppTheme.of(context).card,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(32),
-            topRight: Radius.circular(32),
-          ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -560,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppTheme.of(context).divider,
+                color: const Color(0xFFE2E8F0),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -568,43 +334,43 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.of(context).accent.withValues(alpha: 0.1),
+                color: const Color(0xFF952CB1).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.campaign, color: AppTheme.of(context).accent, size: 40),
+              child: const Icon(Icons.campaign,
+                  color: Color(0xFF952CB1), size: 40),
             ),
             const SizedBox(height: 20),
-            Text(
-              'Chào mừng bạn đến với Lucky Ly!',
+            const Text(
+              'Chào mừng đến với Lucky Ly!',
               style: TextStyle(
-                color: AppTheme.of(context).textDark,
+                color: Color(0xFF45274B),
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 12),
-            Text(
-              'Tận hưởng các dịch vụ tài chính thông minh và ưu đãi hấp dẫn dành riêng cho bạn.',
+            const Text(
+              'Tận hưởng các dịch vụ, ưu đãi hấp dẫn và quà tặng dành riêng cho bạn.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppTheme.of(context).textMuted,
-                fontSize: 15,
-                height: 1.5,
-              ),
+                  color: Color(0xFF75547A), fontSize: 15, height: 1.5),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(ctx),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.of(context).primary,
+                  backgroundColor: const Color(0xFF952CB1),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.all(16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                   elevation: 0,
                 ),
-                child: const Text('Bắt đầu ngay', style: TextStyle(fontWeight: FontWeight.w800)),
+                child: const Text('Bắt đầu ngay',
+                    style: TextStyle(fontWeight: FontWeight.w800)),
               ),
             ),
             const SizedBox(height: 16),
@@ -614,222 +380,1091 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  // ─── EVENTS SECTION ───────────────────────────────────────
-  Widget _buildEventsSection() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  // ── CAMERA ACCESS ──────────────────────────────────────────
+  Future<void> _handleCameraAccess(BuildContext context) async {
+    var status = await Permission.camera.request();
+
+    if (status.isGranted) {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Không tìm thấy camera trên thiết bị.')),
+        );
+        return;
+      }
+
+      if (!context.mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => CameraScreen(cameras: cameras)),
+      );
+    } else if (status.isPermanentlyDenied) {
+      if (!context.mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Quyền truy cập Camera'),
+          content: const Text(
+              'Ứng dụng cần quyền Camera để chụp ảnh. Vui lòng cấp quyền trong Cài đặt.'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Hủy')),
+            TextButton(
+                onPressed: () => openAppSettings(),
+                child: const Text('Cài đặt')),
+          ],
+        ),
+      );
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HEADER
+// ═══════════════════════════════════════════════════════════════
+class _LuckyHeader extends StatelessWidget {
+  const _LuckyHeader({
+    required this.userData,
+    required this.onGiftTap,
+    required this.onNotifTap,
+    required this.onChatTap,
+  });
+
+  final Map<String, dynamic> userData;
+  final VoidCallback onGiftTap;
+  final VoidCallback onNotifTap;
+  final VoidCallback onChatTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final avatarUrl = userData['avatarUrl'] as String? ?? '';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF952CB1).withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-            Text(
-              'Sự kiện đang diễn ra',
-              style: TextStyle(
-                color: AppTheme.of(context).textDark,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
+          // Avatar + Logo
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: const Color(0xFFF1A6FF), width: 2.5),
+                  image: avatarUrl.isNotEmpty
+                      ? DecorationImage(
+                          image: NetworkImage(avatarUrl),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                  gradient: avatarUrl.isEmpty
+                      ? const LinearGradient(
+                          colors: [Color(0xFF9333EA), Color(0xFFF472B6)])
+                      : null,
+                ),
+                child: avatarUrl.isEmpty
+                    ? const Icon(Icons.person, color: Colors.white, size: 22)
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [Color(0xFF9333EA), Color(0xFFF472B6)],
+                ).createShader(bounds),
+                child: const Text(
+                  'LuckyLy',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // Action buttons
+          Row(
+            children: [
+              _HeaderIconBtn(
+                icon: Icons.card_giftcard_outlined,
+                onTap: onGiftTap,
+              ),
+              const SizedBox(width: 8),
+              _HeaderIconBtn(
+                icon: Icons.notifications_outlined,
+                badge: 1,
+                onTap: onNotifTap,
+              ),
+              const SizedBox(width: 8),
+              _HeaderIconBtn(
+                icon: Icons.chat_bubble_outline,
+                onTap: onChatTap,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderIconBtn extends StatelessWidget {
+  const _HeaderIconBtn({required this.icon, this.badge = 0, this.onTap});
+
+  final IconData icon;
+  final int badge;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: const Color(0xFF952CB1).withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: const Color(0xFF952CB1), size: 22),
+          ),
+          if (badge > 0)
+            Positioned(
+              right: -2,
+              top: -2,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                    color: Color(0xFFEF4444), shape: BoxShape.circle),
+                child: Text(
+                  '$badge',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800),
+                ),
               ),
             ),
-          const SizedBox(height: 14),
-          Container(
-            height: 120,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: LinearGradient(
-                colors: [
-                  AppTheme.of(context).primary,
-                  AppTheme.of(context).accent,
-                  AppTheme.of(context).primary.withValues(alpha: 0.9),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WELCOME BANNER
+// ═══════════════════════════════════════════════════════════════
+class _WelcomeBanner extends StatelessWidget {
+  const _WelcomeBanner({required this.userData});
+
+  final Map<String, dynamic> userData;
+
+  @override
+  Widget build(BuildContext context) {
+    final isMarketing = (userData['role']?.toString().toLowerCase() ==
+        'marketing_admin');
+    final name = userData['username'] ?? 'Bạn';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          isMarketing ? 'Xin chào Marketing Admin!' : 'Xin chào $name!',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 26,
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF45274B),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          isMarketing
+              ? 'Hôm nay chúng ta sẽ bùng nổ chiến dịch gì?'
+              : 'Wish u a niceee dayyy! 🌸',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF75547A),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Search bar
+        Container(
+          height: 50,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFEFFC),
+            borderRadius: BorderRadius.circular(16),
+            border:
+                Border.all(color: const Color(0xFFCCA5D0).withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              const SizedBox(width: 16),
+              const Icon(Icons.search, color: Color(0xFF926F97), size: 20),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Tìm kiếm sự kiện hoặc quà tặng...',
+                  style: TextStyle(
+                      color: Color(0xFFCCA5D0),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500),
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.only(right: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF952CB1).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  'Tìm',
+                  style: TextStyle(
+                      color: Color(0xFF952CB1),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// QUICK ACTIONS ROW
+// ═══════════════════════════════════════════════════════════════
+class _QuickActionsRow extends StatelessWidget {
+  const _QuickActionsRow({
+    required this.onCameraTap,
+    required this.onCalendarTap,
+    required this.onFriendsTap,
+    required this.onStudioTap,
+  });
+
+  final VoidCallback onCameraTap;
+  final VoidCallback onCalendarTap;
+  final VoidCallback onFriendsTap;
+  final VoidCallback onStudioTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = [
+      _ActionDef(Icons.photo_camera_outlined, 'CAMERA', onCameraTap),
+      _ActionDef(Icons.swap_horiz_rounded, 'GIAO DỊCH', null),
+      _ActionDef(Icons.calendar_today_outlined, 'LỊCH', onCalendarTap),
+      _ActionDef(Icons.group_outlined, 'BẠN BÈ', onFriendsTap),
+      _ActionDef(Icons.auto_awesome_mosaic_outlined, 'STUDIO', onStudioTap),
+    ];
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: actions
+          .map((a) => AnimatedInteractiveScale(
+                onTap: a.onTap,
+                child: Column(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFF5D0FF), Color(0xFFE4AAFF)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF952CB1).withValues(alpha: 0.15),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Icon(a.icon,
+                          color: const Color(0xFF952CB1), size: 26),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      a.label,
+                      style: const TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF75547A),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ))
+          .toList(),
+    );
+  }
+}
+
+class _ActionDef {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  const _ActionDef(this.icon, this.label, this.onTap);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WALLET + CELEBRATE SECTION
+// ═══════════════════════════════════════════════════════════════
+class _WalletAndCelebrateSection extends StatelessWidget {
+  const _WalletAndCelebrateSection({required this.onCelebrateTap});
+
+  final VoidCallback onCelebrateTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // ── Wallet Card ──────────────────────────────────────
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF952CB1), Color(0xFFD472F9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF952CB1).withValues(alpha: 0.35),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.account_balance_wallet_outlined,
+                          color: Colors.white70, size: 16),
+                      SizedBox(width: 6),
+                      Text(
+                        'Ví Lucky Ly',
+                        style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                  Icon(Icons.visibility_outlined, color: Colors.white70),
                 ],
               ),
+              const SizedBox(height: 10),
+              const Text(
+                '4.901đ',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 36,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  '▲ 0.0% so với hôm qua',
+                  style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  _WalletActionBtn('Nạp tiền', Icons.add_circle_outline, onTap: () => showTopUpSheet(context)),
+                  const SizedBox(width: 12),
+                  _WalletActionBtn('Rút tiền', Icons.remove_circle_outline, onTap: () => showWithdrawSheet(context)),
+                  const SizedBox(width: 12),
+                  _WalletActionBtn('Chuyển', Icons.swap_horiz_rounded, onTap: () => showTransferSheet(context)),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // ── Celebrate Card ───────────────────────────────────
+        GestureDetector(
+          onTap: onCelebrateTap,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                  color: const Color(0xFFCCA5D0).withValues(alpha: 0.25)),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.of(context).primary.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
+                  color: const Color(0xFF952CB1).withValues(alpha: 0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
-            child: Stack(
+            child: Row(
               children: [
-                // Decorative circles
-                Positioned(
-                  right: -20,
-                  top: -20,
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.08),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: -15,
-                  bottom: -30,
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.06),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFBD0055).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
-                              'Nhận ngay 10K',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
+                            Icon(Icons.celebration,
+                                size: 12, color: Color(0xFFBD0055)),
+                            SizedBox(width: 4),
                             Text(
-                              'khi tự chuyển 2K\ntừ Lucky Ly!',
+                              'ACTIVE',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.85),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFBD0055)),
                             ),
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Text(
-                          'Nhận ngay',
-                          style: TextStyle(
-                            color: AppTheme.of(context).primary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Celebrate Now',
+                        style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF45274B)),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Gửi quà cho bạn bè ngay hôm nay!',
+                        style: TextStyle(
+                            fontSize: 13, color: Color(0xFF75547A)),
                       ),
                     ],
                   ),
                 ),
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFF5D0FF), Color(0xFFE4AAFF)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.card_giftcard,
+                      size: 32, color: Color(0xFF952CB1)),
+                ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  // ─── BOTTOM NAV ───────────────────────────────────────────
-  Widget _buildBottomNav() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.of(context).card,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavItem(icon: Icons.home_filled, label: 'Trang chủ', isActive: _currentTab == 0, onTap: () => setState(() => _currentTab = 0)),
-              _NavItem(icon: Icons.local_offer_outlined, label: 'Ưu đãi', isActive: _currentTab == 1, onTap: () => setState(() => _currentTab = 1)),
-              const SizedBox(width: 56), // space for FAB
-              _NavItem(icon: Icons.history, label: 'Lịch sử GD', isActive: _currentTab == 3, onTap: () => setState(() => _currentTab = 3)),
-              _NavItem(icon: Icons.person_outline, label: 'Tôi', isActive: _currentTab == 4, onTap: () => setState(() => _currentTab = 4)),
-            ],
-          ),
         ),
-      ),
+      ],
     );
   }
+}
 
-  // ─── QR FAB ───────────────────────────────────────────────
-  Widget _buildQrFab() {
-    return Container(
-      height: 64,
-      width: 64,
-      decoration: BoxDecoration(
-        gradient: AppTheme.of(context).primaryGradient,
-        shape: BoxShape.circle,
-        boxShadow: AppTheme.glowShadow(AppTheme.of(context).primary),
-      ),
-      child: FloatingActionButton(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        onPressed: () => _handleCameraAccess(context),
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+class _WalletActionBtn extends StatelessWidget {
+  const _WalletActionBtn(this.label, this.icon, {this.onTap});
+
+  final String label;
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.camera_alt, color: Colors.white, size: 26),
-            Text('Camera', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+            Icon(icon, color: Colors.white, size: 14),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5),
+            ),
           ],
         ),
       ),
     );
   }
+}
 
-  // Logic xử lý quyền và mở Camera
-  Future<void> _handleCameraAccess(BuildContext context) async {
-    // 1. Xin quyền Camera
-    var status = await Permission.camera.request();
-    
-    if (status.isGranted) {
-      // 2. Lấy danh sách camera khả dụng
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) {
-        if (mounted) _showSimpleMessage('Không tìm thấy camera trên thiết bị.');
-        return;
-      }
-      
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => CameraScreen(cameras: cameras)),
-        );
-      }
-    } else if (status.isPermanentlyDenied) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Quyền truy cập Camera'),
-            content: const Text('Ứng dụng cần quyền Camera để chụp ảnh. Vui lòng cấp quyền trong Cài đặt.'),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
-              TextButton(onPressed: () => openAppSettings(), child: const Text('Cài đặt')),
-            ],
-          ),
-        );
-      }
-    }
-  }
+// ═══════════════════════════════════════════════════════════════
+// FEATURE GRID
+// ═══════════════════════════════════════════════════════════════
+class _FeatureGrid extends StatelessWidget {
+  const _FeatureGrid({
+    required this.isMarketing,
+    required this.onAvatarTap,
+    required this.onMarketingTap,
+    required this.onPaymentTap,
+  });
 
-  void _showSimpleMessage(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  final bool isMarketing;
+  final VoidCallback onAvatarTap;
+  final VoidCallback onMarketingTap;
+  final VoidCallback onPaymentTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final features = <_FeatureDef>[
+      _FeatureDef(
+        Icons.person_add_alt_1,
+        'Tạo Avatar',
+        const Color(0xFF952CB1),
+        onAvatarTap,
+      ),
+      if (isMarketing)
+        _FeatureDef(
+          Icons.campaign_outlined,
+          'Marketing\nHub',
+          const Color(0xFFBE004C),
+          onMarketingTap,
+        ),
+      _FeatureDef(
+        Icons.payments_outlined,
+        'Thanh toán',
+        const Color(0xFFBD0055),
+        onPaymentTap,
+      ),
+      _FeatureDef(
+        Icons.receipt_long_outlined,
+        'Hóa đơn',
+        const Color(0xFF7C3AED),
+        null,
+      ),
+      if (!isMarketing)
+        _FeatureDef(
+          Icons.grid_view_rounded,
+          'Thêm',
+          const Color(0xFF94A3B8),
+          null,
+        ),
+    ];
+
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 14,
+      mainAxisSpacing: 14,
+      childAspectRatio: 1.25,
+      children: features.map((f) => _FeatureTile(feature: f)).toList(),
+    );
   }
 }
 
-// ─── MÀN HÌNH CAMERA ──────────────────────────────────────────
+class _FeatureDef {
+  final IconData icon;
+  final String title;
+  final Color color;
+  final VoidCallback? onTap;
+  const _FeatureDef(this.icon, this.title, this.color, this.onTap);
+}
+
+class _FeatureTile extends StatelessWidget {
+  const _FeatureTile({required this.feature});
+
+  final _FeatureDef feature;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedInteractiveScale(
+      onTap: feature.onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: feature.color.withValues(alpha: 0.1), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: feature.color.withValues(alpha: 0.07),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: feature.color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(feature.icon, color: feature.color, size: 24),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              feature.title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF45274B),
+                height: 1.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ONGOING EVENTS
+// ═══════════════════════════════════════════════════════════════
+class _OngoingEventsSection extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Sự kiện đang diễn ra',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF45274B),
+              ),
+            ),
+            TextButton(
+              onPressed: () {},
+              child: const Text(
+                'Tất cả',
+                style: TextStyle(
+                    color: Color(0xFF952CB1), fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          height: 200,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF952CB1), Color(0xFFD472F9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Stack(
+            children: [
+              // Decorative circles
+              Positioned(
+                right: -20,
+                top: -20,
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: -15,
+                bottom: -30,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.06),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'ĐANG DIỄN RA',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Sale mô hình Tết 2025',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Hơn 500 phần quà đang chờ đón bạn',
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                    const SizedBox(height: 12),
+                    // Nhận ngay 10K
+                    Row(
+                      children: [
+                        const Text(
+                          'Nhận ngay 10K',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'Nhận ngay',
+                            style: TextStyle(
+                              color: Color(0xFF952CB1),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PROMOTION BANNER
+// ═══════════════════════════════════════════════════════════════
+class _PromotionBanner extends StatelessWidget {
+  const _PromotionBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFBE004C), Color(0xFFFF5E8A)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFBE004C).withValues(alpha: 0.35),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'NHẬN NGAY 10K',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Khi mời bạn bè tham gia LuckyLy lần đầu nhé!',
+                  style: TextStyle(color: Colors.white, fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: const Color(0xFFBE004C),
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10),
+                    elevation: 0,
+                  ),
+                  child: const Text('Nhận ngay',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child:
+                const Icon(Icons.card_membership, color: Colors.white, size: 42),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BOTTOM NAV
+// ═══════════════════════════════════════════════════════════════
+class _LuckyBottomNav extends StatelessWidget {
+  const _LuckyBottomNav({
+    required this.currentTab,
+    required this.onTabChanged,
+    required this.onCameraFab,
+  });
+
+  final int currentTab;
+  final ValueChanged<int> onTabChanged;
+  final VoidCallback onCameraFab;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF45274B).withValues(alpha: 0.08),
+            blurRadius: 30,
+            offset: const Offset(0, -10),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _NavItem(
+                icon: Icons.home_filled,
+                label: 'Trang chủ',
+                isActive: currentTab == 0,
+                onTap: () => onTabChanged(0)),
+            _NavItem(
+                icon: Icons.local_offer_outlined,
+                label: 'Ưu đãi',
+                isActive: currentTab == 1,
+                onTap: () => onTabChanged(1)),
+
+            // Camera FAB (center)
+            GestureDetector(
+              onTap: onCameraFab,
+              child: Container(
+                width: 58,
+                height: 58,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF9333EA), Color(0xFFF472B6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x55952CB1),
+                      blurRadius: 16,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.camera_alt, color: Colors.white, size: 24),
+                    Text(
+                      'Camera',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w800),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            _NavItem(
+                icon: Icons.history_rounded,
+                label: 'Lịch sử',
+                isActive: currentTab == 3,
+                onTap: () => onTabChanged(3)),
+            _NavItem(
+                icon: Icons.person_outline_rounded,
+                label: 'Tôi',
+                isActive: currentTab == 4,
+                onTap: () => onTabChanged(4)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive
+              ? const Color(0xFF952CB1).withValues(alpha: 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isActive
+                  ? const Color(0xFF952CB1)
+                  : const Color(0xFFC084FC),
+              size: 24,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive
+                    ? const Color(0xFF952CB1)
+                    : const Color(0xFFC084FC),
+                fontSize: 10,
+                fontWeight:
+                    isActive ? FontWeight.w800 : FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CAMERA SCREEN
+// ═══════════════════════════════════════════════════════════════
 class CameraScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
   const CameraScreen({super.key, required this.cameras});
@@ -840,7 +1475,7 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   late CameraController _controller;
-  int _cameraIndex = 0; // 0 thường là cam sau, 1 là cam trước
+  int _cameraIndex = 0;
 
   @override
   void initState() {
@@ -873,14 +1508,15 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     if (!_controller.value.isInitialized) {
-      return const Scaffold(backgroundColor: Colors.black, body: Center(child: const CustomLoading(size: 80)));
+      return const Scaffold(
+          backgroundColor: Colors.black,
+          body: Center(child: CustomLoading(size: 80)));
     }
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
           Positioned.fill(child: CameraPreview(_controller)),
-          // Nút chụp & Đổi Camera
           Positioned(
             bottom: 40,
             left: 0,
@@ -889,14 +1525,18 @@ class _CameraScreenState extends State<CameraScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.flip_camera_ios, color: Colors.white, size: 32),
+                  icon: const Icon(Icons.flip_camera_ios,
+                      color: Colors.white, size: 32),
                   onPressed: _toggleCamera,
                 ),
                 GestureDetector(
                   onTap: () async {
                     try {
                       await _controller.takePicture();
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã chụp ảnh!')));
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Đã chụp ảnh!')),
+                      );
                     } catch (e) {
                       debugPrint('Lỗi chụp ảnh: $e');
                     }
@@ -904,364 +1544,24 @@ class _CameraScreenState extends State<CameraScreen> {
                   child: Container(
                     height: 80,
                     width: 80,
-                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 4)),
-                    child: const Center(child: Icon(Icons.camera, color: Colors.white, size: 40)),
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border:
+                            Border.all(color: Colors.white, width: 4)),
+                    child: const Center(
+                        child: Icon(Icons.camera,
+                            color: Colors.white, size: 40)),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white, size: 32),
+                  icon: const Icon(Icons.close,
+                      color: Colors.white, size: 32),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// SUB-WIDGETS
-// ═══════════════════════════════════════════════════════════════
-
-class _HeaderIconBtn extends StatelessWidget {
-  const _HeaderIconBtn({required this.icon, this.badge = 0, this.onTap});
-
-  final IconData icon;
-  final int badge;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            height: 44,
-            width: 44,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Icon(icon, color: Colors.white, size: 22),
-          ),
-        if (badge > 0)
-          Positioned(
-            right: -2,
-            top: -2,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Color(0xFFEF4444),
-                shape: BoxShape.circle,
-              ),
-              child: Text(
-                '$badge',
-                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickAction extends StatelessWidget {
-  const _QuickAction({required this.icon, required this.label, this.onTap});
-
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedInteractiveScale(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            height: 56,
-            width: 56,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: 0.3),
-                  Colors.white.withValues(alpha: 0.05),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1.2),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  blurRadius: 15,
-                  spreadRadius: 2,
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Icon(icon, color: Colors.white, size: 28),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white, 
-              fontSize: 12, 
-              fontWeight: FontWeight.w700, 
-              height: 1.2,
-              letterSpacing: -0.2,
-              shadows: [
-                Shadow(
-                  color: Colors.black26,
-                  blurRadius: 4,
-                  offset: Offset(0, 1),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AnimatedFloatingWidget extends StatefulWidget {
-  final Widget child;
-  final double durationSeconds;
-  final double offsetFactor;
-  const _AnimatedFloatingWidget({required this.child, this.durationSeconds = 2.0, this.offsetFactor = 10.0});
-
-  @override
-  State<_AnimatedFloatingWidget> createState() => _AnimatedFloatingWidgetState();
-}
-
-class _AnimatedFloatingWidgetState extends State<_AnimatedFloatingWidget> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: (widget.durationSeconds * 1000).toInt()),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, -_controller.value * widget.offsetFactor),
-          child: child,
-        );
-      },
-      child: widget.child,
-    );
-  }
-}
-
-class _WalletItem extends StatelessWidget {
-  const _WalletItem({
-    required this.label,
-    required this.amount,
-    required this.icon,
-    required this.iconColor,
-  });
-
-  final String label;
-  final String amount;
-  final IconData icon;
-  final Color iconColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 110,
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 14, color: iconColor),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: AppTheme.of(context).textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Flexible(
-                child: Text(
-                  amount,
-                  style: TextStyle(
-                    color: AppTheme.of(context).textDark,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 2),
-              Icon(Icons.chevron_right, size: 16, color: AppTheme.of(context).textLight),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _WalletDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 30,
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      color: const Color(0xFFF1F5F9),
-    );
-  }
-}
-
-class _ServiceItem {
-  final String label;
-  final IconData icon;
-  final Color color;
-  final VoidCallback? onTap;
-
-  const _ServiceItem(this.label, this.icon, this.color, {this.onTap});
-}
-
-class _ServiceGridTile extends StatelessWidget {
-  const _ServiceGridTile({required this.service});
-
-  final _ServiceItem service;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedInteractiveScale(
-      onTap: service.onTap ?? () {
-        final label = service.label;
-        if (label == 'Nạp ĐT' || label == 'Thanh toán' || label == 'Chuyển tiền' || label == 'Ngân hàng') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentScreen()));
-        }
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.of(context).card,
-          border: Border.all(color: AppTheme.of(context).divider.withValues(alpha: 0.5), width: 0.5),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              height: 40, // Smaller icon container
-              width: 40,
-              decoration: BoxDecoration(
-                color: service.color.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(service.icon, color: service.color, size: 20),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              service.label,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: AppTheme.of(context).textDark, 
-                fontSize: 10, 
-                fontWeight: FontWeight.w700, 
-                letterSpacing: -0.2,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 60,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isActive ? AppTheme.of(context).primary : AppTheme.of(context).textLight,
-              size: 24,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                color: isActive ? AppTheme.of(context).primary : AppTheme.of(context).textLight,
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
