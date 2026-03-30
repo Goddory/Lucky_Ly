@@ -3,7 +3,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../app_theme.dart';
+import 'flash_sale_screen.dart';
 
 class VoucherManagementScreen extends StatefulWidget {
   final String apiBaseUrl;
@@ -229,36 +231,61 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
           ),
 
           SafeArea(
-            child: Column(
-              children: [
-                _buildGlassAppBar(),
-                Expanded(
-                  child: _loading
-                      ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                      : _promotions.isEmpty
-                          ? _buildEmptyState()
-                          : RefreshIndicator(
-                              color: const Color(0xFFFE512E),
-                              backgroundColor: Colors.white,
-                              onRefresh: _loadPromotions,
-                              child: ListView.builder(
-                                padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-                                itemCount: _promotions.length,
-                                itemBuilder: (ctx, i) => _buildPromotionCard(_promotions[i]),
-                              ),
+            child: DefaultTabController(
+              length: 2,
+              child: Column(
+                children: [
+                  _buildGlassAppBar(),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        // Tab 1: Vouchers
+                        Stack(
+                          children: [
+                            Column(
+                              children: [
+                                if (!_loading && _promotions.isNotEmpty) _buildUsageChart(),
+                                Expanded(
+                                  child: _loading
+                                      ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                                      : _promotions.isEmpty
+                                          ? _buildEmptyState()
+                                          : RefreshIndicator(
+                                              color: const Color(0xFFFE512E),
+                                              backgroundColor: Colors.white,
+                                              onRefresh: _loadPromotions,
+                                              child: ListView.builder(
+                                                padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+                                                itemCount: _promotions.length,
+                                                itemBuilder: (ctx, i) => _buildPromotionCard(_promotions[i]),
+                                              ),
+                                            ),
+                                ),
+                              ],
                             ),
-                ),
-              ],
+                            Positioned(
+                              bottom: 16, right: 16,
+                              child: FloatingActionButton.extended(
+                                onPressed: _createPromotion,
+                                backgroundColor: Colors.white,
+                                elevation: 8,
+                                icon: const Icon(Icons.confirmation_number, color: Color(0xFFFE512E)),
+                                label: Text('TẠO VOUCHER', style: GoogleFonts.chakraPetch(color: const Color(0xFFFE512E), fontWeight: FontWeight.bold, fontSize: 16)),
+                              ),
+                            )
+                          ],
+                        ),
+                        
+                        // Tab 2: Flash Sale
+                        FlashSaleScreen(apiBaseUrl: widget.apiBaseUrl, accessToken: widget.accessToken),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _createPromotion,
-        backgroundColor: Colors.white,
-        elevation: 8,
-        icon: const Icon(Icons.confirmation_number, color: Color(0xFFFE512E)),
-        label: Text('TẠO VOUCHER', style: GoogleFonts.chakraPetch(color: const Color(0xFFFE512E), fontWeight: FontWeight.bold, fontSize: 16)),
       ),
     );
   }
@@ -268,26 +295,108 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          height: 60,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.only(top: 8),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.15),
             border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.3))),
           ),
-          child: Row(
+          child: Column(
             children: [
-              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back_ios, color: Colors.white)),
-              const SizedBox(width: 8),
-              Text(
-                'TÀI TRỢ KHUYẾN MÃI',
-                style: GoogleFonts.chakraPetch(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back_ios, color: Colors.white)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'KHUYẾN MÃI & GIỜ VÀNG',
+                      style: GoogleFonts.chakraPetch(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    const Spacer(),
+                    const Icon(Icons.local_fire_department, color: Colors.white),
+                  ],
+                ),
               ),
-              const Spacer(),
-              const Icon(Icons.local_fire_department, color: Colors.white),
+              TabBar(
+                indicatorColor: Colors.white,
+                indicatorWeight: 3,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white.withValues(alpha: 0.6),
+                labelStyle: GoogleFonts.beVietnamPro(fontWeight: FontWeight.bold, fontSize: 14),
+                tabs: const [
+                  Tab(text: 'VOUCHER'),
+                  Tab(text: 'FLASH SALE'),
+                ],
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildUsageChart() {
+    int totalIssued = 0;
+    int totalUsed = 0;
+    for (var p in _promotions) {
+      totalIssued += int.tryParse(p['voucher_count']?.toString() ?? '0') ?? 0;
+      totalUsed += int.tryParse(p['used_count']?.toString() ?? '0') ?? 0;
+    }
+    int unused = totalIssued - totalUsed;
+    if (unused < 0) unused = 0;
+
+    if (totalIssued == 0) return const SizedBox.shrink();
+
+    double usedPercent = (totalUsed / totalIssued) * 100;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 80, height: 80,
+            child: PieChart(
+              PieChartData(
+                sectionsSpace: 4,
+                centerSpaceRadius: 24,
+                startDegreeOffset: -90,
+                sections: [
+                  PieChartSectionData(
+                    value: totalUsed.toDouble(),
+                    color: Colors.greenAccent,
+                    radius: 14,
+                    showTitle: false,
+                  ),
+                  PieChartSectionData(
+                    value: unused.toDouble(),
+                    color: Colors.white.withValues(alpha: 0.4),
+                    radius: 12,
+                    showTitle: false,
+                  ),
+                ]
+              )
+            )
+          ),
+          const SizedBox(width: 24),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Tỉ lệ sử dụng', style: GoogleFonts.beVietnamPro(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                Text('${usedPercent.toStringAsFixed(1)}%', style: GoogleFonts.chakraPetch(color: Colors.greenAccent, fontSize: 32, fontWeight: FontWeight.bold)),
+                Text('$totalUsed / $totalIssued Voucher đã dùng', style: GoogleFonts.robotoMono(color: Colors.white.withValues(alpha: 0.8), fontSize: 11)),
+              ],
+            ),
+          )
+        ],
+      )
     );
   }
 

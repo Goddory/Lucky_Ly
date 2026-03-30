@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
 import '../../app_theme.dart';
+import 'push_campaign_screen.dart';
 
 class CustomerSegmentsScreen extends StatefulWidget {
   final String apiBaseUrl;
@@ -183,6 +184,23 @@ class _CustomerSegmentsScreenState extends State<CustomerSegmentsScreen> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PushCampaignScreen(
+                apiBaseUrl: widget.apiBaseUrl,
+                accessToken: widget.accessToken,
+              ),
+            ),
+          );
+        },
+        backgroundColor: const Color(0xFF6B48FF),
+        elevation: 8,
+        icon: const Icon(Icons.campaign, color: Colors.white),
+        label: Text('GỬI THÔNG BÁO', style: GoogleFonts.chakraPetch(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+      ),
     );
   }
 
@@ -202,7 +220,7 @@ class _CustomerSegmentsScreenState extends State<CustomerSegmentsScreen> {
               IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back_ios, color: Colors.white)),
               const SizedBox(width: 8),
               Text(
-                'PHÂN CỤM KHÁCH HÀNG',
+                'CRM & KHÁCH HÀNG',
                 style: GoogleFonts.chakraPetch(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
               ),
               const Spacer(),

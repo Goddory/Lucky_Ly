@@ -7,6 +7,9 @@ import '../../app_theme.dart';
 import 'voucher_management_screen.dart';
 import 'student_verification_screen.dart';
 import 'customer_segments_screen.dart';
+import 'push_campaign_screen.dart';
+import 'loyalty_membership_screen.dart';
+import 'flash_sale_screen.dart';
 
 class MarketingDashboardScreen extends StatefulWidget {
   final String apiBaseUrl;
@@ -123,7 +126,7 @@ class _MarketingDashboardScreenState extends State<MarketingDashboardScreen> {
                                 _buildNavCard(
                                   context: context,
                                   title: 'Voucher & Flash Sale',
-                                  subtitle: 'Tạo thẻ cào, mã giảm giá',
+                                  subtitle: 'Tạo thẻ cào, mã giảm giá, Giờ vàng',
                                   icon: Icons.confirmation_number_outlined,
                                   color: Colors.orangeAccent,
                                   screen: VoucherManagementScreen(
@@ -134,8 +137,8 @@ class _MarketingDashboardScreenState extends State<MarketingDashboardScreen> {
                                 const SizedBox(height: 16),
                                 _buildNavCard(
                                   context: context,
-                                  title: 'Xác thực Sinh viên',
-                                  subtitle: 'Duyệt thẻ & Khuyến mãi HSSV',
+                                  title: 'Membership & Sinh viên',
+                                  subtitle: 'Hạng thẻ & Duyệt khuyến mãi HSSV',
                                   icon: Icons.school_outlined,
                                   color: Colors.lightGreenAccent,
                                   screen: StudentVerificationScreen(
@@ -146,8 +149,8 @@ class _MarketingDashboardScreenState extends State<MarketingDashboardScreen> {
                                 const SizedBox(height: 16),
                                 _buildNavCard(
                                   context: context,
-                                  title: 'Phân cụm Khách hàng',
-                                  subtitle: 'Phân tích AI & Behavior',
+                                  title: 'CRM & Khách hàng',
+                                  subtitle: 'Phân tích AI & Gửi siêu thông báo',
                                   icon: Icons.hub_outlined,
                                   color: Colors.cyanAccent,
                                   screen: CustomerSegmentsScreen(

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../app_theme.dart';
+import 'loyalty_membership_screen.dart';
 
 class StudentVerificationScreen extends StatefulWidget {
   final String apiBaseUrl;
@@ -88,10 +89,28 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen>
     return Scaffold(
       backgroundColor: theme.bg,
       appBar: AppBar(
-        title: const Text('Xác thực Sinh viên'),
+        title: const Text('Membership & Sinh viên'),
         backgroundColor: const Color(0xFF10B981),
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.workspace_premium, size: 28),
+            tooltip: 'Hạng thẻ Loyalty',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LoyaltyMembershipScreen(
+                    apiBaseUrl: widget.apiBaseUrl,
+                    accessToken: widget.accessToken,
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,

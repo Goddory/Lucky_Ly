@@ -178,7 +178,6 @@ class _MoMoPaymentFlow extends StatefulWidget {
 class _MoMoPaymentFlowState extends State<_MoMoPaymentFlow> {
   final TextEditingController _amountController = TextEditingController(text: '50000');
   bool _isLoading = false;
-  late AppTheme momoTheme;
 
   Future<void> _createAndOpenMoMo() async {
     final amountText = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -239,6 +238,7 @@ class _MoMoPaymentFlowState extends State<_MoMoPaymentFlow> {
 
   @override
   Widget build(BuildContext context) {
+    final momoTheme = AppTheme.of(context);
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
@@ -319,7 +319,6 @@ class _VNPayPaymentFlow extends StatefulWidget {
 class _VNPayPaymentFlowState extends State<_VNPayPaymentFlow> {
   final TextEditingController _amountController = TextEditingController(text: '50000');
   bool _isLoading = false;
-  late AppTheme vnpayTheme;
 
   Future<void> _createAndOpenVNPay() async {
     final amountText = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -369,6 +368,7 @@ class _VNPayPaymentFlowState extends State<_VNPayPaymentFlow> {
 
   @override
   Widget build(BuildContext context) {
+    final vnpayTheme = AppTheme.of(context);
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
@@ -449,7 +449,6 @@ class _ZaloPayPaymentFlow extends StatefulWidget {
 class _ZaloPayPaymentFlowState extends State<_ZaloPayPaymentFlow> {
   final TextEditingController _amountController = TextEditingController(text: '50000');
   bool _isLoading = false;
-  late AppTheme zaloTheme;
 
   Future<void> _createAndOpenZaloPay() async {
     final amountText = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -511,6 +510,7 @@ class _ZaloPayPaymentFlowState extends State<_ZaloPayPaymentFlow> {
 
   @override
   Widget build(BuildContext context) {
+    final zaloTheme = AppTheme.of(context);
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
