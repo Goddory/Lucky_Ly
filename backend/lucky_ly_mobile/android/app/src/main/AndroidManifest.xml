@@ -2,6 +2,9 @@
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Declare AR optional: device can install app even without ARCore support -->
+    <uses-feature android:name="android.hardware.camera.ar" android:required="false" />
+
 
     <application
         android:label="@string/app_name"

@@ -1042,6 +1042,7 @@ class _AuthScreenState extends State<AuthScreen>
     final fullName = email.split('@').first;
 
     setState(() => isSubmitting = true);
+    _showMessage('Đang kết nối server, vui lòng chờ...', isError: false);
     try {
       final response = await http
           .post(
@@ -1055,7 +1056,7 @@ class _AuthScreenState extends State<AuthScreen>
               ..._buildDeviceInfo(),
             }),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 90));
 
       final body = _safeDecodeMap(response.body);
 
@@ -1070,10 +1071,12 @@ class _AuthScreenState extends State<AuthScreen>
         await _saveAccount(email);
         await _navigateToHome(body);
       } else {
-        _showMessage(body['message']?.toString() ?? 'Sign up failed.');
+        _showMessage(body['message']?.toString() ?? 'Đăng ký thất bại.');
       }
+    } on TimeoutException {
+      _showMessage('Server đang khởi động (Render cold start), vui lòng thử lại sau 30 giây.');
     } catch (_) {
-      _showMessage('Cannot connect to server. Check API_BASE_URL.');
+      _showMessage('Không thể kết nối server. Kiểm tra mạng hoặc thử lại.');
     } finally {
       if (mounted) setState(() => isSubmitting = false);
     }
@@ -1089,6 +1092,7 @@ class _AuthScreenState extends State<AuthScreen>
     }
 
     setState(() => isSubmitting = true);
+    _showMessage('Đang kết nối server, vui lòng chờ...', isError: false);
     try {
       final response = await http
           .post(
@@ -1100,7 +1104,7 @@ class _AuthScreenState extends State<AuthScreen>
               ..._buildDeviceInfo(),
             }),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 90));
 
       final body = _safeDecodeMap(response.body);
 
@@ -1115,10 +1119,12 @@ class _AuthScreenState extends State<AuthScreen>
         await _saveAccount(login);
         await _navigateToHome(body);
       } else {
-        _showMessage(body['message']?.toString() ?? 'Sign in failed.');
+        _showMessage(body['message']?.toString() ?? 'Đăng nhập thất bại.');
       }
+    } on TimeoutException {
+      _showMessage('Server đang khởi động (Render cold start), vui lòng thử lại sau 30 giây.');
     } catch (_) {
-      _showMessage('Cannot connect to server. Check API_BASE_URL.');
+      _showMessage('Không thể kết nối server. Kiểm tra mạng hoặc thử lại.');
     } finally {
       if (mounted) setState(() => isSubmitting = false);
     }
@@ -1261,7 +1267,7 @@ class _AuthScreenState extends State<AuthScreen>
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'idToken': idToken, ..._buildDeviceInfo()}),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 90));
 
       final body = _safeDecodeMap(response.body);
 
