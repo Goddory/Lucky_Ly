@@ -1231,7 +1231,7 @@ class _FeatureTile extends StatelessWidget {
               ),
               child: Center(
                 child: feature.assetPath != null
-                    ? Image.asset(feature.assetPath!, width: 24, height: 24, fit: BoxFit.contain)
+                    ? Image.asset(feature.assetPath!, width: 24, height: 24, fit: BoxFit.contain, color: feature.color)
                     : Icon(feature.icon ?? Icons.error, color: feature.color, size: 24),
               ),
             ),
