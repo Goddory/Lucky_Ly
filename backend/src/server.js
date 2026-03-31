@@ -13,16 +13,16 @@ async function start() {
     console.log('✅ Connected to Neon PostgreSQL successfully');
 
     // MongoDB (optional)
-    try {
-      const mongoResult = await connectMongo();
-      if (mongoResult?.connected) {
-        console.log('✅ Connected to MongoDB successfully');
-      } else {
-        console.error(`⚠️ MongoDB Connection Failed (Proceeding without Mongo): ${mongoResult?.reason || 'unknown reason'}`);
-      }
-    } catch (e) {
-      console.error('⚠️ MongoDB Connection Failed (Proceeding without Mongo):', e?.message || e);
-    }
+    // try {
+    //   const mongoResult = await connectMongo();
+    //   if (mongoResult?.connected) {
+    //     console.log('✅ Connected to MongoDB successfully');
+    //   } else {
+    //     console.error(`⚠️ MongoDB Connection Failed (Proceeding without Mongo): ${mongoResult?.reason || 'unknown reason'}`);
+    //   }
+    // } catch (e) {
+    //   console.error('⚠️ MongoDB Connection Failed (Proceeding without Mongo):', e?.message || e);
+    // }
     
     // Firebase Admin SDK (optional, for push notifications)
     initFirebase();

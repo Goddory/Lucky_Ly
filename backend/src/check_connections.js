@@ -264,7 +264,7 @@ async function main() {
   const results = [];
   results.push(await runCheck('SQLite', checkSqlite));
   results.push(await runCheck('PostgreSQL', checkPostgres));
-  results.push(await runCheck('MongoDB', checkMongo));
+  // results.push(await runCheck('MongoDB', checkMongo));
   results.push(await runCheck('SendGrid', checkSendGrid));
 
   const failed = results.filter((item) => !item.ok);

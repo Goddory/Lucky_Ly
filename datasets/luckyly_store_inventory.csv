@@ -1,0 +1,21 @@
+item_id,item_name,category,effect_type,price_vnd,created_by,total_created,total_sold,total_revenue,created_date,last_sold_date,is_active
+ITEM001,Thiệp Chúc Mừng Sinh Nhật,Thiệp,sparkle,25000,store_lylyly,500,387,9675000,2025-01-01,2025-03-25,true
+ITEM002,Thiệp Valentine,Thiệp,heart_float,30000,store_lylyly,350,298,8940000,2025-01-15,2025-03-24,true
+ITEM003,Thiệp Tết Nguyên Đán,Thiệp,firework,35000,store_lylyly,400,356,12460000,2025-01-01,2025-02-15,true
+ITEM004,Hoa Hồng Virtual,Hoa,glow,45000,store_lylyly,800,672,30240000,2025-01-01,2025-03-26,true
+ITEM005,Hoa Tulip AR,Hoa,shimmer,50000,store_lylyly,200,134,6700000,2025-02-01,2025-03-20,true
+ITEM006,Bó Hoa Hướng Dương,Hoa,sunshine,55000,store_lylyly,250,178,9790000,2025-02-10,2025-03-22,true
+ITEM007,Gấu Bông AR,Thú Nhồi Bông,bounce,120000,store_lylyly,150,112,13440000,2025-01-01,2025-03-25,true
+ITEM008,Mèo May Mắn AR,Thú Nhồi Bông,wave,95000,store_lylyly,100,67,6365000,2025-01-20,2025-03-18,true
+ITEM009,Socola Virtual Box,Socola,unwrap,65000,store_lylyly,300,245,15925000,2025-01-01,2025-03-26,true
+ITEM010,Socola Heart Premium,Socola,pulse,85000,store_lylyly,180,134,11390000,2025-02-01,2025-03-20,true
+ITEM011,Pháo Hoa 3D Effect,Hiệu Ứng,explosion,35000,store_lylyly,600,478,16730000,2025-01-01,2025-03-26,true
+ITEM012,Confetti Rain Effect,Hiệu Ứng,rain,25000,store_lylyly,400,289,7225000,2025-01-15,2025-03-23,true
+ITEM013,Sparkle Glow Effect,Hiệu Ứng,sparkle,30000,store_lylyly,350,267,8010000,2025-01-20,2025-03-24,true
+ITEM014,Vương Miện AR,Phụ Kiện,shine,85000,store_lylyly,80,45,3825000,2025-02-01,2025-03-15,true
+ITEM015,Nhẫn AR Magic,Phụ Kiện,rotate,150000,store_lylyly,60,38,5700000,2025-02-14,2025-03-22,true
+ITEM016,Bóng Bay Virtual,Trang Trí,float,15000,store_lylyly,1000,756,11340000,2025-01-01,2025-03-26,true
+ITEM017,Banner Chúc Mừng,Trang Trí,wave,20000,store_lylyly,500,345,6900000,2025-01-10,2025-03-21,true
+ITEM018,Đèn Lồng AR,Trang Trí,glow,40000,store_lylyly,200,167,6680000,2025-01-01,2025-02-20,true
+ITEM019,Bánh Kem Virtual 3D,Bánh,candle_blow,75000,store_lylyly,180,145,10875000,2025-01-01,2025-03-25,true
+ITEM020,Cupcake Dễ Thương,Bánh,sprinkle,35000,store_lylyly,250,198,6930000,2025-01-20,2025-03-24,true
