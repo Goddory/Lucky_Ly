@@ -44,7 +44,7 @@ class AdminDashboardScreen extends StatelessWidget {
                     context: context,
                     title: 'Quản lý Người dùng',
                     subtitle: 'Xem danh sách, khóa/mở khóa tài khoản',
-                    icon: Icons.people_alt_outlined,
+                    assetPath: 'assets/icons/ic_admin_users.png',
                     color: const Color(0xFF0EA5D8),
                     onTap: () => Navigator.push(
                       context,
@@ -61,7 +61,7 @@ class AdminDashboardScreen extends StatelessWidget {
                     context: context,
                     title: 'Báo cáo và Thống kê',
                     subtitle: 'Theo dõi lưu lượng truy cập và giao dịch',
-                    icon: Icons.analytics_outlined,
+                    assetPath: 'assets/icons/ic_admin_stats.png',
                     color: const Color(0xFF10B981),
                     onTap: () => Navigator.push(
                       context,
@@ -78,7 +78,7 @@ class AdminDashboardScreen extends StatelessWidget {
                     context: context,
                     title: 'Quản lý Giao diện',
                     subtitle: 'Đổi theme toàn hệ thống cho tất cả user',
-                    icon: Icons.color_lens_outlined,
+                    assetPath: 'assets/icons/ic_admin_theme.png',
                     color: const Color(0xFFF59E0B),
                     onTap: () => Navigator.push(
                       context,
@@ -95,7 +95,7 @@ class AdminDashboardScreen extends StatelessWidget {
                     context: context,
                     title: 'Marketing & Khuyến mãi',
                     subtitle: 'Voucher, Flash sale, Xác thực SV, Phân cụm KH',
-                    icon: Icons.campaign_outlined,
+                    assetPath: 'assets/icons/ic_admin_marketing.png',
                     color: const Color(0xFFEC4899),
                     onTap: () => Navigator.push(
                       context,
@@ -207,10 +207,8 @@ class AdminDashboardScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.shield_outlined,
-                      color: Color(0xFF0EA5D8),
-                      size: 32,
+                    child: Center(
+                      child: Image.asset('assets/icons/ic_admin_title.png', width: 32, height: 32, fit: BoxFit.contain),
                     ),
                   ),
                   const SizedBox(width: 20),
@@ -252,7 +250,8 @@ class AdminDashboardScreen extends StatelessWidget {
     required BuildContext context,
     required String title,
     required String subtitle,
-    required IconData icon,
+    IconData? icon,
+    String? assetPath,
     required Color color,
     required VoidCallback onTap,
   }) {
@@ -275,7 +274,9 @@ class AdminDashboardScreen extends StatelessWidget {
                 color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: color, size: 32),
+              child: assetPath != null
+                  ? Image.asset(assetPath!, width: 32, height: 32, fit: BoxFit.contain)
+                  : Icon(icon ?? Icons.error, color: color, size: 32),
             ),
             const SizedBox(width: 20),
             Expanded(

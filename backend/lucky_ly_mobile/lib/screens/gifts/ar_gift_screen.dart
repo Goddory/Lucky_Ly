@@ -384,23 +384,9 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
     arObjectManager = objectManager;
     arAnchorManager = anchorManager;
 
-    // Intercept native errors
-    arSessionManager!.onErrorCallback = (String error) {
-      if (!mounted) return;
-      if (error.toLowerCase().contains('session is null')) {
-        setState(() => isSupported = false);
-        _showErrorDialog(
-          'ARCore chưa sẵn sàng trên thiết bị.\n\n'
-          'Vui lòng cập nhật "Google Play Services for AR" trên Play Store.\n\nChi tiết: $error',
-        );
-      } else {
-        // Normal error (e.g. failed to add node, missing asset, etc.)
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Lỗi AR: $error'),
-          backgroundColor: Colors.redAccent,
-        ));
-      }
-    };
+    // Plugin ar_flutter_plugin (v0.7.3) doesn't support custom onErrorCallback. 
+    // It handles native errors directly by showing a SnackBar.
+    // Removed invalid onErrorCallback assignment here.
 
     try {
       arSessionManager!.onInitialize(

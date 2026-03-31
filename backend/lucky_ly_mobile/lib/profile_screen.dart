@@ -171,7 +171,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         child: Row(
           children: [
-            const Icon(Icons.visibility, color: Colors.blue),
+            Image.asset('assets/icons/ic_privacy.png', width: 24, height: 24, fit: BoxFit.contain),
             const SizedBox(width: 14),
             const Expanded(
               child: Column(
@@ -426,7 +426,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         child: Column(
           children: [
             _InfoRow(
-              icon: Icons.person_outline,
+              assetPath: 'assets/icons/ic_profile_name.png',
               label: 'Tên đầy đủ',
               value: fullName,
               isEditing: isEditing,
@@ -434,7 +434,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             _buildDivider(),
             _InfoRow(
-              icon: Icons.email_outlined,
+              assetPath: 'assets/icons/ic_profile_email.png',
               label: 'Email',
               value: email.isNotEmpty ? email : 'Chưa cập nhật',
               isEditing: isEditing && authProvider == 'local',
@@ -442,14 +442,14 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             _buildDivider(),
             _InfoRow(
-              icon: Icons.alternate_email,
+              assetPath: 'assets/icons/ic_profile_username.png',
               label: 'Username',
               value: username,
               isEditing: false,
             ),
             _buildDivider(),
             _InfoRow(
-              icon: Icons.image_outlined,
+              assetPath: 'assets/icons/ic_profile_avatar.png',
               label: 'Avatar URL',
               value: avatarUrl.isNotEmpty ? 'Đã cập nhật' : 'Chưa có',
               isEditing: isEditing,
@@ -457,7 +457,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             _buildDivider(),
             _InfoRow(
-              icon: Icons.security,
+              assetPath: 'assets/icons/ic_profile_auth.png',
               label: 'Phương thức đăng nhập',
               value: _providerLabel(authProvider),
               isEditing: false,
@@ -487,7 +487,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           children: [
             if (_isAdmin) ...[
               _SettingsTile(
-                icon: Icons.admin_panel_settings,
+                assetPath: 'assets/icons/ic_settings_admin.png',
                 label: 'Quản trị hệ thống',
                 color: const Color(0xFFEF4444),
                 onTap: () {
@@ -500,14 +500,14 @@ class _ProfileScreenState extends State<ProfileScreen>
               Divider(height: 1, indent: 56, color: Colors.grey.shade100),
             ],
             _SettingsTile(
-              icon: Icons.palette_outlined,
+              assetPath: 'assets/icons/ic_settings_theme.png',
               label: _isAdmin ? 'Quản lý giao diện hệ thống' : 'Xem giao diện hệ thống',
               color: AppTheme.of(context).primary,
               onTap: () => _showThemeBottomSheet(context),
             ),
             Divider(height: 1, indent: 56, color: Colors.grey.shade100),
             _SettingsTile(
-              icon: Icons.lock_outline,
+              assetPath: 'assets/icons/ic_settings_password.png',
               label: 'Đổi mật khẩu',
               color: const Color(0xFF0EA5D8),
               onTap: _showChangePasswordSheet,
@@ -515,7 +515,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             Divider(height: 1, indent: 56, color: Colors.grey.shade100),
             _SettingsTile(
-              icon: Icons.camera_front,
+              assetPath: 'assets/icons/ic_settings_avaturn.png',
               label: 'Tạo Model 3D (Avaturn)',
               color: const Color(0xFFE11D48),
               onTap: () {
@@ -527,7 +527,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             Divider(height: 1, indent: 56, color: Colors.grey.shade100),
             _SettingsTile(
-              icon: Icons.view_in_ar,
+              assetPath: 'assets/icons/ic_settings_3dmodel.png',
               label: 'Xem Model 3D của tôi',
               color: const Color(0xFF8B5CF6),
               onTap: () {
@@ -539,7 +539,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             Divider(height: 1, indent: 56, color: Colors.grey.shade100),
             _SettingsTile(
-              icon: Icons.sync,
+              assetPath: 'assets/icons/ic_settings_sync.png',
               label: 'Đồng bộ Đám mây',
               color: const Color(0xFF10B981),
               onTap: () async {
@@ -556,21 +556,21 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
             Divider(height: 1, indent: 56, color: Colors.grey.shade100),
             _SettingsTile(
-              icon: Icons.notifications_outlined,
+              assetPath: 'assets/icons/ic_settings_notifications.png',
               label: 'Thông báo',
               color: const Color(0xFFF59E0B),
               onTap: () => _showSnack('Chức năng đang phát triển'),
             ),
             Divider(height: 1, indent: 56, color: Colors.grey.shade100),
             _SettingsTile(
-              icon: Icons.help_outline,
+              assetPath: 'assets/icons/ic_settings_help.png',
               label: 'Trợ giúp & Hỗ trợ',
               color: const Color(0xFF10B981),
               onTap: () => _showSnack('Chức năng đang phát triển'),
             ),
             Divider(height: 1, indent: 56, color: Colors.grey.shade100),
             _SettingsTile(
-              icon: Icons.info_outline,
+              assetPath: 'assets/icons/ic_settings_info.png',
               label: 'Về Lucky Ly',
               color: const Color(0xFF8B5CF6),
               onTap: () => _showSnack('Lucky Ly v1.0.0'),
@@ -602,12 +602,12 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ],
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.logout, color: Color(0xFFEF4444), size: 22),
-              SizedBox(width: 10),
-              Text(
+              Image.asset('assets/icons/ic_logout.png', width: 22, height: 22, fit: BoxFit.contain),
+              const SizedBox(width: 10),
+              const Text(
                 'Đăng xuất',
                 style: TextStyle(
                   color: Color(0xFFEF4444),
@@ -1121,14 +1121,16 @@ class _ProfileScreenState extends State<ProfileScreen>
 // Row hiển thị thông tin hoặc input chỉnh sửa
 class _InfoRow extends StatelessWidget {
   const _InfoRow({
-    required this.icon,
+    this.icon,
+    this.assetPath,
     required this.label,
     required this.value,
     this.isEditing = false,
     this.controller,
   });
 
-  final IconData icon;
+  final IconData? icon;
+  final String? assetPath;
   final String label;
   final String value;
   final bool isEditing;
@@ -1147,7 +1149,11 @@ class _InfoRow extends StatelessWidget {
               color: const Color(0xFF0EA5D8).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: const Color(0xFF0EA5D8), size: 18),
+            child: Center(
+              child: assetPath != null
+                  ? Image.asset(assetPath!, width: 20, height: 20, fit: BoxFit.contain)
+                  : Icon(icon ?? Icons.error, color: const Color(0xFF0EA5D8), size: 18),
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -1212,14 +1218,16 @@ class _InfoRow extends StatelessWidget {
 // Tile cho phần Settings
 class _SettingsTile extends StatelessWidget {
   const _SettingsTile({
-    required this.icon,
+    this.icon,
+    this.assetPath,
     required this.label,
     required this.color,
     required this.onTap,
     this.enabled = true,
   });
 
-  final IconData icon;
+  final IconData? icon;
+  final String? assetPath;
   final String label;
   final Color color;
   final VoidCallback onTap;
@@ -1243,10 +1251,14 @@ class _SettingsTile extends StatelessWidget {
                   color: (enabled ? color : Colors.grey).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  icon,
-                  color: enabled ? color : Colors.grey,
-                  size: 20,
+                child: Center(
+                  child: assetPath != null
+                      ? Image.asset(assetPath!, width: 20, height: 20, fit: BoxFit.contain)
+                      : Icon(
+                          icon ?? Icons.error,
+                          color: enabled ? color : Colors.grey,
+                          size: 20,
+                        ),
                 ),
               ),
               const SizedBox(width: 14),

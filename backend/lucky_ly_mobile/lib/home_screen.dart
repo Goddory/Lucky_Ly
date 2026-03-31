@@ -611,18 +611,18 @@ class _LuckyHeader extends StatelessWidget {
           Row(
             children: [
               _HeaderIconBtn(
-                icon: Icons.card_giftcard_outlined,
+                assetPath: 'assets/icons/ic_gift.png',
                 onTap: onGiftTap,
               ),
               const SizedBox(width: 8),
               _HeaderIconBtn(
-                icon: Icons.notifications_outlined,
+                assetPath: 'assets/icons/ic_notification.png',
                 badge: unreadNotifsCount,
                 onTap: onNotifTap,
               ),
               const SizedBox(width: 8),
               _HeaderIconBtn(
-                icon: Icons.chat_bubble_outline,
+                assetPath: 'assets/icons/ic_chat.png',
                 onTap: onChatTap,
               ),
             ],
@@ -634,9 +634,10 @@ class _LuckyHeader extends StatelessWidget {
 }
 
 class _HeaderIconBtn extends StatelessWidget {
-  const _HeaderIconBtn({required this.icon, this.badge = 0, this.onTap});
+  const _HeaderIconBtn({this.icon, this.assetPath, this.badge = 0, this.onTap});
 
-  final IconData icon;
+  final IconData? icon;
+  final String? assetPath;
   final int badge;
   final VoidCallback? onTap;
 
@@ -654,7 +655,11 @@ class _HeaderIconBtn extends StatelessWidget {
               color: const Color(0xFF952CB1).withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: const Color(0xFF952CB1), size: 22),
+            child: Center(
+              child: assetPath != null
+                  ? Image.asset(assetPath!, width: 26, height: 26, fit: BoxFit.contain)
+                  : Icon(icon ?? Icons.error, color: const Color(0xFF952CB1), size: 22),
+            ),
           ),
           if (badge > 0)
             Positioned(
@@ -786,12 +791,12 @@ class _QuickActionsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final actions = [
-      _ActionDef(Icons.photo_camera_outlined, 'CAMERA', onCameraTap),
+      _ActionDef(assetPath: 'assets/icons/ic_camera.png', label: 'CAMERA', onTap: onCameraTap),
       if (onTransactionTap != null)
-        _ActionDef(Icons.swap_horiz_rounded, 'GIAO DỊCH', onTransactionTap),
-      _ActionDef(Icons.calendar_today_outlined, 'LỊCH', onCalendarTap),
-      _ActionDef(Icons.group_outlined, 'BẠN BÈ', onFriendsTap),
-      _ActionDef(Icons.auto_awesome_mosaic_outlined, 'STUDIO', onStudioTap),
+        _ActionDef(assetPath: 'assets/icons/ic_transaction.png', label: 'GIAO DỊCH', onTap: onTransactionTap),
+      _ActionDef(assetPath: 'assets/icons/ic_calendar.png', label: 'LỊCH', onTap: onCalendarTap),
+      _ActionDef(assetPath: 'assets/icons/ic_friends.png', label: 'BẠN BÈ', onTap: onFriendsTap),
+      _ActionDef(assetPath: 'assets/icons/ic_studio.png', label: 'STUDIO', onTap: onStudioTap),
     ];
 
     return Row(
@@ -819,8 +824,11 @@ class _QuickActionsRow extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: Icon(a.icon,
-                          color: const Color(0xFF952CB1), size: 26),
+                      child: Center(
+                        child: a.assetPath != null
+                            ? Image.asset(a.assetPath!, width: 34, height: 34, fit: BoxFit.contain)
+                            : Icon(a.icon ?? Icons.error, color: const Color(0xFF952CB1), size: 26),
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -841,10 +849,11 @@ class _QuickActionsRow extends StatelessWidget {
 }
 
 class _ActionDef {
-  final IconData icon;
+  final IconData? icon;
+  final String? assetPath;
   final String label;
   final VoidCallback? onTap;
-  const _ActionDef(this.icon, this.label, this.onTap);
+  const _ActionDef({this.icon, this.assetPath, required this.label, this.onTap});
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -961,17 +970,17 @@ class _WalletAndCelebrateSection extends StatelessWidget {
               const SizedBox(height: 24),
               Row(
                 children: [
-                  _WalletActionBtn('Nạp tiền', Icons.add_circle_outline, onTap: () async {
+                  _WalletActionBtn('Nạp tiền', assetPath: 'assets/icons/ic_topup.png', onTap: () async {
                     await showTopUpSheet(context);
                     onRefresh();
                   }),
                   const SizedBox(width: 12),
-                  _WalletActionBtn('Rút tiền', Icons.remove_circle_outline, onTap: () async {
+                  _WalletActionBtn('Rút tiền', assetPath: 'assets/icons/ic_withdraw.png', onTap: () async {
                     await showWithdrawSheet(context);
                     onRefresh();
                   }),
                   const SizedBox(width: 12),
-                  _WalletActionBtn('Chuyển', Icons.swap_horiz_rounded, onTap: () async {
+                  _WalletActionBtn('Chuyển', assetPath: 'assets/icons/ic_transfer.png', onTap: () async {
                     await showTransferSheet(context);
                     onRefresh();
                   }),
@@ -1058,8 +1067,9 @@ class _WalletAndCelebrateSection extends StatelessWidget {
                     ),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.card_giftcard,
-                      size: 32, color: Color(0xFF952CB1)),
+                  child: Center(
+                    child: Image.asset('assets/icons/ic_celebrate_box.png', width: 40, height: 40, fit: BoxFit.contain),
+                  ),
                 ),
               ],
             ),
@@ -1071,10 +1081,11 @@ class _WalletAndCelebrateSection extends StatelessWidget {
 }
 
 class _WalletActionBtn extends StatelessWidget {
-  const _WalletActionBtn(this.label, this.icon, {this.onTap});
+  const _WalletActionBtn(this.label, {this.icon, this.assetPath, this.onTap});
 
   final String label;
-  final IconData icon;
+  final IconData? icon;
+  final String? assetPath;
   final VoidCallback? onTap;
 
   @override
@@ -1091,7 +1102,9 @@ class _WalletActionBtn extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: Colors.white, size: 14),
+            assetPath != null
+                ? Image.asset(assetPath!, width: 16, height: 16, fit: BoxFit.contain)
+                : Icon(icon ?? Icons.error, color: Colors.white, size: 14),
             const SizedBox(width: 5),
             Text(
               label,
@@ -1128,36 +1141,36 @@ class _FeatureGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final features = <_FeatureDef>[
       _FeatureDef(
-        Icons.person_add_alt_1,
-        'Tạo Avatar',
-        const Color(0xFF952CB1),
-        onAvatarTap,
+        assetPath: 'assets/icons/ic_grid_avatar.png',
+        title: 'Tạo Avatar',
+        color: const Color(0xFF952CB1),
+        onTap: onAvatarTap,
       ),
       if (isMarketing)
         _FeatureDef(
-          Icons.campaign_outlined,
-          'Marketing\nHub',
-          const Color(0xFFBE004C),
-          onMarketingTap,
+          assetPath: 'assets/icons/ic_admin_marketing.png',
+          title: 'Marketing\nHub',
+          color: const Color(0xFFBE004C),
+          onTap: onMarketingTap,
         ),
       _FeatureDef(
-        Icons.payments_outlined,
-        'Thanh toán',
-        const Color(0xFFBD0055),
-        onPaymentTap,
+        assetPath: 'assets/icons/ic_grid_payment.png', // Thanh toán
+        title: 'Thanh toán',
+        color: const Color(0xFFBD0055),
+        onTap: onPaymentTap,
       ),
       _FeatureDef(
-        Icons.receipt_long_outlined,
-        'Hóa đơn',
-        const Color(0xFF7C3AED),
-        null,
+        assetPath: 'assets/icons/ic_grid_invoice.png', // Hóa đơn
+        title: 'Hóa đơn',
+        color: const Color(0xFF7C3AED),
+        onTap: null,
       ),
       if (!isMarketing)
         _FeatureDef(
-          Icons.grid_view_rounded,
-          'Thêm',
-          const Color(0xFF94A3B8),
-          null,
+          assetPath: 'assets/icons/ic_grid_more.png', // Thêm
+          title: 'Thêm',
+          color: const Color(0xFF94A3B8),
+          onTap: null,
         ),
     ];
 
@@ -1174,11 +1187,12 @@ class _FeatureGrid extends StatelessWidget {
 }
 
 class _FeatureDef {
-  final IconData icon;
+  final IconData? icon;
+  final String? assetPath;
   final String title;
   final Color color;
   final VoidCallback? onTap;
-  const _FeatureDef(this.icon, this.title, this.color, this.onTap);
+  const _FeatureDef({this.icon, this.assetPath, required this.title, required this.color, this.onTap});
 }
 
 class _FeatureTile extends StatelessWidget {
@@ -1215,7 +1229,11 @@ class _FeatureTile extends StatelessWidget {
                 color: feature.color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(feature.icon, color: feature.color, size: 24),
+              child: Center(
+                child: feature.assetPath != null
+                    ? Image.asset(feature.assetPath!, width: 24, height: 24, fit: BoxFit.contain)
+                    : Icon(feature.icon ?? Icons.error, color: feature.color, size: 24),
+              ),
             ),
             const SizedBox(height: 10),
             Text(
@@ -1495,12 +1513,12 @@ class _LuckyBottomNav extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _NavItem(
-                icon: Icons.home_filled,
+                assetPath: 'assets/icons/ic_nav_home.png',
                 label: 'Trang chủ',
                 isActive: currentTab == 0,
                 onTap: () => onTabChanged(0)),
             _NavItem(
-                icon: Icons.local_offer_outlined,
+                assetPath: 'assets/icons/ic_nav_offers.png',
                 label: 'Ưu đãi',
                 isActive: currentTab == 1,
                 onTap: () => onTabChanged(1)),
@@ -1526,11 +1544,11 @@ class _LuckyBottomNav extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Column(
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.camera_alt, color: Colors.white, size: 24),
-                    Text(
+                    Image.asset('assets/icons/ic_nav_camera.png', width: 24, height: 24, fit: BoxFit.contain),
+                    const Text(
                       'Camera',
                       style: TextStyle(
                           color: Colors.white,
@@ -1543,12 +1561,12 @@ class _LuckyBottomNav extends StatelessWidget {
             ),
 
             _NavItem(
-                icon: Icons.history_rounded,
+                assetPath: 'assets/icons/ic_nav_history.png',
                 label: 'Lịch sử',
                 isActive: currentTab == 3,
                 onTap: () => onTabChanged(3)),
             _NavItem(
-                icon: Icons.person_outline_rounded,
+                assetPath: 'assets/icons/ic_nav_me.png',
                 label: 'Tôi',
                 isActive: currentTab == 4,
                 onTap: () => onTabChanged(4)),
@@ -1561,13 +1579,15 @@ class _LuckyBottomNav extends StatelessWidget {
 
 class _NavItem extends StatelessWidget {
   const _NavItem({
-    required this.icon,
+    this.icon,
+    this.assetPath,
     required this.label,
     required this.isActive,
     required this.onTap,
   });
 
-  final IconData icon;
+  final IconData? icon;
+  final String? assetPath;
   final String label;
   final bool isActive;
   final VoidCallback onTap;
@@ -1589,13 +1609,24 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: isActive
-                  ? const Color(0xFF952CB1)
-                  : const Color(0xFFC084FC),
-              size: 24,
-            ),
+            if (assetPath != null)
+              Image.asset(
+                assetPath!,
+                width: 24,
+                height: 24,
+                fit: BoxFit.contain,
+                color: isActive
+                    ? const Color(0xFF952CB1)
+                    : const Color(0xFFC084FC),
+              )
+            else
+              Icon(
+                icon ?? Icons.error,
+                color: isActive
+                    ? const Color(0xFF952CB1)
+                    : const Color(0xFFC084FC),
+                size: 24,
+              ),
             const SizedBox(height: 2),
             Text(
               label,
@@ -1744,7 +1775,7 @@ class _AdminGrid extends StatelessWidget {
       children: [
         _AdminCard(
           title: 'Quản lý\nNgười dùng',
-          icon: Icons.face_retouching_natural,
+          assetPath: 'assets/icons/ic_admin_users.png',
           color: const Color(0xFF9D3ACE),
           onTap: () => Navigator.push(
             context,
@@ -1758,7 +1789,7 @@ class _AdminGrid extends StatelessWidget {
         ),
         _AdminCard(
           title: 'Báo cáo và\nThống kê',
-          icon: Icons.hub_outlined,
+          assetPath: 'assets/icons/ic_admin_stats.png',
           color: const Color(0xFFC0065B),
           onTap: () => Navigator.push(
             context,
@@ -1772,7 +1803,7 @@ class _AdminGrid extends StatelessWidget {
         ),
         _AdminCard(
           title: 'Quản lý\nGiao diện',
-          icon: Icons.payments_outlined,
+          assetPath: 'assets/icons/ic_admin_theme.png',
           color: const Color(0xFFC0065B),
           onTap: () => Navigator.push(
             context,
@@ -1786,7 +1817,7 @@ class _AdminGrid extends StatelessWidget {
         ),
         _AdminCard(
           title: 'Marketing &\nKhuyến mãi',
-          icon: Icons.receipt_long_outlined,
+          assetPath: 'assets/icons/ic_admin_marketing.png',
           color: const Color(0xFF7C3AED),
           onTap: () => Navigator.push(
             context,
@@ -1806,13 +1837,15 @@ class _AdminGrid extends StatelessWidget {
 class _AdminCard extends StatelessWidget {
   const _AdminCard({
     required this.title,
-    required this.icon,
+    this.icon,
+    this.assetPath,
     required this.color,
     required this.onTap,
   });
 
   final String title;
-  final IconData icon;
+  final IconData? icon;
+  final String? assetPath;
   final Color color;
   final VoidCallback onTap;
 
@@ -1846,7 +1879,11 @@ class _AdminCard extends StatelessWidget {
                 color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 26),
+              child: Center(
+                child: assetPath != null
+                    ? Image.asset(assetPath!, width: 32, height: 32, fit: BoxFit.contain)
+                    : Icon(icon ?? Icons.error, color: color, size: 26),
+              ),
             ),
             const SizedBox(height: 12),
             Text(

@@ -228,10 +228,8 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.people_alt_outlined,
-                      color: Color(0xFF0EA5D8),
-                      size: 32,
+                    child: Center(
+                      child: Image.asset('assets/icons/ic_admin_users.png', width: 32, height: 32, fit: BoxFit.contain),
                     ),
                   ),
                   const SizedBox(width: 20),

@@ -241,7 +241,9 @@ class _MarketingDashboardScreenState extends State<MarketingDashboardScreen> {
                   shape: BoxShape.circle,
                   boxShadow: [BoxShadow(color: primary.withValues(alpha: 0.2), blurRadius: 16, spreadRadius: 4)],
                 ),
-                child: const Icon(Icons.campaign_outlined, color: Colors.white, size: 32),
+                child: Center(
+                  child: Image.asset('assets/icons/ic_admin_marketing.png', width: 32, height: 32, fit: BoxFit.contain),
+                ),
               ),
               const SizedBox(width: 20),
               const Expanded(

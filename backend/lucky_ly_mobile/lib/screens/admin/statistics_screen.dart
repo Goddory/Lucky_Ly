@@ -782,7 +782,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> with SingleTickerPr
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.analytics_outlined, color: Color(0xFF10B981), size: 32),
+                    child: Center(
+                      child: Image.asset('assets/icons/ic_admin_stats.png', width: 32, height: 32, fit: BoxFit.contain),
+                    ),
                   ),
                   const SizedBox(width: 20),
                   const Expanded(
