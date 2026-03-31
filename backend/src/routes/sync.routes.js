@@ -6,7 +6,8 @@ const router = Router();
 
 router.use(requireAuth);
 
-router.post('/push', pushSyncData);
-router.get('/pull', pullSyncData);
+router.post('/push/:type', pushSyncData);
+router.get('/pull/all', pullSyncData);
+router.get('/pull/:type', pullSyncData); // fallback or single type if needed
 
 export default router;

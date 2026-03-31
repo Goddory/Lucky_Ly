@@ -959,23 +959,27 @@ class _WalletAndCelebrateSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  _WalletActionBtn('Nạp tiền', Icons.add_circle_outline, onTap: () async {
-                    await showTopUpSheet(context);
-                    onRefresh();
-                  }),
-                  const SizedBox(width: 12),
-                  _WalletActionBtn('Rút tiền', Icons.remove_circle_outline, onTap: () async {
-                    await showWithdrawSheet(context);
-                    onRefresh();
-                  }),
-                  const SizedBox(width: 12),
-                  _WalletActionBtn('Chuyển', Icons.swap_horiz_rounded, onTap: () async {
-                    await showTransferSheet(context);
-                    onRefresh();
-                  }),
-                ],
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [
+                    _WalletActionBtn('Nạp tiền', Icons.add_circle_outline, onTap: () async {
+                      await showTopUpSheet(context);
+                      onRefresh();
+                    }),
+                    const SizedBox(width: 12),
+                    _WalletActionBtn('Rút tiền', Icons.remove_circle_outline, onTap: () async {
+                      await showWithdrawSheet(context);
+                      onRefresh();
+                    }),
+                    const SizedBox(width: 12),
+                    _WalletActionBtn('Chuyển', Icons.swap_horiz_rounded, onTap: () async {
+                      await showTransferSheet(context);
+                      onRefresh();
+                    }),
+                  ],
+                ),
               ),
             ],
           ),

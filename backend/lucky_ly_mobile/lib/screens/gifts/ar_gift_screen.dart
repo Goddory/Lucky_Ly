@@ -498,11 +498,11 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
       }
       _time += 0.05;
 
-      double rotY = _time * 0.8;
-      double wobbleX = math.sin(_time * 1.5) * 0.08;
+      double rotX = _time * 0.8;
+      double wobbleY = math.sin(_time * 1.5) * 0.08;
       double wobbleZ = math.cos(_time * 2.0) * 0.06;
 
-      final q = vector.Quaternion.euler(wobbleX, rotY, wobbleZ);
+      final q = vector.Quaternion.euler(rotX, wobbleY, wobbleZ);
       final transform = vector.Matrix4.compose(
         vector.Vector3(0, 0, 0),
         q,
