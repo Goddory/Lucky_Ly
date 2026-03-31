@@ -1,10 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/foundation.dart';
 import '../../providers/store_provider.dart';
-import '../../app_theme.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -14,9 +13,6 @@ class InventoryScreen extends StatefulWidget {
 }
 
 class _InventoryScreenState extends State<InventoryScreen> {
-  final softPinkBg = const Color(0xFFFFF0F3);
-  final accentPink = const Color(0xFFFF758F);
-
   @override
   void initState() {
     super.initState();
@@ -30,35 +26,196 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final store = context.watch<StoreProvider>();
     final inventory = store.inventory;
 
+    // Tính toán tổng giá trị kho tạm thời một cách an toàn
+    double totalValue = 0;
+    for (var item in inventory) {
+      final priceRaw = item['price'];
+      if (priceRaw is num) {
+        totalValue += priceRaw.toDouble();
+      } else if (priceRaw is String) {
+        totalValue += double.tryParse(priceRaw) ?? 0;
+      }
+    }
+
     return Scaffold(
-      backgroundColor: softPinkBg,
-      appBar: AppBar(
-        title: Text('Kho vật phẩm', style: GoogleFonts.comfortaa(color: accentPink, fontWeight: FontWeight.w900)),
-        backgroundColor: softPinkBg,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: IconThemeData(color: accentPink),
-      ),
-      body: RefreshIndicator(
-        onRefresh: () => store.fetchInventory(),
-        child: store.isLoading && inventory.isEmpty
-            ? Center(child: CircularProgressIndicator(color: accentPink))
-            : inventory.isEmpty
-                ? const _EmptyInventory()
-                : ListView.separated(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: inventory.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 16),
-                    itemBuilder: (context, index) {
-                      final item = inventory[index];
-                      return _InventoryItemTile(item: item, accentPink: accentPink);
-                    },
+      body: Stack(
+        children: [
+          // Main Scrollable Content
+          CustomScrollView(
+            slivers: [
+              _buildAppBar(context),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInventorySummaryCard(totalValue, inventory.length),
+                      const SizedBox(height: 24),
+                      if (store.isLoading && inventory.isEmpty)
+                        const Center(child: CircularProgressIndicator(color: Color(0xFF8F2BAD)))
+                      else if (inventory.isEmpty)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.only(top: 40),
+                            child: Text('Kho đang trống', style: TextStyle(color: Colors.grey)),
+                          ),
+                        )
+                      else
+                        _buildInventoryList(inventory, context),
+                    ],
                   ),
+                ),
+              ),
+            ],
+          ),
+
+          // Floating Action Button (FAB)
+          Positioned(
+            bottom: 100,
+            right: 24,
+            child: _buildFloatingActionButton(context),
+          ),
+
+          // Floating Bottom Navigation Bar
+          Positioned(
+            bottom: 24,
+            left: 20,
+            right: 20,
+            child: _buildFloatingBottomNav(),
+          ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showItemDialog(context),
-        backgroundColor: accentPink,
-        child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
+    );
+  }
+
+  SliverAppBar _buildAppBar(BuildContext context) {
+    return SliverAppBar(
+      backgroundColor: const Color(0xFFFBF5F8),
+      pinned: true,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Color(0xFF8F2BAD)),
+        onPressed: () => Navigator.pop(context),
+      ),
+      title: const Text(
+        'Kho vật phẩm',
+        style: TextStyle(
+          fontFamily: 'Plus Jakarta Sans',
+          fontWeight: FontWeight.bold,
+          color: Color(0xFF8F2BAD),
+        ),
+      ),
+      centerTitle: false,
+    );
+  }
+
+  Widget _buildInventorySummaryCard(double totalValue, int count) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF8F2BAD), Color(0xFFE37CFF)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8F2BAD).withOpacity(0.15),
+            blurRadius: 40,
+            offset: const Offset(0, 20),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Tổng giá trị kho',
+            style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${totalValue.toStringAsFixed(0)}đ',
+            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800, fontFamily: 'Plus Jakarta Sans'),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _buildGlassPill('$count Vật phẩm'),
+              const SizedBox(width: 8),
+              _buildGlassPill('Cập nhật ngay'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGlassPill(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  Widget _buildInventoryList(List<dynamic> inventory, BuildContext context) {
+    return Column(
+      children: inventory.map((item) {
+        final category = item['category'] ?? 'Vật phẩm';
+        final is3D = category.toString().contains('3D') || category.toString().contains('Model');
+        
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: InventoryItemCard(
+            item: item,
+            category: category,
+            title: item['item_name'] ?? 'Không tên',
+            price: '${item['price']}đ',
+            icon: is3D ? Icons.view_in_ar : Icons.stars_rounded,
+            iconColor: is3D ? const Color(0xFF8F2BAD) : const Color(0xFFB70049),
+            iconBgColor: is3D ? const Color(0xFFE37CFF).withOpacity(0.3) : const Color(0xFFFFC2CA),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildFloatingActionButton(BuildContext context) {
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          begin: Alignment.bottomLeft,
+          end: Alignment.topRight,
+          colors: [Color(0xFF8F2BAD), Color(0xFFE37CFF)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8F2BAD).withOpacity(0.3),
+            blurRadius: 32,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(32),
+          onTap: () => _showItemDialog(context),
+          child: const Icon(Icons.add, color: Colors.white, size: 32),
+        ),
       ),
     );
   }
@@ -69,25 +226,95 @@ class _InventoryScreenState extends State<InventoryScreen> {
       builder: (context) => _ItemFormDialog(item: item),
     );
   }
+
+  Widget _buildFloatingBottomNav() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(40),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.8),
+            borderRadius: BorderRadius.circular(40),
+            boxShadow: [
+              BoxShadow(color: const Color(0xFF302E30).withOpacity(0.06), blurRadius: 24, offset: const Offset(0, 8)),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(Icons.dashboard, 'Dashboard', false),
+              _buildNavItem(Icons.inventory_2, 'Inventory', true),
+              _buildNavItem(Icons.shopping_bag, 'Orders', false),
+              _buildNavItem(Icons.insights, 'Insights', false),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, bool isActive) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          decoration: BoxDecoration(
+            color: isActive ? const Color(0xFFE37CFF).withOpacity(0.2) : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Icon(
+            icon,
+            color: isActive ? const Color(0xFF8F2BAD) : const Color(0xFFB0ACAF),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: isActive ? const Color(0xFF8F2BAD) : const Color(0xFFB0ACAF),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
-class _InventoryItemTile extends StatelessWidget {
+class InventoryItemCard extends StatelessWidget {
   final Map<String, dynamic> item;
-  final Color accentPink;
+  final String category;
+  final String title;
+  final String price;
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBgColor;
 
-  const _InventoryItemTile({required this.item, required this.accentPink});
+  const InventoryItemCard({
+    super.key,
+    required this.item,
+    required this.category,
+    required this.title,
+    required this.price,
+    required this.icon,
+    required this.iconColor,
+    required this.iconBgColor,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 15,
+            color: const Color(0xFF302E30).withOpacity(0.04),
+            blurRadius: 24,
             offset: const Offset(0, 8),
           ),
         ],
@@ -95,45 +322,83 @@ class _InventoryItemTile extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 70,
-            height: 70,
+            width: 64,
+            height: 64,
             decoration: BoxDecoration(
-              color: accentPink.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
+              color: iconBgColor,
+              shape: BoxShape.circle,
             ),
-            child: Icon(Icons.stars_rounded, color: accentPink, size: 32),
+            child: Icon(icon, color: iconColor, size: 32),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item['item_name'] ?? 'Không tên',
-                  style: GoogleFonts.comfortaa(color: const Color(0xFF2B2D42), fontSize: 16, fontWeight: FontWeight.w900),
+                  category.toUpperCase(),
+                  style: TextStyle(
+                    color: iconColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${item['category']} • ${item['price']}đ',
-                  style: GoogleFonts.beVietnamPro(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w600),
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF302E30),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  price,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF8F2BAD),
+                  ),
                 ),
               ],
             ),
           ),
-          IconButton(
-            icon: Icon(Icons.edit_rounded, color: accentPink, size: 22),
-            onPressed: () {
-               showDialog(
-                context: context,
-                builder: (ctx) => _ItemFormDialog(item: item),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFFF4D6D), size: 22),
-            onPressed: () => _confirmDelete(context),
-          ),
+          Column(
+            children: [
+              _buildActionButton(context, Icons.edit, const Color(0xFF5E5B5D), const Color(0xFFECE6EA), isEdit: true),
+              const SizedBox(height: 8),
+              _buildActionButton(context, Icons.delete, const Color(0xFFB41340), const Color(0xFFECE6EA), isEdit: false),
+            ],
+          )
         ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton(BuildContext context, IconData icon, Color iconColor, Color bgColor, {required bool isEdit}) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: bgColor,
+        shape: BoxShape.circle,
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: iconColor, size: 18),
+        onPressed: () {
+          if (isEdit) {
+            showDialog(
+              context: context,
+              builder: (ctx) => _ItemFormDialog(item: item),
+            );
+          } else {
+            _confirmDelete(context);
+          }
+        },
       ),
     );
   }
@@ -143,12 +408,12 @@ class _InventoryItemTile extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Xác nhận xóa'),
-        content: Text('Bạn có chắc chắn muốn xóa "${item['name']}"?'),
+        content: Text('Bạn có chắc chắn muốn xóa "$title"?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
           TextButton(
             onPressed: () {
-              context.read<StoreProvider>().deleteItem(item['id']);
+              context.read<StoreProvider>().deleteItem(item['item_id']);
               Navigator.pop(ctx);
             },
             child: const Text('Xóa', style: TextStyle(color: Colors.red)),
@@ -190,7 +455,6 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
 
   Future<void> _pickFile() async {
     try {
-      debugPrint('Opening file picker for category: $_category');
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         withData: kIsWeb,
@@ -199,14 +463,11 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
 
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
-        debugPrint('File picked: ${file.name}, size: ${file.size}, path: ${file.path}, bytes: ${file.bytes?.length}');
         setState(() {
           _selectedFilePath = file.path;
           _selectedFileName = file.name;
           _selectedFileBytes = file.bytes;
         });
-      } else {
-        debugPrint('File pick cancelled or failed');
       }
     } catch (e) {
       debugPrint('Error picking file: $e');
@@ -242,34 +503,12 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
               OutlinedButton.icon(
                 onPressed: _pickFile,
                 icon: Icon(_selectedFileName != null ? Icons.check_circle : Icons.upload_file),
-                label: Text(_selectedFileName != null ? 'Đổi file' : 'Chọn file (${_category == 'Sticker' ? '.png' : '.glb'})'),
+                label: Text(_selectedFileName != null ? 'Đổi file' : 'Chọn file'),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50),
                   foregroundColor: _selectedFileName != null ? Colors.green : null,
                 ),
               ),
-              if (_selectedFileName != null)
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.description, size: 16, color: Colors.green),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Đã chọn: $_selectedFileName',
-                          style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.bold),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Tên vật phẩm'),
@@ -309,10 +548,8 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
   }
 
   void _submit() async {
-    debugPrint('Submitting form: name=${_nameController.text}, path=$_selectedFilePath, bytesCount=${_selectedFileBytes?.length}');
     if (_formKey.currentState!.validate()) {
       if (widget.item == null && _selectedFilePath == null && _selectedFileBytes == null) {
-        debugPrint('Validation failed: No file selected');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Vui lòng chọn file!')),
         );
@@ -332,7 +569,6 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
           fileName: _selectedFileName,
         );
       } else {
-        // Cập nhật text (không đổi file ở đây để đơn giản)
         success = await context.read<StoreProvider>().updateItem(widget.item!['item_id'], {
           'itemName': _nameController.text,
           'category': _category,
@@ -345,26 +581,9 @@ class _ItemFormDialogState extends State<_ItemFormDialog> {
       if (success && mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Thành công! Đã đồng bộ vào kho của bạn.')),
+          const SnackBar(content: Text('Thành công!')),
         );
       }
     }
-  }
-}
-
-class _EmptyInventory extends StatelessWidget {
-  const _EmptyInventory();
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
-          const Text('Kho đang trống', style: TextStyle(color: Colors.grey, fontSize: 16)),
-        ],
-      ),
-    );
   }
 }
