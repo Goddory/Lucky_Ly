@@ -8,10 +8,13 @@ class StoreProvider extends ChangeNotifier {
   final AuthProvider _authProvider;
   
   List<dynamic> _inventory = [];
+  List<dynamic> _marketItems = [];
   List<dynamic> _combos = [];
   Map<String, dynamic>? _overview;
   List<dynamic> _revenueData = [];
+  List<dynamic> _cartItems = [];
   bool _isLoading = false;
+  bool _isCartLoading = false;
 
   StoreProvider(this._authProvider) {
     _setMockOverview();
@@ -19,10 +22,13 @@ class StoreProvider extends ChangeNotifier {
   }
 
   List<dynamic> get inventory => _inventory;
+  List<dynamic> get marketItems => _marketItems;
   List<dynamic> get combos => _combos;
   Map<String, dynamic>? get overview => _overview;
   List<dynamic> get revenueData => _revenueData;
+  List<dynamic> get cartItems => _cartItems;
   bool get isLoading => _isLoading;
+  bool get isCartLoading => _isCartLoading;
 
   Future<void> fetchInventory() async {
     _isLoading = true;
@@ -37,6 +43,116 @@ class StoreProvider extends ChangeNotifier {
       debugPrint('Error fetching inventory: $e');
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchMarketItems({String category = ''}) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final res = await _authProvider.apiClient.get('/api/store/market?category=$category');
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        _marketItems = data['items'] ?? [];
+      }
+    } catch (e) {
+      debugPrint('Error fetching market items: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>> buyMarketItem(int itemId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final res = await _authProvider.apiClient.post('/api/store/market/buy/$itemId', {});
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200) {
+        await fetchMarketItems(); // Refresh stock
+        return {'success': true, 'message': data['message'] ?? 'Thành công'};
+      } else {
+        return {'success': false, 'message': data['message'] ?? 'Lỗi không xác định'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchCart() async {
+    _isCartLoading = true;
+    notifyListeners();
+    try {
+      final res = await _authProvider.apiClient.get('/api/store/market/cart');
+      if (res.statusCode == 200) {
+        _cartItems = jsonDecode(res.body) ?? [];
+      }
+    } catch (e) {
+      debugPrint('Error fetching cart: $e');
+    } finally {
+      _isCartLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>> addToCart(String itemId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final res = await _authProvider.apiClient.post('/api/store/market/cart', {'itemId': itemId});
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        await fetchCart();
+        return {'success': true, 'message': data['message'] ?? 'Thành công'};
+      }
+      return {'success': false, 'message': data['message'] ?? 'Lỗi'};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>> removeFromCart(String itemId) async {
+    _isCartLoading = true;
+    notifyListeners();
+    try {
+      final res = await _authProvider.apiClient.delete('/api/store/market/cart/$itemId');
+      if (res.statusCode == 200) {
+        await fetchCart();
+        return {'success': true};
+      }
+      return {'success': false};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    } finally {
+      _isCartLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>> checkoutCart(List<String> itemIds) async {
+    _isCartLoading = true;
+    notifyListeners();
+    try {
+      final res = await _authProvider.apiClient.post('/api/store/market/cart/checkout', {'itemIds': itemIds});
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200) {
+        await fetchCart();
+        return {'success': true, 'message': 'Thanh toán thành công'};
+      } else {
+        return {'success': false, 'message': data['message'] ?? 'Thất bại'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    } finally {
+      _isCartLoading = false;
       notifyListeners();
     }
   }
@@ -227,6 +343,54 @@ class StoreProvider extends ChangeNotifier {
       await fetchCombos();
     } catch (e) {
       debugPrint('Error running apriori: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> importInventoryExcel({
+    String? filePath,
+    Uint8List? fileBytes,
+    String? fileName,
+  }) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final uri = Uri.parse('${_authProvider.apiClient.baseUrl}/api/store/inventory/import-excel');
+      final request = http.MultipartRequest('POST', uri);
+      
+      request.headers.addAll({
+        'Authorization': 'Bearer ${_authProvider.accessToken}',
+      });
+
+      if (kIsWeb) {
+        if (fileBytes != null && fileName != null) {
+          request.files.add(http.MultipartFile.fromBytes(
+            'excel',
+            fileBytes,
+            filename: fileName,
+          ));
+        }
+      } else {
+        if (filePath != null) {
+          request.files.add(await http.MultipartFile.fromPath('excel', filePath));
+        }
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        await fetchInventory();
+        return jsonDecode(response.body);
+      } else {
+        return {'success': false, 'message': 'Import failed with status ${response.statusCode}'};
+      }
+    } catch (e) {
+      debugPrint('Error importing excel: $e');
+      return {'success': false, 'message': e.toString()};
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 }

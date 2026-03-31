@@ -5,7 +5,7 @@ import { notifyGiftReceived, notifyGiftClaimed } from '../../services/notificati
 export const sendGift = async (req, res, next) => {
   try {
     const senderId = req.user.userId;
-    const { receiverEmail, theme, modelId, stickers, message } = req.body;
+    const { receiverEmail, theme, modelId, stickers, message, cashAmount } = req.body;
 
     if (!receiverEmail || !theme || !modelId) {
       return res.status(400).json({ message: 'receiverEmail, theme, and modelId are required.' });
@@ -20,7 +20,8 @@ export const sendGift = async (req, res, next) => {
       theme,
       modelId,
       stickers,
-      message
+      message,
+      cashAmount
     });
 
     res.status(201).json({ message: 'Gift sent successfully', gift });

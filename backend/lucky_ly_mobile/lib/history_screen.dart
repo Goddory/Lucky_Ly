@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:provider/provider.dart';
+import 'providers/auth_provider.dart';
 import 'app_theme.dart';
 import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
 
@@ -22,11 +25,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _fetchHistory() async {
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() {
-      _transactions = [];
-      _isLoading = false;
-    });
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final response = await authProvider.apiClient.get('/api/payment/history');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            _transactions = data is List ? data : (data['transactions'] ?? []);
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -117,6 +132,39 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildTransactionItem(dynamic tx) {
-    return const SizedBox.shrink();
+    bool isMinus = tx['tx_type'] == 'withdraw' || tx['tx_type'] == 'purchase' || tx['tx_type'] == 'transfer';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: AppTheme.of(context).primary.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: (isMinus ? Colors.red : Colors.green).withValues(alpha: 0.1), shape: BoxShape.circle),
+            child: Icon(isMinus ? Icons.arrow_outward : Icons.south_west, color: isMinus ? Colors.red : Colors.green),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(tx['note']?.isNotEmpty == true ? tx['note'] : (tx['tx_type']?.toUpperCase() ?? 'GIAO DỊCH'), style: TextStyle(color: AppTheme.of(context).textDark, fontWeight: FontWeight.bold, fontSize: 15)),
+                const SizedBox(height: 4),
+                Text(tx['created_at'] != null ? tx['created_at'].split('T')[0] : '', style: TextStyle(color: AppTheme.of(context).textMuted, fontSize: 13)),
+              ],
+            ),
+          ),
+          Text(
+            '${isMinus ? '-' : '+'}${tx['amount']?.toString() ?? '0'}đ',
+            style: TextStyle(color: isMinus ? Colors.red : Colors.green, fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+        ],
+      ),
+    );
   }
 }

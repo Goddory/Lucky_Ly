@@ -13,7 +13,14 @@ import {
   getCombosHandler,
   saveComboHandler,
   loadDatasetHandler,
-  getOverviewHandler
+  getOverviewHandler,
+  importExcelHandler,
+  getMarketHandler,
+  buyItemHandler,
+  getCartHandler,
+  addToCartHandler,
+  removeFromCartHandler,
+  checkoutCartHandler
 } from './store.controller.js';
 
 const storage = multer.diskStorage({
@@ -42,12 +49,24 @@ function requireStoreCreator(req, res, next) {
 }
 
 router.use(authenticateToken);
+
+// Marketplace (Public for all auth users)
+router.get('/market', getMarketHandler);
+router.post('/market/buy/:id', buyItemHandler);
+
+// Cart Endpoints
+router.get('/market/cart', getCartHandler);
+router.post('/market/cart', addToCartHandler);
+router.delete('/market/cart/:itemId', removeFromCartHandler);
+router.post('/market/cart/checkout', checkoutCartHandler);
+
 router.use(requireStoreCreator);
 
 // Inventory CRUD
 router.get('/inventory', getInventoryHandler);
 router.get('/inventory/:id', getItemHandler);
 router.post('/inventory', upload.single('asset'), createItemHandler);
+router.post('/inventory/import-excel', upload.single('excel'), importExcelHandler);
 router.put('/inventory/:id', updateItemHandler);
 router.delete('/inventory/:id', deleteItemHandler);
 

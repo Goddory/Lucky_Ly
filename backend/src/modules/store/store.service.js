@@ -1,4 +1,5 @@
 import { pool } from '../../db/pool.js';
+import * as XLSX from 'xlsx';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -17,6 +18,30 @@ export async function getInventory(filters = {}) {
   `;
   const params = [filters.userId];
   let paramIdx = 2;
+
+  if (filters.category) {
+    query += ` AND category = $${paramIdx++}`;
+    params.push(filters.category);
+  }
+  if (filters.search) {
+    query += ` AND item_name ILIKE $${paramIdx++}`;
+    params.push(`%${filters.search}%`);
+  }
+
+  query += ` ORDER BY created_at DESC`;
+  const { rows } = await pool.query(query, params);
+  return rows;
+}
+
+export async function getMarketItems(filters = {}) {
+  let query = `
+    SELECT item_id, item_name, category, effect_type, price, stock,
+           thumbnail_url, description, is_active, created_at
+    FROM store_items
+    WHERE stock > 0
+  `;
+  const params = [];
+  let paramIdx = 1;
 
   if (filters.category) {
     query += ` AND category = $${paramIdx++}`;
@@ -110,6 +135,86 @@ export async function deleteItem(itemId) {
     [itemId]
   );
   return rowCount > 0;
+}
+
+export async function buyItem(userId, itemId) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1) Get item using lock
+    const itemRes = await client.query('SELECT * FROM store_items WHERE item_id = $1 FOR UPDATE', [itemId]);
+    if (itemRes.rowCount === 0) throw new Error('Item not found');
+    const item = itemRes.rows[0];
+
+    if (item.stock <= 0) throw new Error('Sản phẩm đã hết hàng');
+    
+    // 2) Get user wallet, create if not tracking
+    await client.query(
+      `INSERT INTO wallets (user_id, balance, currency, status)
+       VALUES ($1, 0, 'VND', 'ACTIVE')
+       ON CONFLICT (user_id) DO NOTHING`,
+      [userId]
+    );
+
+    const walletRes = await client.query('SELECT balance FROM wallets WHERE user_id = $1 FOR UPDATE', [userId]);
+    const balance = Number(walletRes.rows[0]?.balance ?? 0);
+
+    if (balance < item.price) {
+      throw new Error(`Số dư không đủ. Bạn cần ${item.price.toLocaleString('vi-VN')}đ để mua vật phẩm này.`);
+    }
+
+    // 3) Deduct balance
+    await client.query(
+      'UPDATE wallets SET balance = balance - $1 WHERE user_id = $2',
+      [item.price, userId]
+    );
+
+    // 4) Reduce stock
+    await client.query('UPDATE store_items SET stock = stock - 1 WHERE item_id = $1', [itemId]);
+
+    // 5) Record transaction history
+    const orderId = `BUY_${Date.now()}`;
+    await client.query(
+      `INSERT INTO transactions (sender_id, receiver_id, order_id, amount, provider, status, tx_type, note)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [userId, item.created_by, orderId, item.price, 'wallet', 'success', 'purchase', `Mua ${item.item_name}`]
+    );
+
+    // 6) Add item to user's designs/inventory
+    const designType = item.category.toLowerCase().includes('sticker') ? 'sticker' : 'model';
+    await client.query(
+      `INSERT INTO designs (user_id, name, type, image_url, config)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [userId, item.item_name, designType, item.thumbnail_url, JSON.stringify({ source: 'store_purchase', itemId: item.item_id })]
+    );
+
+    // 7) Add to store revenue logic
+    await client.query(
+      `INSERT INTO store_transactions (buyer_id, total_amount, items) VALUES ($1, $2, $3)`,
+      [userId, item.price, JSON.stringify([{ id: item.item_id, name: item.item_name, price: item.price }])]
+    );
+
+    // Transfer money to creator's wallet
+    await client.query(
+      `INSERT INTO wallets (user_id, balance, currency, status)
+       VALUES ($1, 0, 'VND', 'ACTIVE')
+       ON CONFLICT (user_id) DO NOTHING`,
+      [item.created_by]
+    );
+    await client.query(
+      'UPDATE wallets SET balance = balance + $1 WHERE user_id = $2',
+      [item.price, item.created_by]
+    );
+
+    await client.query('COMMIT');
+    return { success: true, item, orderId };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    return { success: false, message: err.message };
+  } finally {
+    client.release();
+  }
 }
 
 // ========== REVENUE & STATS ==========
@@ -313,4 +418,165 @@ export async function getOverviewStats(userId) {
     totalOrders: parseInt(revenueStats.rows[0].total_orders || 0),
     totalCombos: parseInt(comboCount.rows[0].count || 0)
   };
+}
+
+export async function importFromExcel(userId, filePath) {
+  const workbook = XLSX.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const data = XLSX.utils.sheet_to_json(sheet);
+
+  const errors = [];
+  let successCount = 0;
+
+  for (const row of data) {
+    try {
+      const itemName = row['Tên vật phẩm'] || row['item_name'] || row['itemName'];
+      const category = row['Danh mục'] || row['category'] || 'Sticker';
+      const price = parseFloat(row['Giá'] || row['price'] || 0);
+      const stock = parseInt(row['Số lượng'] || row['stock'] || 0);
+      const description = row['Mô tả'] || row['description'] || '';
+
+      if (!itemName) {
+        errors.push(`Bỏ qua hàng không có tên vật phẩm: ${JSON.stringify(row)}`);
+        continue;
+      }
+
+      await createItem({
+        itemName,
+        category,
+        price,
+        stock,
+        description,
+        userId
+      });
+      successCount++;
+    } catch (err) {
+      errors.push(`Lỗi nhập hàng "${row['Tên vật phẩm'] || 'Unknown'}": ${err.message}`);
+    }
+  }
+
+  return { count: successCount, errors };
+}
+
+// ========== CART SYSTEM ==========
+
+export async function getCart(userId) {
+  const query = `
+    SELECT c.user_id, c.item_id, c.quantity, c.created_at,
+           i.item_name, i.category, i.price, i.thumbnail_url, i.stock
+    FROM store_carts c
+    JOIN store_items i ON c.item_id = i.item_id
+    WHERE c.user_id = $1
+    ORDER BY c.created_at DESC
+  `;
+  const { rows } = await pool.query(query, [userId]);
+  return rows;
+}
+
+export async function addToCart(userId, itemId) {
+  // Check if item exists and in stock
+  const { rows: itemRows } = await pool.query('SELECT stock FROM store_items WHERE item_id = $1', [itemId]);
+  if (itemRows.length === 0) throw new Error('Vật phẩm không tồn tại');
+  if (itemRows[0].stock <= 0) throw new Error('Vật phẩm đã hết hàng');
+
+  const { rows } = await pool.query(
+    `INSERT INTO store_carts (user_id, item_id, quantity)
+     VALUES ($1, $2, 1)
+     ON CONFLICT (user_id, item_id) DO NOTHING
+     RETURNING *`,
+    [userId, itemId]
+  );
+  return rows[0] || { message: 'Đã có trong giỏ hàng' };
+}
+
+export async function removeFromCart(userId, itemId) {
+  await pool.query('DELETE FROM store_carts WHERE user_id = $1 AND item_id = $2', [userId, itemId]);
+  return true;
+}
+
+export async function checkoutCart(userId, itemIds) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // Lock all purchasing items
+    const { rows: items } = await client.query(
+      'SELECT * FROM store_items WHERE item_id = ANY($1) FOR UPDATE',
+      [itemIds]
+    );
+
+    if (items.length !== itemIds.length) {
+      throw new Error('Một số vật phẩm không còn tồn tại hoặc không hợp lệ.');
+    }
+
+    let totalAmount = 0;
+    for (const item of items) {
+      if (item.stock <= 0) {
+        throw new Error(`Sản phẩm ${item.item_name} đã hết hàng.`);
+      }
+      totalAmount += Number(item.price);
+    }
+
+    // Lock user wallet and check
+    await client.query(
+      `INSERT INTO wallets (user_id, balance, currency, status) VALUES ($1, 0, 'VND', 'ACTIVE') ON CONFLICT (user_id) DO NOTHING`,
+      [userId]
+    );
+    const { rows: walletRows } = await client.query('SELECT balance FROM wallets WHERE user_id = $1 FOR UPDATE', [userId]);
+    const balance = Number(walletRows[0]?.balance ?? 0);
+
+    if (balance < totalAmount) {
+      throw new Error(`Số dư không đủ. Cần ${totalAmount.toLocaleString('vi-VN')}đ.`);
+    }
+
+    // Deduct user wallet overall
+    await client.query('UPDATE wallets SET balance = balance - $1 WHERE user_id = $2', [totalAmount, userId]);
+
+    // Process each item individually to separate rows in transaction history
+    for (const item of items) {
+      // Reduce stock
+      await client.query('UPDATE store_items SET stock = stock - 1 WHERE item_id = $1', [item.item_id]);
+
+      // Record transaction history for buyer
+      const orderId = `CART_${Date.now()}_${item.item_id.substring(0, 4)}`;
+      await client.query(
+        `INSERT INTO transactions (sender_id, receiver_id, order_id, amount, provider, status, tx_type, note)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [userId, item.created_by, orderId, item.price, 'wallet', 'success', 'purchase', `Mua ${item.item_name}`]
+      );
+
+      // Detailed store metrics entry
+      await client.query(
+        `INSERT INTO store_transactions (buyer_id, total_amount, items) VALUES ($1, $2, $3)`,
+        [userId, item.price, JSON.stringify([{ id: item.item_id, name: item.item_name, price: item.price }])]
+      );
+
+      // Sync item mapping to inventory workspace
+      const lcCat = item.category.toLowerCase();
+      const designType = (lcCat.includes('thiệp') || lcCat.includes('sticker') || lcCat.includes('hiệu ứng') || lcCat.includes('trang trí')) ? 'sticker' : 'model';
+      await client.query(
+        `INSERT INTO designs (user_id, name, type, image_url, config) VALUES ($1, $2, $3, $4, $5)`,
+        [userId, item.item_name, designType, item.thumbnail_url, JSON.stringify({ source: 'cart_checkout', itemId: item.item_id })]
+      );
+
+      // Credit to creator bucket
+      await client.query(
+        `INSERT INTO wallets (user_id, balance, currency, status) VALUES ($1, 0, 'VND', 'ACTIVE') ON CONFLICT (user_id) DO NOTHING`,
+        [item.created_by]
+      );
+      await client.query('UPDATE wallets SET balance = balance + $1 WHERE user_id = $2', [item.price, item.created_by]);
+    }
+
+    // Clear bought items from cart
+    await client.query('DELETE FROM store_carts WHERE user_id = $1 AND item_id = ANY($2)', [userId, itemIds]);
+
+    await client.query('COMMIT');
+    return { success: true, totalAmount, totalItems: items.length };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    return { success: false, message: err.message };
+  } finally {
+    client.release();
+  }
 }

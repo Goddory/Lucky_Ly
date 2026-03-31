@@ -26,6 +26,7 @@ import 'screens/admin/marketing_dashboard_screen.dart';
 import 'screens/admin/users_management_screen.dart';
 import 'screens/admin/statistics_screen.dart';
 import 'screens/admin/theme_management_screen.dart';
+import 'screens/store/store_market_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -187,6 +188,11 @@ class _HomeScreenState extends State<HomeScreen>
     return role == 'admin' || role == 'marketing_admin';
   }
 
+  bool _isStudioAllowed() {
+    final role = widget.userData['role']?.toString().toLowerCase();
+    return role == 'admin' || role == 'marketing_admin' || role == 'store_creator';
+  }
+
   Future<void> _fetchWalletBalance() async {
     if (!mounted) return;
     setState(() => _isBalanceLoading = true);
@@ -324,18 +330,23 @@ class _HomeScreenState extends State<HomeScreen>
                             } : null,
                             onCalendarTap: () =>
                                 CalendarPopup.show(context),
-                            onFriendsTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) =>
-                                      const FriendManagementScreen()),
-                            ),
-                            onStudioTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const DesignSelectionScreen(
-                                          type: 'item')),
-                            ),
+                             onFriendsTap: () => Navigator.push(
+                               context,
+                               MaterialPageRoute(
+                                   builder: (_) =>
+                                       const FriendManagementScreen()),
+                             ),
+                             onStoreTap: () => Navigator.push(
+                               context,
+                               MaterialPageRoute(
+                                   builder: (_) => const StoreMarketScreen()),
+                             ),
+                             onStudioTap: _isStudioAllowed() ? () => Navigator.push(
+                               context,
+                               MaterialPageRoute(
+                                   builder: (_) => const DesignSelectionScreen(
+                                           type: 'item')),
+                             ) : null,
                           ),
                           const SizedBox(height: 28),
                           _WalletAndCelebrateSection(
@@ -771,17 +782,19 @@ class _WelcomeBanner extends StatelessWidget {
 class _QuickActionsRow extends StatelessWidget {
   const _QuickActionsRow({
     required this.onCameraTap,
-    this.onTransactionTap,
-    required this.onCalendarTap,
-    required this.onFriendsTap,
-    required this.onStudioTap,
-  });
+     this.onTransactionTap,
+     required this.onCalendarTap,
+     required this.onFriendsTap,
+     required this.onStoreTap,
+     this.onStudioTap,
+   });
 
   final VoidCallback onCameraTap;
   final VoidCallback? onTransactionTap;
-  final VoidCallback onCalendarTap;
-  final VoidCallback onFriendsTap;
-  final VoidCallback onStudioTap;
+   final VoidCallback onCalendarTap;
+   final VoidCallback onFriendsTap;
+   final VoidCallback onStoreTap;
+   final VoidCallback? onStudioTap;
 
   @override
   Widget build(BuildContext context) {
@@ -791,13 +804,20 @@ class _QuickActionsRow extends StatelessWidget {
         _ActionDef(Icons.swap_horiz_rounded, 'GIAO DỊCH', onTransactionTap),
       _ActionDef(Icons.calendar_today_outlined, 'LỊCH', onCalendarTap),
       _ActionDef(Icons.group_outlined, 'BẠN BÈ', onFriendsTap),
-      _ActionDef(Icons.auto_awesome_mosaic_outlined, 'STUDIO', onStudioTap),
+      _ActionDef(Icons.shopping_cart_outlined, 'STORE', onStoreTap),
+      if (onStudioTap != null)
+        _ActionDef(Icons.auto_awesome_mosaic_outlined, 'STUDIO', onStudioTap),
     ];
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: actions
-          .map((a) => AnimatedInteractiveScale(
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: actions
+            .map((a) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: AnimatedInteractiveScale(
                 onTap: a.onTap,
                 child: Column(
                   children: [
@@ -834,8 +854,9 @@ class _QuickActionsRow extends StatelessWidget {
                     ),
                   ],
                 ),
-              ))
+              )))
           .toList(),
+      ),
     );
   }
 }

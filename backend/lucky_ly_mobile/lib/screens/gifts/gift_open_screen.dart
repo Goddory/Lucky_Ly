@@ -426,6 +426,8 @@ class _GiftOpenScreenState extends State<GiftOpenScreen>
   }
 
   Widget _buildMessageCard() {
+    final cashAmount = double.tryParse(widget.gift['cash_amount']?.toString() ?? '0') ?? 0;
+    
     return Positioned(
       bottom: 0,
       left: 0,
@@ -446,6 +448,67 @@ class _GiftOpenScreenState extends State<GiftOpenScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (cashAmount > 0) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: _theme == 'tet' 
+                          ? [const Color(0xFFFFD700), const Color(0xFFFFA500)]
+                          : [const Color(0xFFFF69B4), const Color(0xFFFF1493)],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (_theme == 'tet' ? Colors.orange : Colors.pink).withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Colors.white24,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _theme == 'tet' ? Icons.euro_symbol : Icons.favorite,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _theme == 'tet' ? 'Lì xì may mắn! 🧧' : 'Quà tặng tiền mặt! 💕',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                              ),
+                            ),
+                            Text(
+                              '+ ${cashAmount.toInt()}đ',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 22,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               Row(
                 children: [
                   Container(

@@ -7,6 +7,7 @@ import '../../data/gift_catalog.dart';
 import '../../app_theme.dart';
 import '../../widgets/glb_model_viewer.dart';
 import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
+import '../../payment_screen.dart';
 
 
 class GiftPreviewScreen extends StatefulWidget {
@@ -16,12 +17,14 @@ class GiftPreviewScreen extends StatefulWidget {
     required this.model,
     required this.stickers,
     required this.message,
+    this.cashAmount = 0,
   });
 
   final String theme;
   final GiftModel model;
   final List<Map<String, dynamic>> stickers;
   final String message;
+  final double cashAmount;
 
   @override
   State<GiftPreviewScreen> createState() => _GiftPreviewScreenState();
@@ -77,6 +80,7 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen> {
               'modelId': widget.model.id,
               'stickers': widget.stickers,
               'message': widget.message,
+              'cashAmount': widget.cashAmount,
             }),
           )
           .timeout(const Duration(seconds: 15));
@@ -87,7 +91,13 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen> {
         }
       } else {
         final body = jsonDecode(response.body);
-        _showSnackBar(body['message']?.toString() ?? 'Gửi quà thất bại');
+        final errorMsg = body['message']?.toString() ?? 'Gửi quà thất bại';
+        
+        if (errorMsg.contains('Số dư không đủ')) {
+           _showInsufficientBalanceDialog();
+        } else {
+          _showSnackBar(errorMsg);
+        }
       }
     } catch (e) {
       _showSnackBar('Không thể kết nối server');
@@ -100,6 +110,47 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  void _showInsufficientBalanceDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            SizedBox(width: 12),
+            Text('Số dư không đủ'),
+          ],
+        ),
+        content: const Text(
+          'Số dư ví của bạn không đủ để gửi quà đính kèm tiền mặt. Vui lòng nạp thêm tiền để tiếp tục.',
+          style: TextStyle(fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => PaymentScreen()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _themeColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Nạp tiền ngay'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -318,6 +369,39 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen> {
               ),
 
             const SizedBox(height: 20),
+
+            if (widget.cashAmount > 0)
+              Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF9DB),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      widget.theme == 'tet' ? Icons.euro_symbol : Icons.payments,
+                      color: Colors.orange.shade800,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        widget.theme == 'tet'
+                            ? 'Lì xì đính kèm: ${widget.cashAmount.toInt()}đ'
+                            : 'Tiền mặt đính kèm: ${widget.cashAmount.toInt()}đ',
+                        style: TextStyle(
+                          color: Colors.orange.shade900,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
             // Recipient input
             Text(

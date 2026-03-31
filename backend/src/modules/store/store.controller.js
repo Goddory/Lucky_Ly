@@ -97,3 +97,67 @@ export async function loadDatasetHandler(req, res, next) {
     res.json({ message: 'Dataset loaded', ...result });
   } catch (err) { next(err); }
 }
+
+export async function importExcelHandler(req, res, next) {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    
+    const result = await storeService.importFromExcel(req.user.userId, req.file.path);
+    res.json({ 
+      message: 'Excel import completed', 
+      count: result.count,
+      errors: result.errors 
+    });
+  } catch (err) { next(err); }
+}
+
+export async function getMarketHandler(req, res, next) {
+  try {
+    const items = await storeService.getMarketItems({
+      category: req.query.category,
+      search: req.query.search
+    });
+    res.json({ items });
+  } catch (err) { next(err); }
+}
+
+export async function buyItemHandler(req, res, next) {
+  try {
+    const result = await storeService.buyItem(req.user.userId, req.params.id);
+    if (!result.success) {
+      return res.status(400).json({ message: result.message });
+    }
+    res.json({ message: 'Mua thành công', ...result });
+  } catch (err) { next(err); }
+}
+
+export async function getCartHandler(req, res, next) {
+  try {
+    const rows = await storeService.getCart(req.user.userId);
+    res.json(rows);
+  } catch (err) { next(err); }
+}
+
+export async function addToCartHandler(req, res, next) {
+  try {
+    const result = await storeService.addToCart(req.user.userId, req.body.itemId);
+    res.json(result);
+  } catch (err) { next(err); }
+}
+
+export async function removeFromCartHandler(req, res, next) {
+  try {
+    const success = await storeService.removeFromCart(req.user.userId, req.params.itemId);
+    res.json({ success });
+  } catch (err) { next(err); }
+}
+
+export async function checkoutCartHandler(req, res, next) {
+  try {
+    const result = await storeService.checkoutCart(req.user.userId, req.body.itemIds);
+    if (!result.success) {
+      return res.status(400).json({ message: result.message });
+    }
+    res.json(result);
+  } catch (err) { next(err); }
+}

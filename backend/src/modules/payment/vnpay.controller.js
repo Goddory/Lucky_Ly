@@ -151,13 +151,58 @@ export const vnpayIpn = async (req, res, next) => {
 export const getTransactionHistory = async (req, res, next) => {
   try {
     const userId = req.user.userId;
+    const email = req.user.email;
+    
     const result = await pool.query(
       "SELECT * FROM transactions WHERE sender_id = $1 ORDER BY created_at DESC",
       [userId]
     );
+
+    let transactions = result.rows;
+
+    // Add mock data for specific user
+    if (email === 'duongkimanh1905@gmail.com') {
+      const mockData = [
+        {
+          id: 9991,
+          sender_id: userId,
+          order_id: 'MOCK_001',
+          amount: 100000,
+          provider: 'vnpay',
+          status: 'success',
+          tx_type: 'topup',
+          created_at: new Date(Date.now() - 3600000 * 2).toISOString(), // 2 hours ago
+          updated_at: new Date(Date.now() - 3600000 * 2).toISOString()
+        },
+        {
+          id: 9992,
+          sender_id: userId,
+          order_id: 'MOCK_002',
+          amount: 50000,
+          provider: 'momo',
+          status: 'success',
+          tx_type: 'gift',
+          created_at: new Date(Date.now() - 3600000 * 24).toISOString(), // 1 day ago
+          updated_at: new Date(Date.now() - 3600000 * 24).toISOString()
+        },
+        {
+          id: 9993,
+          sender_id: userId,
+          order_id: 'MOCK_003',
+          amount: 200000,
+          provider: 'zalopay',
+          status: 'success',
+          tx_type: 'topup',
+          created_at: new Date(Date.now() - 3600000 * 48).toISOString(), // 2 days ago
+          updated_at: new Date(Date.now() - 3600000 * 48).toISOString()
+        }
+      ];
+      transactions = [...mockData, ...transactions];
+    }
+
     res.status(200).json({
       message: 'Success',
-      data: result.rows
+      data: transactions
     });
   } catch (error) {
     next(error);

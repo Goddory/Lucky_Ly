@@ -108,6 +108,96 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ),
       ),
       centerTitle: false,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.file_upload, color: Color(0xFF8F2BAD)),
+          tooltip: 'Nhập từ Excel',
+          onPressed: () => _handleImportExcel(context),
+        ),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+
+  Future<void> _handleImportExcel(BuildContext context) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx', 'xls'],
+        withData: kIsWeb,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        if (!context.mounted) return;
+
+        // Show loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đang xử lý file Excel...'), duration: Duration(seconds: 2)),
+        );
+
+        final importResult = await context.read<StoreProvider>().importInventoryExcel(
+          filePath: file.path,
+          fileBytes: file.bytes,
+          fileName: file.name,
+        );
+
+        if (importResult['count'] != null && context.mounted) {
+          final count = importResult['count'];
+          final errors = importResult['errors'] as List?;
+          
+          String msg = 'Đã nhập thành công $count vật phẩm.';
+          if (errors != null && errors.isNotEmpty) {
+            msg += ' Có ${errors.length} lỗi.';
+          }
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(msg),
+              backgroundColor: Colors.green,
+              action: (errors != null && errors.isNotEmpty) 
+                ? SnackBarAction(
+                    label: 'Chi tiết', 
+                    textColor: Colors.white,
+                    onPressed: () => _showImportErrors(context, errors))
+                : null,
+            ),
+          );
+        } else if (context.mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi: ${importResult['message'] ?? 'Import thất bại'}'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _showImportErrors(BuildContext context, List errors) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Chi tiết lỗi nhập hàng'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: errors.length,
+            itemBuilder: (c, i) => ListTile(
+              leading: const Icon(Icons.error_outline, color: Colors.red),
+              title: Text(errors[i].toString(), style: const TextStyle(fontSize: 12)),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng')),
+        ],
+      ),
     );
   }
 

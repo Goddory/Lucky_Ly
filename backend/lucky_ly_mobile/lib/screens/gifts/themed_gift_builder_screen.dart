@@ -21,6 +21,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
   final List<_PlacedSticker> _placedStickers = [];
   final Map<int, _StickerGestureState> _gestureStates = {};
   final TextEditingController _messageController = TextEditingController();
+  final TextEditingController _cashController = TextEditingController();
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
@@ -42,6 +43,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
   void dispose() {
     _pulseController.dispose();
     _messageController.dispose();
+    _cashController.dispose();
     super.dispose();
   }
 
@@ -102,6 +104,13 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                   _buildSectionTitle('Lời nhắn', Icons.message_outlined),
                   const SizedBox(height: 12),
                   _buildMessageInput(),
+                  const SizedBox(height: 24),
+                  _buildSectionTitle(
+                    widget.theme == 'tet' ? 'Tiền mừng tuổi (Lì xì)' : 'Gửi kèm tiền mặt',
+                    Icons.account_balance_wallet_outlined,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildCashInput(),
                 ],
               ),
             ),
@@ -486,6 +495,41 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
     );
   }
 
+  Widget _buildCashInput() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _themeColor.withValues(alpha: 0.12)),
+      ),
+      child: TextField(
+        controller: _cashController,
+        keyboardType: TextInputType.number,
+        style: TextStyle(
+          color: AppTheme.of(context).textDark,
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+        ),
+        decoration: InputDecoration(
+          hintText: 'Nhập số tiền (VD: 20000)',
+          hintStyle: TextStyle(
+            color: AppTheme.of(context).textLight,
+            fontSize: 14,
+            fontWeight: FontWeight.normal,
+          ),
+          prefixIcon: Icon(Icons.payments_outlined, color: _themeColor),
+          suffixText: 'VNĐ',
+          suffixStyle: TextStyle(
+            color: _themeColor,
+            fontWeight: FontWeight.bold,
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMessageInput() {
     return Container(
       decoration: BoxDecoration(
@@ -569,6 +613,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                           )
                           .toList(),
                       message: _messageController.text.trim(),
+                      cashAmount: double.tryParse(_cashController.text) ?? 0,
                     ),
                   ),
                 );

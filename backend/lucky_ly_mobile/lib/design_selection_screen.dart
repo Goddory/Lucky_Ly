@@ -64,21 +64,31 @@ class DesignSelectionScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             // Phân quyền: Chỉ creator/admin mới thấy dashboard
-            if (context.read<AuthProvider>().userData?['role'] == 'store_creator' || 
-                context.read<AuthProvider>().userData?['role']?.toString().toLowerCase() == 'admin') ...[
-              Text(
-                'Dành cho Nhà sáng tạo',
-                style: TextStyle(color: theme.textDark, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              _buildOption(
-                context,
-                icon: Icons.storefront_outlined,
-                title: 'Quản lý Cửa hàng (Dashboard)',
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StoreDashboardScreen())),
-                theme: theme,
-              ),
-            ],
+            Builder(
+              builder: (ctx) {
+                final userRole = ctx.read<AuthProvider>().userData?['role']?.toString().toLowerCase();
+                if (userRole == 'store_creator' || userRole == 'admin' || userRole == 'marketing_admin') {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Dành cho Nhà sáng tạo',
+                        style: TextStyle(color: theme.textDark, fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildOption(
+                        context,
+                        icon: Icons.storefront_outlined,
+                        title: 'Quản lý Cửa hàng (Dashboard)',
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StoreDashboardScreen())),
+                        theme: theme,
+                      ),
+                    ],
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
           ],
         ),
       ),
