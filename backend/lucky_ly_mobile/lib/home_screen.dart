@@ -60,6 +60,8 @@ class _HomeScreenState extends State<HomeScreen>
   late Animation<double> _fadeIn;
   double? _walletBalance;
   bool _isBalanceLoading = true;
+  List<dynamic> _notifications = [];
+  int _unreadNotifsCount = 0;
 
   @override
   void initState() {
@@ -86,6 +88,7 @@ class _HomeScreenState extends State<HomeScreen>
 
       auth.fetchProfile();
       _fetchWalletBalance();
+      _fetchNotifications();
 
       if (!socket.isConnected && widget.accessToken.isNotEmpty) {
         socket.connect(widget.accessToken);
@@ -213,6 +216,46 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  Future<void> _fetchNotifications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? prefs.getString('access_token');
+      if (token == null) return;
+      final response = await http.get(
+        Uri.parse('${widget.apiBaseUrl}/api/users/me/notifications'),
+        headers: { 'Authorization': 'Bearer $token' },
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            _unreadNotifsCount = data['unread_count'] ?? 0;
+            _notifications = data['notifications'] ?? [];
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _markNotificationsRead() async {
+    if (_unreadNotifsCount == 0) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? prefs.getString('access_token');
+      if (token == null) return;
+      await http.put(
+        Uri.parse('${widget.apiBaseUrl}/api/users/me/notifications/read'),
+        headers: { 'Authorization': 'Bearer $token' },
+      );
+      if (mounted) {
+        setState(() {
+          _unreadNotifsCount = 0;
+        });
+      }
+    } catch (_) {}
+  }
+
+  // ── HOME SCREEN TABS ──────────────────────────────────────────
   @override
   void dispose() {
     _entryController.dispose();
@@ -251,6 +294,7 @@ class _HomeScreenState extends State<HomeScreen>
                   children: [
                     _LuckyHeader(
                       userData: widget.userData,
+                      unreadNotifsCount: _unreadNotifsCount,
                       onGiftTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -365,17 +409,19 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── NOTIFICATION OVERLAY ───────────────────────────────────
   void _showNotificationOverlay(BuildContext context) {
+    _markNotificationsRead();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (ctx) => Container(
-        padding: const EdgeInsets.all(24),
+        height: MediaQuery.of(context).size.height * 0.7,
+        padding: const EdgeInsets.only(top: 24, left: 16, right: 16),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: 40,
@@ -386,49 +432,54 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
             const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF952CB1).withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.campaign,
-                  color: Color(0xFF952CB1), size: 40),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Chào mừng đến với Lucky Ly!',
-              style: TextStyle(
-                color: Color(0xFF45274B),
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Tận hưởng các dịch vụ, ưu đãi hấp dẫn và quà tặng dành riêng cho bạn.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: Color(0xFF75547A), fontSize: 15, height: 1.5),
-            ),
-            const SizedBox(height: 28),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(ctx),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF952CB1),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.all(16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
-                ),
-                child: const Text('Bắt đầu ngay',
-                    style: TextStyle(fontWeight: FontWeight.w800)),
-              ),
+            Row(
+              children: [
+                const Text('Thông báo hệ thống', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF45274B))),
+                const Spacer(),
+                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+              ],
             ),
             const SizedBox(height: 16),
+            Expanded(
+              child: _notifications.isEmpty
+                  ? const Center(child: Text('Không có thông báo nào.', style: TextStyle(color: Colors.grey)))
+                  : ListView.builder(
+                      itemCount: _notifications.length,
+                      itemBuilder: (ctx, i) {
+                        final notif = _notifications[i];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: notif['is_read'] ? Colors.white : const Color(0xFFFFF7FB),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: notif['is_read'] ? Colors.black12 : const Color(0xFFF1A6FF)),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(color: const Color(0xFF952CB1).withValues(alpha: 0.1), shape: BoxShape.circle),
+                                child: const Icon(Icons.campaign, color: Color(0xFF952CB1), size: 24),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(notif['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF45274B))),
+                                    const SizedBox(height: 4),
+                                    Text(notif['content'] ?? '', style: const TextStyle(color: Color(0xFF75547A), fontSize: 13, height: 1.4)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
           ],
         ),
       ),
@@ -483,12 +534,14 @@ class _HomeScreenState extends State<HomeScreen>
 class _LuckyHeader extends StatelessWidget {
   const _LuckyHeader({
     required this.userData,
+    required this.unreadNotifsCount,
     required this.onGiftTap,
     required this.onNotifTap,
     required this.onChatTap,
   });
 
   final Map<String, dynamic> userData;
+  final int unreadNotifsCount;
   final VoidCallback onGiftTap;
   final VoidCallback onNotifTap;
   final VoidCallback onChatTap;
@@ -564,7 +617,7 @@ class _LuckyHeader extends StatelessWidget {
               const SizedBox(width: 8),
               _HeaderIconBtn(
                 icon: Icons.notifications_outlined,
-                badge: 1,
+                badge: unreadNotifsCount,
                 onTap: onNotifTap,
               ),
               const SizedBox(width: 8),

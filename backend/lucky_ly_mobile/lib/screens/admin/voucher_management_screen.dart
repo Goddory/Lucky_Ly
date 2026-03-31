@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../app_theme.dart';
 import 'flash_sale_screen.dart';
@@ -24,6 +23,11 @@ class VoucherManagementScreen extends StatefulWidget {
 class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
   bool _loading = true;
   List<dynamic> _promotions = [];
+
+  static const Color primary = Color(0xFF952CB1);
+  static const Color primaryContainer = Color(0xFFF1A6FF);
+  static const Color background = Color(0xFFFFF7FB);
+  static const Color surfaceContainerLow = Color(0xFFFFEFFC);
 
   @override
   void initState() {
@@ -88,8 +92,8 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    Text('TẠO VOUCHER MỚI', style: GoogleFonts.chakraPetch(
-                      fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFFFE512E),
+                    const Text('TẠO VOUCHER MỚI', style: TextStyle(
+                      fontFamily: 'PlusJakartaSans', fontSize: 22, fontWeight: FontWeight.bold, color: primary,
                     )),
                     const SizedBox(height: 20),
                     _buildField('Tên chiến dịch', titleCtrl),
@@ -123,10 +127,10 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
                           gradient: const LinearGradient(
-                            colors: [Color(0xFFFE512E), Color(0xFFF09819)],
+                            colors: [primary, primaryContainer],
                           ),
                           boxShadow: [
-                            BoxShadow(color: const Color(0xFFFE512E).withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 6))
+                            BoxShadow(color: primary.withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 6))
                           ]
                         ),
                         child: ElevatedButton(
@@ -157,7 +161,7 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
                               }
                             } catch (_) {}
                           },
-                          child: Text('PHÁT HÀNH VOUCHER', style: GoogleFonts.chakraPetch(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.0)),
+                          child: const Text('PHÁT HÀNH VOUCHER', style: TextStyle(fontFamily: 'PlusJakartaSans', fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.0)),
                         ),
                       ),
                     ),
@@ -179,11 +183,11 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white.withValues(alpha: 0.95),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Xóa Voucher?', style: GoogleFonts.beVietnamPro(fontWeight: FontWeight.bold)),
-        content: Text('Tất cả voucher do chiến dịch này phát hành sẽ bị thu hồi và xóa hẵn.', style: GoogleFonts.beVietnamPro()),
+        title: const Text('Xóa Voucher?', style: TextStyle(fontFamily: 'PlusJakartaSans', fontWeight: FontWeight.bold)),
+        content: const Text('Tất cả voucher do chiến dịch này phát hành sẽ bị thu hồi và xóa hẵn.', style: TextStyle(fontFamily: 'PlusJakartaSans')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Hủy', style: GoogleFonts.beVietnamPro(color: Colors.grey.shade600))),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Xóa ngay', style: GoogleFonts.beVietnamPro(color: Colors.red, fontWeight: FontWeight.bold))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Hủy', style: TextStyle(fontFamily: 'PlusJakartaSans', color: Colors.grey.shade600))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Xóa ngay', style: TextStyle(fontFamily: 'PlusJakartaSans', color: Colors.red, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -200,21 +204,26 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: background,
       body: Stack(
         children: [
-          // E-commerce vibrant gradient background
+          // Background Gradient Mới
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFFFE512E), Color(0xFFF09819), Color(0xFFFFB88C)],
+                colors: [
+                  background,
+                  surfaceContainerLow,
+                  primaryContainer.withValues(alpha: 0.2),
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                stops: [0.0, 0.5, 1.0],
+                stops: const [0.0, 0.5, 1.0],
               ),
             ),
           ),
           
-          // Abstract floating glowing orbs for Liquid Glass aesthetics
+          // Abstract floating glowing orbs
           Positioned(
             top: -50, right: -50,
             child: Container(
@@ -226,7 +235,7 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
             bottom: 150, left: -100,
             child: Container(
               width: 300, height: 300,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFFF512F).withValues(alpha: 0.4)),
+              decoration: BoxDecoration(shape: BoxShape.circle, color: primaryContainer.withValues(alpha: 0.4)),
             ),
           ),
 
@@ -247,11 +256,11 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
                                 if (!_loading && _promotions.isNotEmpty) _buildUsageChart(),
                                 Expanded(
                                   child: _loading
-                                      ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                                      ? const Center(child: CircularProgressIndicator(color: primary))
                                       : _promotions.isEmpty
                                           ? _buildEmptyState()
                                           : RefreshIndicator(
-                                              color: const Color(0xFFFE512E),
+                                              color: primary,
                                               backgroundColor: Colors.white,
                                               onRefresh: _loadPromotions,
                                               child: ListView.builder(
@@ -267,10 +276,10 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
                               bottom: 16, right: 16,
                               child: FloatingActionButton.extended(
                                 onPressed: _createPromotion,
-                                backgroundColor: Colors.white,
+                                backgroundColor: primary,
                                 elevation: 8,
-                                icon: const Icon(Icons.confirmation_number, color: Color(0xFFFE512E)),
-                                label: Text('TẠO VOUCHER', style: GoogleFonts.chakraPetch(color: const Color(0xFFFE512E), fontWeight: FontWeight.bold, fontSize: 16)),
+                                icon: const Icon(Icons.confirmation_number, color: Colors.white),
+                                label: const Text('TẠO VOUCHER', style: TextStyle(fontFamily: 'PlusJakartaSans', color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                               ),
                             )
                           ],
@@ -306,23 +315,23 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back_ios, color: Colors.white)),
+                    IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back_ios, color: primary)),
                     const SizedBox(width: 8),
-                    Text(
-                      'KHUYẾN MÃI & GIỜ VÀNG',
-                      style: GoogleFonts.chakraPetch(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                    const Text(
+                      'KHUYẾN MÃI & CÀI ĐẶT',
+                      style: TextStyle(fontFamily: 'PlusJakartaSans', fontSize: 18, fontWeight: FontWeight.bold, color: primary),
                     ),
                     const Spacer(),
-                    const Icon(Icons.local_fire_department, color: Colors.white),
+                    const Icon(Icons.local_fire_department, color: primary),
                   ],
                 ),
               ),
               TabBar(
-                indicatorColor: Colors.white,
+                indicatorColor: primary,
                 indicatorWeight: 3,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white.withValues(alpha: 0.6),
-                labelStyle: GoogleFonts.beVietnamPro(fontWeight: FontWeight.bold, fontSize: 14),
+                labelColor: primary,
+                unselectedLabelColor: primary.withValues(alpha: 0.6),
+                labelStyle: const TextStyle(fontFamily: 'PlusJakartaSans', fontWeight: FontWeight.bold, fontSize: 14),
                 tabs: const [
                   Tab(text: 'VOUCHER'),
                   Tab(text: 'FLASH SALE'),
@@ -353,9 +362,9 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
+        color: Colors.white.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.8)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -370,13 +379,13 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
                 sections: [
                   PieChartSectionData(
                     value: totalUsed.toDouble(),
-                    color: Colors.greenAccent,
+                    color: Colors.greenAccent.shade700,
                     radius: 14,
                     showTitle: false,
                   ),
                   PieChartSectionData(
                     value: unused.toDouble(),
-                    color: Colors.white.withValues(alpha: 0.4),
+                    color: primary.withValues(alpha: 0.1),
                     radius: 12,
                     showTitle: false,
                   ),
@@ -389,9 +398,9 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Tỉ lệ sử dụng', style: GoogleFonts.beVietnamPro(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                Text('${usedPercent.toStringAsFixed(1)}%', style: GoogleFonts.chakraPetch(color: Colors.greenAccent, fontSize: 32, fontWeight: FontWeight.bold)),
-                Text('$totalUsed / $totalIssued Voucher đã dùng', style: GoogleFonts.robotoMono(color: Colors.white.withValues(alpha: 0.8), fontSize: 11)),
+                const Text('Tỉ lệ sử dụng', style: TextStyle(fontFamily: 'PlusJakartaSans', color: primary, fontSize: 14, fontWeight: FontWeight.w600)),
+                Text('${usedPercent.toStringAsFixed(1)}%', style: TextStyle(fontFamily: 'PlusJakartaSans', color: Colors.greenAccent.shade700, fontSize: 32, fontWeight: FontWeight.bold)),
+                Text('$totalUsed / $totalIssued Voucher đã dùng', style: const TextStyle(fontFamily: 'PlusJakartaSans', color: Colors.black54, fontSize: 11)),
               ],
             ),
           )
@@ -408,15 +417,15 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: Colors.white.withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.sell_outlined, size: 64, color: Colors.white),
+            child: const Icon(Icons.sell_outlined, size: 64, color: primary),
           ),
           const SizedBox(height: 20),
-          Text('Chưa phát hành Voucher nào', style: GoogleFonts.beVietnamPro(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text('Chưa phát hành Voucher nào', style: TextStyle(fontFamily: 'PlusJakartaSans', color: primary, fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Text('Cấp phát ngay để kích cầu doanh số!', style: GoogleFonts.beVietnamPro(color: Colors.white.withValues(alpha: 0.8), fontSize: 14)),
+          const Text('Cấp phát ngay để kích cầu doanh số!', style: TextStyle(fontFamily: 'PlusJakartaSans', color: Colors.black54, fontSize: 14)),
         ],
       ),
     );
@@ -438,9 +447,9 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2), // Frosted glass light
+              color: Colors.white.withValues(alpha: 0.6), // Frosted glass light
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1.5),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 1.5),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
@@ -459,27 +468,26 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [Color(0xFFFFB75E), Color(0xFFED8F03)]),
+                        gradient: const LinearGradient(colors: [primary, primaryContainer]),
                         borderRadius: BorderRadius.circular(12),
-                        boxShadow: [BoxShadow(color: Colors.deepOrange.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))],
+                        boxShadow: [BoxShadow(color: primary.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))],
                       ),
-                      child: Text(discLabel, style: GoogleFonts.chakraPetch(
-                        color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16,
+                      child: Text(discLabel, style: const TextStyle(
+                        fontFamily: 'PlusJakartaSans', color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16,
                       )),
                     ),
                     const SizedBox(width: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.25),
+                        color: Colors.white.withValues(alpha: 0.8),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+                        border: Border.all(color: Colors.white),
                       ),
                       child: Text(
                         promo['target_audience'] == 'Student' ? 'ONLY STUDENT' : 'ALL USERS',
-                        style: GoogleFonts.robotoMono(
-                          color: Colors.white,
-                          fontSize: 11, fontWeight: FontWeight.bold,
+                        style: const TextStyle(
+                          fontFamily: 'PlusJakartaSans', color: primary, fontSize: 11, fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -498,8 +506,8 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Text(promo['name'] ?? 'Siêu Phẩm Khuyến Mãi', style: GoogleFonts.beVietnamPro(
-                  fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white, height: 1.2,
+                Text(promo['name'] ?? 'Siêu Phẩm Khuyến Mãi', style: const TextStyle(
+                  fontFamily: 'PlusJakartaSans', fontSize: 18, fontWeight: FontWeight.w800, color: primary, height: 1.2,
                 )),
                 const SizedBox(height: 16),
                 
@@ -508,7 +516,7 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
                   children: List.generate(
                     30, (index) => Expanded(
                       child: Container(
-                        color: index % 2 == 0 ? Colors.white.withValues(alpha: 0.5) : Colors.transparent,
+                        color: index % 2 == 0 ? Colors.black.withValues(alpha: 0.1) : Colors.transparent,
                         height: 2,
                       ),
                     ),
@@ -523,13 +531,13 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Đã phát hành', style: GoogleFonts.beVietnamPro(fontSize: 12, color: Colors.white.withValues(alpha: 0.8))),
+                        const Text('Đã phát hành', style: TextStyle(fontFamily: 'PlusJakartaSans', fontSize: 12, color: Colors.black54)),
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.local_activity, size: 16, color: Colors.white),
+                            const Icon(Icons.local_activity, size: 16, color: primary),
                             const SizedBox(width: 6),
-                            Text('$voucherCount VÉ', style: GoogleFonts.robotoMono(fontSize: 15, color: Colors.white, fontWeight: FontWeight.bold)),
+                            Text('$voucherCount VÉ', style: const TextStyle(fontFamily: 'PlusJakartaSans', fontSize: 15, color: Colors.black87, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ],
@@ -537,13 +545,13 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text('Đã sử dụng', style: GoogleFonts.beVietnamPro(fontSize: 12, color: Colors.white.withValues(alpha: 0.8))),
+                        const Text('Đã sử dụng', style: TextStyle(fontFamily: 'PlusJakartaSans', fontSize: 12, color: Colors.black54)),
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Text('$usedCount VÉ', style: GoogleFonts.robotoMono(fontSize: 15, color: Colors.white, fontWeight: FontWeight.bold)),
+                            Text('$usedCount VÉ', style: const TextStyle(fontFamily: 'PlusJakartaSans', fontSize: 15, color: Colors.black87, fontWeight: FontWeight.bold)),
                             const SizedBox(width: 6),
-                            const Icon(Icons.check_circle, size: 16, color: Colors.greenAccent),
+                            const Icon(Icons.check_circle, size: 16, color: Colors.green),
                           ],
                         ),
                       ],
@@ -562,10 +570,10 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
     return TextField(
       controller: ctrl,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      style: GoogleFonts.beVietnamPro(fontWeight: FontWeight.w500),
+      style: const TextStyle(fontFamily: 'PlusJakartaSans', fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.beVietnamPro(color: Colors.grey.shade600),
+        labelStyle: const TextStyle(fontFamily: 'PlusJakartaSans', color: Colors.black54),
         filled: true,
         fillColor: Colors.grey.shade100,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
@@ -577,12 +585,12 @@ class _VoucherManagementScreenState extends State<VoucherManagementScreen> {
   Widget _buildDropdown(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
     return DropdownButtonFormField<String>(
       value: value,
-      items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: GoogleFonts.robotoMono(fontWeight: FontWeight.bold)))).toList(),
+      items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontFamily: 'PlusJakartaSans', fontWeight: FontWeight.bold)))).toList(),
       onChanged: onChanged,
       dropdownColor: Colors.white,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.beVietnamPro(color: Colors.grey.shade600),
+        labelStyle: const TextStyle(fontFamily: 'PlusJakartaSans', color: Colors.black54),
         filled: true,
         fillColor: Colors.grey.shade100,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),

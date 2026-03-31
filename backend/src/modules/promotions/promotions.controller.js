@@ -2,6 +2,7 @@ import { pool } from '../../db/pool.js';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import crypto from 'crypto';
+import { sendPushNotification } from '../../services/notification.service.js';
 
 const OPEN_AUDIENCES = new Set(['all', 'user', 'users', 'normal', 'general', 'public']);
 const STUDENT_AUDIENCES = new Set(['student', 'students', 'sv', 'sinh vien', 'sinhvien']);
@@ -227,6 +228,55 @@ export async function getSegmentsHandler(req, res, next) {
 
     const data = JSON.parse(readFileSync(filePath, 'utf-8'));
     res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/promotions/push — Send push marketing notifications
+export async function sendPushCampaignHandler(req, res, next) {
+  try {
+    const { title, body, target_group } = req.body;
+    if (!title || !body) return res.status(400).json({ message: 'Title and body are required' });
+
+    let userQuery = 'SELECT user_id FROM users';
+    
+    if (target_group === 'Sinh viên') {
+      userQuery = "SELECT user_id FROM users WHERE student_id IS NOT NULL AND TRIM(student_id) != ''";
+    } else if (target_group === 'Khách VIP') {
+      userQuery = "SELECT user_id FROM users WHERE (SELECT balance FROM wallets WHERE wallets.user_id = users.user_id LIMIT 1) > 1000000";
+    } else if (target_group === 'Chưa mua hàng 30 ngày') {
+      userQuery = "SELECT user_id FROM users WHERE NOT EXISTS (SELECT 1 FROM transactions WHERE transactions.sender_id = users.user_id AND created_at >= NOW() - INTERVAL '30 days')";
+    }
+
+    const { rows: users } = await pool.query(userQuery);
+    if (!users.length) return res.json({ message: 'No users found matching this segment', sent_count: 0 });
+
+    const client = await pool.connect();
+    let sentCount = 0;
+    try {
+      await client.query('BEGIN');
+      for (const u of users) {
+        await client.query(`
+          INSERT INTO notifications (user_id, title, content, type)
+          VALUES ($1, $2, $3, 'SYSTEM')
+        `, [u.user_id, title, body]);
+        sentCount++;
+      }
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+
+    // Emit sockets asynchronously
+    for (const u of users) {
+      sendPushNotification(u.user_id, title, body, { type: 'CAMPAIGN' }).catch(console.error);
+    }
+
+    res.json({ message: 'Campaign sent successfully', sent_count: sentCount });
   } catch (err) {
     next(err);
   }

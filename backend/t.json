@@ -1,6 +1,0 @@
-{
-  "payUrl": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Amount=5000000&vnp_Command=pay&vnp_CreateDate=20260319224337&vnp_CurrCode=VND&vnp_ExpireDate=20260319225837&vnp_IpAddr=127.0.0.1%2C+192.168.1.1&vnp_Locale=vn&vnp_OrderInfo=TestOrder&vnp_OrderType=other&vnp_ReturnUrl=http%3A%2F%2F127.0.0.1%3A4000%2Fapi%2Fpayment%2Fvnpay%2Fcallback&vnp_TmnCode=MO4V1NJO&vnp_TxnRef=12345&vnp_Version=2.1.0&vnp_SecureHash=1aba7d425baa12f5d28de35b28430363a0d0eee4978a02782596567006e65583386793d5aebbd5c5780c2b0a76189b0f7a723b7609c69602270fb72a4e3f735b",
-  "orderId": "12345",
-  "amount": 50000,
-  "message": "Success"
-}

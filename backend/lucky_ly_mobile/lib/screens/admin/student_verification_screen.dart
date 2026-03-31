@@ -28,6 +28,8 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen>
   List<dynamic> get _approved => _all.where((v) => v['status'] == 'approved').toList();
   List<dynamic> get _rejected => _all.where((v) => v['status'] == 'rejected').toList();
 
+  static const Color primary = Color(0xFF952CB1);
+
   @override
   void initState() {
     super.initState();
@@ -84,13 +86,11 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme.of(context);
-
     return Scaffold(
-      backgroundColor: theme.bg,
+      backgroundColor: const Color(0xFFFFF7FB),
       appBar: AppBar(
-        title: const Text('Membership & Sinh viên'),
-        backgroundColor: const Color(0xFF10B981),
+        title: const Text('Membership & Sinh viên', style: TextStyle(fontFamily: 'PlusJakartaSans')),
+        backgroundColor: primary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -116,6 +116,7 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen>
           indicatorColor: Colors.white,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white60,
+          labelStyle: const TextStyle(fontFamily: 'PlusJakartaSans', fontWeight: FontWeight.bold),
           tabs: [
             Tab(text: 'Chờ duyệt (${_pending.length})'),
             Tab(text: 'Đã duyệt (${_approved.length})'),
@@ -124,7 +125,7 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen>
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: primary))
           : TabBarView(
               controller: _tabController,
               children: [
@@ -137,8 +138,6 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen>
   }
 
   Widget _buildList(List<dynamic> items, String type) {
-    final theme = AppTheme.of(context);
-
     if (items.isEmpty) {
       return Center(
         child: Column(
@@ -146,26 +145,27 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen>
           children: [
             Icon(
               type == 'pending' ? Icons.hourglass_empty : type == 'approved' ? Icons.check_circle_outline : Icons.cancel_outlined,
-              size: 56, color: theme.textLight,
+              size: 56, color: Colors.grey.shade400,
             ),
             const SizedBox(height: 12),
-            Text('Không có bản ghi nào', style: TextStyle(color: theme.textMuted, fontSize: 15)),
+            const Text('Không có bản ghi nào', style: TextStyle(fontFamily: 'PlusJakartaSans', color: Colors.grey, fontSize: 15)),
           ],
         ),
       );
     }
 
     return RefreshIndicator(
+      color: primary,
       onRefresh: _loadVerifications,
       child: ListView.builder(
         padding: const EdgeInsets.all(20),
         itemCount: items.length,
-        itemBuilder: (ctx, i) => _buildCard(items[i], type, theme),
+        itemBuilder: (ctx, i) => _buildCard(items[i], type),
       ),
     );
   }
 
-  Widget _buildCard(Map<String, dynamic> item, String type, dynamic theme) {
+  Widget _buildCard(Map<String, dynamic> item, String type) {
     final statusColor = type == 'pending'
         ? const Color(0xFFF59E0B)
         : type == 'approved'
@@ -175,9 +175,12 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: theme.card,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: AppTheme.softShadow,
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 4))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,16 +191,16 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen>
             child: Container(
               height: 160,
               width: double.infinity,
-              color: theme.bg,
+              color: const Color(0xFFFFF7FB),
               child: item['card_image_url'] != null && item['card_image_url'].toString().isNotEmpty
                   ? Image.network(
                       item['card_image_url'],
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Center(
-                        child: Icon(Icons.badge_outlined, size: 48, color: theme.textLight),
+                      errorBuilder: (_, __, ___) => const Center(
+                        child: Icon(Icons.badge_outlined, size: 48, color: Colors.grey),
                       ),
                     )
-                  : Center(child: Icon(Icons.badge_outlined, size: 48, color: theme.textLight)),
+                  : const Center(child: Icon(Icons.badge_outlined, size: 48, color: Colors.grey)),
             ),
           ),
           Padding(
@@ -212,7 +215,7 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen>
                       backgroundColor: statusColor.withValues(alpha: 0.1),
                       child: Text(
                         (item['username'] ?? '?')[0].toUpperCase(),
-                        style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontFamily: 'PlusJakartaSans', color: statusColor, fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -220,11 +223,11 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(item['username'] ?? 'Unknown', style: TextStyle(
-                            fontWeight: FontWeight.bold, color: theme.textDark,
+                          Text(item['username'] ?? 'Unknown', style: const TextStyle(
+                            fontFamily: 'PlusJakartaSans', fontWeight: FontWeight.bold, color: Colors.black87,
                           )),
-                          Text(item['email'] ?? '', style: TextStyle(
-                            fontSize: 12, color: theme.textMuted,
+                          Text(item['email'] ?? '', style: const TextStyle(
+                            fontFamily: 'PlusJakartaSans', fontSize: 12, color: Colors.black54,
                           )),
                         ],
                       ),
@@ -236,7 +239,7 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen>
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(type.toUpperCase(), style: TextStyle(
-                        color: statusColor, fontSize: 11, fontWeight: FontWeight.bold,
+                        fontFamily: 'PlusJakartaSans', color: statusColor, fontSize: 11, fontWeight: FontWeight.bold,
                       )),
                     ),
                   ],
@@ -247,7 +250,7 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen>
                     children: [
                       const Icon(Icons.school, size: 14, color: Color(0xFF10B981)),
                       const SizedBox(width: 6),
-                      Text(item['school_name'], style: TextStyle(fontSize: 13, color: theme.textMuted)),
+                      Text(item['school_name'], style: const TextStyle(fontFamily: 'PlusJakartaSans', fontSize: 13, color: Colors.black54)),
                     ],
                   ),
                 ],
@@ -259,7 +262,7 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen>
                         child: ElevatedButton.icon(
                           onPressed: () => _review(item['id'], 'rejected'),
                           icon: const Icon(Icons.close, size: 18),
-                          label: const Text('Từ chối'),
+                          label: const Text('Từ chối', style: TextStyle(fontFamily: 'PlusJakartaSans')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFEF4444),
                             foregroundColor: Colors.white,
@@ -273,7 +276,7 @@ class _StudentVerificationScreenState extends State<StudentVerificationScreen>
                         child: ElevatedButton.icon(
                           onPressed: () => _review(item['id'], 'approved'),
                           icon: const Icon(Icons.check, size: 18),
-                          label: const Text('Duyệt'),
+                          label: const Text('Duyệt', style: TextStyle(fontFamily: 'PlusJakartaSans')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF10B981),
                             foregroundColor: Colors.white,

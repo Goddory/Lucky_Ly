@@ -34,7 +34,7 @@ async function getUserFcmToken(userId) {
   return rows[0]?.fcm_token || null;
 }
 
-async function sendPushNotification(userId, title, body, data = {}) {
+export async function sendPushNotification(userId, title, body, data = {}) {
   emitToUser(userId, 'notification', { title, body, data, timestamp: new Date().toISOString() });
 
   if (!firebaseInitialized) return;

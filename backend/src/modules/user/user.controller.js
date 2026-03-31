@@ -1,5 +1,6 @@
 import { updateProfileSchema, changePasswordSchema } from './user.validation.js';
 import { getUserProfile, updateUserProfile, changeUserPassword, getAllUsersService, toggleUserStatusService, updatePrivacySettings, updateFcmToken } from './user.service.js';
+import { pool } from '../../db/pool.js';
 
 // GET /api/users/me — Lấy thông tin profile user hiện tại.
 export async function getMe(req, res, next) {
@@ -87,3 +88,35 @@ export async function updateDeviceToken(req, res, next) {
     next(err);
   }
 }
+
+export const getMyNotifications = async (req, res, next) => {
+  try {
+    const { userId } = req.user;
+    const result = await pool.query(
+      'SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50',
+      [userId]
+    );
+
+    const unreadCount = result.rows.filter(r => !r.is_read).length;
+
+    res.json({
+      unread_count: unreadCount,
+      notifications: result.rows
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const markNotificationsRead = async (req, res, next) => {
+  try {
+    const { userId } = req.user;
+    await pool.query(
+      'UPDATE notifications SET is_read = true WHERE user_id = $1 AND is_read = false',
+      [userId]
+    );
+    res.json({ message: 'All notifications marked as read' });
+  } catch (err) {
+    next(err);
+  }
+};

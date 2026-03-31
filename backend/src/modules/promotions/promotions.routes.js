@@ -8,7 +8,8 @@ import {
   createPromotionHandler,
   updatePromotionHandler,
   deletePromotionHandler,
-  getSegmentsHandler
+  getSegmentsHandler,
+  sendPushCampaignHandler
 } from './promotions.controller.js';
 
 const router = Router();
@@ -21,6 +22,7 @@ router.use(requireMarketingAdmin);
 router.get('/stats', getStatsHandler);
 router.get('/segments', getSegmentsHandler);
 router.get('/', listPromotionsHandler);
+router.post('/push', sendPushCampaignHandler);
 router.post('/', createPromotionHandler);
 router.put('/:id', updatePromotionHandler);
 router.delete('/:id', deletePromotionHandler);
