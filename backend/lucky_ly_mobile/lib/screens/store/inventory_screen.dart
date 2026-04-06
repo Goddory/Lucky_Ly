@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -75,14 +74,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
             bottom: 100,
             right: 24,
             child: _buildFloatingActionButton(context),
-          ),
-
-          // Floating Bottom Navigation Bar
-          Positioned(
-            bottom: 24,
-            left: 20,
-            right: 20,
-            child: _buildFloatingBottomNav(),
           ),
         ],
       ),
@@ -317,61 +308,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  Widget _buildFloatingBottomNav() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(40),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.8),
-            borderRadius: BorderRadius.circular(40),
-            boxShadow: [
-              BoxShadow(color: const Color(0xFF302E30).withOpacity(0.06), blurRadius: 24, offset: const Offset(0, 8)),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.dashboard, 'Dashboard', false),
-              _buildNavItem(Icons.inventory_2, 'Inventory', true),
-              _buildNavItem(Icons.shopping_bag, 'Orders', false),
-              _buildNavItem(Icons.insights, 'Insights', false),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, bool isActive) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFFE37CFF).withOpacity(0.2) : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Icon(
-            icon,
-            color: isActive ? const Color(0xFF8F2BAD) : const Color(0xFFB0ACAF),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: isActive ? const Color(0xFF8F2BAD) : const Color(0xFFB0ACAF),
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 class InventoryItemCard extends StatelessWidget {

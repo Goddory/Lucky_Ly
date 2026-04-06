@@ -42,6 +42,7 @@ dependencies:
   qr_flutter: ^4.1.0
   mobile_scanner: ^7.2.0
   app_links: ^7.0.0
+  connectivity_plus: ^7.0.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -102,6 +103,9 @@ flutter:
     - assets/models/valentine/
     - assets/images/ValentineTheme/
     - assets/animations/
+    - 'assets/ảnh icon Luckyly/Lucky_Ly/pay/'
+    - 'assets/ảnh icon Luckyly/Lucky_Ly/trang_chu/'
+    - 'assets/ảnh icon Luckyly/Lucky_Ly/Chào mừng lễ hội/'
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

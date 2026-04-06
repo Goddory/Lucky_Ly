@@ -79,6 +79,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     fullNameController = TextEditingController(text: fullName);
     emailController = TextEditingController(text: email);
     avatarUrlController = TextEditingController(text: avatarUrl);
+    _loadLocalUser();
   }
 
   String _resolveCurrentUserId() {

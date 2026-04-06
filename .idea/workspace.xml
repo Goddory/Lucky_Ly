@@ -6,11 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="e7f21b5e-5660-48eb-b0b3-53ed89e90078" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lucky_ly_mobile/lib/profile_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lucky_ly_mobile/lib/profile_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lucky_ly_mobile/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lucky_ly_mobile/pubspec.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lucky_ly_mobile/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lucky_ly_mobile/pubspec.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lucky_ly_mobile/windows/flutter/generated_plugin_registrant.cc" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lucky_ly_mobile/windows/flutter/generated_plugin_registrant.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/lucky_ly_mobile/windows/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/backend/lucky_ly_mobile/windows/flutter/generated_plugins.cmake" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -23,18 +18,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "Goddory"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Goddory&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/Goddory/Lucky_Ly.git",
-    "accountId": "1d17a960-ca0f-4726-98c6-83917af0527f"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/Goddory/Lucky_Ly.git&quot;,
+    &quot;accountId&quot;: &quot;1d17a960-ca0f-4726-98c6-83917af0527f&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 0
 }</component>
@@ -54,7 +49,7 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "dart.analysis.tool.window.visible": "false",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "Merge-giao-diện",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "D:/Học/CNPM/App_LucKy_Ly/Lucky_Ly",
     "settings.editor.selected.configurable": "templates.modelproviders.configurable",

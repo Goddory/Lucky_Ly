@@ -140,6 +140,16 @@ ag-kit init --dry-run      # Preview actions without executing
   <img src="https://img.vietqr.io/image/mbbank-0779440918-compact.jpg" alt="Buy me coffee" width="200" />
 </p>
 
+## GitHub Copilot Support
+
+This project includes a `.github/copilot-instructions.md` file that allows GitHub Copilot to adopt the **Antigravity** persona and follow its strict design and code quality rules.
+
+When using Copilot Chat in VS Code, it will automatically:
+-   Apply the **Socratic Gate** (asks 3 strategic questions before coding).
+-   Respect the **Purple Ban** (avoids cliché AI colors).
+-   Use **Topological Betrayal** (avoids standard SaaS layout clichés).
+-   Follow **Clean Code** and **Security-first** principles.
+
 ## License
 
 MIT © Vudovn

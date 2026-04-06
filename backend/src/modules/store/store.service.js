@@ -495,18 +495,123 @@ export async function removeFromCart(userId, itemId) {
   return true;
 }
 
-export async function checkoutCart(userId, itemIds) {
+const OPEN_AUDIENCES = new Set(['all', 'user', 'users', 'normal', 'general', 'public']);
+const STUDENT_AUDIENCES = new Set(['student', 'students', 'sv', 'sinh vien', 'sinhvien']);
+
+function normalizeAudience(value) {
+  return String(value ?? 'all').trim().toLowerCase();
+}
+
+function resolveDiscountAmount(totalAmount, discountType, discountValue) {
+  const normalizedType = String(discountType ?? '').trim().toLowerCase();
+  const parsedValue = Number(discountValue ?? 0);
+
+  if (!Number.isFinite(parsedValue) || parsedValue <= 0 || totalAmount <= 0) {
+    return 0;
+  }
+
+  const rawDiscount = normalizedType === 'percent'
+    ? (totalAmount * parsedValue) / 100
+    : parsedValue;
+
+  const roundedDiscount = Math.round(rawDiscount);
+  return Math.max(0, Math.min(totalAmount, roundedDiscount));
+}
+
+async function resolveVoucherForCheckout(client, { userId, voucherCode, totalAmount }) {
+  const normalizedCode = String(voucherCode ?? '').trim();
+  if (!normalizedCode) {
+    return null;
+  }
+
+  const userResult = await client.query(
+    'SELECT student_id FROM users WHERE user_id = $1 LIMIT 1',
+    [userId],
+  );
+
+  if (!userResult.rows.length) {
+    throw new Error('Không tìm thấy người dùng để áp mã giảm giá.');
+  }
+
+  const isStudentVerified = Boolean(
+    userResult.rows[0].student_id && String(userResult.rows[0].student_id).trim(),
+  );
+
+  const voucherResult = await client.query(
+    `SELECT
+        v.id AS voucher_id,
+        v.code,
+        v.current_uses,
+        v.max_uses,
+        p.id AS promotion_id,
+        p.name AS promotion_name,
+        p.target_audience,
+        p.discount_type,
+        p.discount_value
+     FROM vouchers v
+     JOIN promotions p ON p.id = v.promotion_id
+     WHERE UPPER(v.code) = UPPER($1)
+       AND v.current_uses < v.max_uses
+       AND (p.starts_at IS NULL OR p.starts_at <= NOW())
+       AND (p.expires_at IS NULL OR p.expires_at >= NOW())
+     FOR UPDATE`,
+    [normalizedCode],
+  );
+
+  if (!voucherResult.rows.length) {
+    throw new Error('Mã giảm giá không hợp lệ hoặc đã hết lượt sử dụng.');
+  }
+
+  const voucher = voucherResult.rows[0];
+  const audience = normalizeAudience(voucher.target_audience);
+  if (STUDENT_AUDIENCES.has(audience) && !isStudentVerified) {
+    throw new Error('Mã giảm giá này chỉ dành cho tài khoản sinh viên đã xác thực.');
+  }
+  if (!OPEN_AUDIENCES.has(audience) && !STUDENT_AUDIENCES.has(audience)) {
+    throw new Error('Mã giảm giá không áp dụng cho tài khoản hiện tại.');
+  }
+
+  const discountAmount = resolveDiscountAmount(
+    totalAmount,
+    voucher.discount_type,
+    voucher.discount_value,
+  );
+
+  if (discountAmount <= 0) {
+    throw new Error('Mã giảm giá không hợp lệ cho đơn hàng hiện tại.');
+  }
+
+  return {
+    voucherId: voucher.voucher_id,
+    code: voucher.code,
+    promotionId: voucher.promotion_id,
+    promotionName: voucher.promotion_name,
+    discountType: voucher.discount_type,
+    discountValue: Number(voucher.discount_value ?? 0),
+    discountAmount,
+  };
+}
+
+export async function checkoutCart(userId, itemIds, voucherCode) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    const normalizedItemIds = Array.isArray(itemIds)
+      ? [...new Set(itemIds.map((itemId) => String(itemId).trim()).filter(Boolean))]
+      : [];
+
+    if (!normalizedItemIds.length) {
+      throw new Error('Vui lòng chọn ít nhất 1 sản phẩm để thanh toán.');
+    }
     
     // Lock all purchasing items
     const { rows: items } = await client.query(
       'SELECT * FROM store_items WHERE item_id = ANY($1) FOR UPDATE',
-      [itemIds]
+      [normalizedItemIds]
     );
 
-    if (items.length !== itemIds.length) {
+    if (items.length !== normalizedItemIds.length) {
       throw new Error('Một số vật phẩm không còn tồn tại hoặc không hợp lệ.');
     }
 
@@ -518,6 +623,15 @@ export async function checkoutCart(userId, itemIds) {
       totalAmount += Number(item.price);
     }
 
+    const voucher = await resolveVoucherForCheckout(client, {
+      userId,
+      voucherCode,
+      totalAmount,
+    });
+
+    const discountAmount = voucher?.discountAmount ?? 0;
+    const finalAmount = Math.max(0, totalAmount - discountAmount);
+
     // Lock user wallet and check
     await client.query(
       `INSERT INTO wallets (user_id, balance, currency, status) VALUES ($1, 0, 'VND', 'ACTIVE') ON CONFLICT (user_id) DO NOTHING`,
@@ -526,30 +640,61 @@ export async function checkoutCart(userId, itemIds) {
     const { rows: walletRows } = await client.query('SELECT balance FROM wallets WHERE user_id = $1 FOR UPDATE', [userId]);
     const balance = Number(walletRows[0]?.balance ?? 0);
 
-    if (balance < totalAmount) {
-      throw new Error(`Số dư không đủ. Cần ${totalAmount.toLocaleString('vi-VN')}đ.`);
+    if (balance < finalAmount) {
+      throw new Error(`Số dư không đủ. Cần ${finalAmount.toLocaleString('vi-VN')}đ.`);
     }
 
     // Deduct user wallet overall
-    await client.query('UPDATE wallets SET balance = balance - $1 WHERE user_id = $2', [totalAmount, userId]);
+    await client.query('UPDATE wallets SET balance = balance - $1 WHERE user_id = $2', [finalAmount, userId]);
+
+    let remainingPayableAmount = finalAmount;
+    const payableAmounts = items.map((item, index) => {
+      if (!voucher || totalAmount <= 0) {
+        return Number(item.price);
+      }
+
+      if (index === items.length - 1) {
+        return Math.max(0, remainingPayableAmount);
+      }
+
+      const proportionalAmount = Math.round((finalAmount * Number(item.price)) / totalAmount);
+      const safeAmount = Math.max(0, proportionalAmount);
+      remainingPayableAmount -= safeAmount;
+      return safeAmount;
+    });
 
     // Process each item individually to separate rows in transaction history
-    for (const item of items) {
+    for (let index = 0; index < items.length; index++) {
+      const item = items[index];
+      const payablePrice = payableAmounts[index];
+
       // Reduce stock
       await client.query('UPDATE store_items SET stock = stock - 1 WHERE item_id = $1', [item.item_id]);
 
       // Record transaction history for buyer
-      const orderId = `CART_${Date.now()}_${item.item_id.substring(0, 4)}`;
+      const orderId = `CART_${Date.now()}_${String(item.item_id).substring(0, 4)}`;
+      const noteSuffix = voucher ? ` (Áp mã ${voucher.code})` : '';
       await client.query(
         `INSERT INTO transactions (sender_id, receiver_id, order_id, amount, provider, status, tx_type, note)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [userId, item.created_by, orderId, item.price, 'wallet', 'success', 'purchase', `Mua ${item.item_name}`]
+        [userId, item.created_by, orderId, payablePrice, 'wallet', 'success', 'purchase', `Mua ${item.item_name}${noteSuffix}`]
       );
 
       // Detailed store metrics entry
       await client.query(
         `INSERT INTO store_transactions (buyer_id, total_amount, items) VALUES ($1, $2, $3)`,
-        [userId, item.price, JSON.stringify([{ id: item.item_id, name: item.item_name, price: item.price }])]
+        [
+          userId,
+          payablePrice,
+          JSON.stringify([
+            {
+              id: item.item_id,
+              name: item.item_name,
+              original_price: Number(item.price),
+              payable_price: payablePrice,
+            },
+          ]),
+        ]
       );
 
       // Sync item mapping to inventory workspace
@@ -565,14 +710,42 @@ export async function checkoutCart(userId, itemIds) {
         `INSERT INTO wallets (user_id, balance, currency, status) VALUES ($1, 0, 'VND', 'ACTIVE') ON CONFLICT (user_id) DO NOTHING`,
         [item.created_by]
       );
-      await client.query('UPDATE wallets SET balance = balance + $1 WHERE user_id = $2', [item.price, item.created_by]);
+      await client.query('UPDATE wallets SET balance = balance + $1 WHERE user_id = $2', [payablePrice, item.created_by]);
+    }
+
+    if (voucher) {
+      const updateVoucherResult = await client.query(
+        `UPDATE vouchers
+         SET current_uses = current_uses + 1
+         WHERE id = $1
+           AND current_uses < max_uses`,
+        [voucher.voucherId],
+      );
+
+      if (updateVoucherResult.rowCount === 0) {
+        throw new Error('Mã giảm giá đã hết lượt sử dụng.');
+      }
     }
 
     // Clear bought items from cart
-    await client.query('DELETE FROM store_carts WHERE user_id = $1 AND item_id = ANY($2)', [userId, itemIds]);
+    await client.query('DELETE FROM store_carts WHERE user_id = $1 AND item_id = ANY($2)', [userId, normalizedItemIds]);
 
     await client.query('COMMIT');
-    return { success: true, totalAmount, totalItems: items.length };
+    return {
+      success: true,
+      totalAmount,
+      discountAmount,
+      finalAmount,
+      totalItems: items.length,
+      appliedVoucher: voucher
+        ? {
+            code: voucher.code,
+            promotionName: voucher.promotionName,
+            discountType: voucher.discountType,
+            discountValue: voucher.discountValue,
+          }
+        : null,
+    };
   } catch (err) {
     await client.query('ROLLBACK');
     return { success: false, message: err.message };

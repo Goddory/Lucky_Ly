@@ -5,6 +5,7 @@ import { pool } from './db/pool.js';
 import connectMongo from './database/mongo_client.js';
 import { initSocketServer } from './sockets/chat.socket.js';
 import { initFirebase } from './services/notification.service.js';
+import { startGiftRefundScheduler } from './modules/gifts/gifts.refund.scheduler.js';
 import './config/sqlite.js';
 
 async function start() {
@@ -12,17 +13,11 @@ async function start() {
     await pool.query('SELECT 1');
     console.log('✅ Connected to Neon PostgreSQL successfully');
 
-    // MongoDB (optional)
-    // try {
-    //   const mongoResult = await connectMongo();
-    //   if (mongoResult?.connected) {
-    //     console.log('✅ Connected to MongoDB successfully');
-    //   } else {
-    //     console.error(`⚠️ MongoDB Connection Failed (Proceeding without Mongo): ${mongoResult?.reason || 'unknown reason'}`);
-    //   }
-    // } catch (e) {
-    //   console.error('⚠️ MongoDB Connection Failed (Proceeding without Mongo):', e?.message || e);
-    // }
+    const mongoResult = await connectMongo();
+    if (!mongoResult?.connected) {
+      throw new Error(`MongoDB connection failed: ${mongoResult?.reason || 'unknown reason'}`);
+    }
+    console.log('✅ Connected to MongoDB successfully');
     
     // Firebase Admin SDK (optional, for push notifications)
     initFirebase();
@@ -32,11 +27,14 @@ async function start() {
     initSocketServer(server);
     console.log('✅ Socket.io server attached');
 
+    startGiftRefundScheduler();
+    console.log('✅ Gift refund scheduler started');
+
     server.listen(env.port, '0.0.0.0', () => {
       console.log(`Auth API running on port ${env.port}`);
     });
   } catch (err) {
-    console.error('Failed to connect to primary PostgreSQL:', err);
+    console.error('Failed to bootstrap backend dependencies:', err);
     process.exit(1);
   }
 }

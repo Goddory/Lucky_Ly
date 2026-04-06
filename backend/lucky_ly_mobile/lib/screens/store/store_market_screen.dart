@@ -216,7 +216,7 @@ class _StoreMarketScreenState extends State<StoreMarketScreen> with SingleTicker
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item['itemName'] ?? 'Vật phẩm mới',
+                  item['itemName'] ?? item['item_name'] ?? item['name'] ?? 'Vật phẩm mới',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

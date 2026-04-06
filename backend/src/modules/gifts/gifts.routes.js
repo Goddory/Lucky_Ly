@@ -13,11 +13,13 @@ router.post('/claim/:token', giftsController.claimGift);
 router.get('/received', giftsController.listReceivedGifts);
 router.get('/sent', giftsController.listSentGifts);
 router.get('/pending-count', giftsController.getPendingCount);
+router.get('/refunds', giftsController.listRefundedGiftsMonitor);
 router.get('/preview/:token', giftsController.previewGiftByToken);
 
 // Parameterized routes last
 router.get('/:id', giftsController.getGiftDetail);
 router.patch('/:id/open', giftsController.openGift);
+router.patch('/:id/receive', giftsController.receiveGiftCash);
 router.patch('/:id/cancel', giftsController.cancelGift);
 
 export default router;

@@ -27,9 +27,13 @@ import 'screens/admin/users_management_screen.dart';
 import 'screens/admin/statistics_screen.dart';
 import 'screens/admin/theme_management_screen.dart';
 import 'screens/store/store_market_screen.dart';
+import 'screens/store/cart_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'core/services/sync_manager.dart';
 
 // ─────────────────────────────────────────────────────────────────
 // HOME SCREEN (Stateful Shell)
@@ -55,7 +59,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   int _currentTab = 0;
   late AnimationController _entryController;
   late Animation<double> _fadeIn;
@@ -63,10 +67,17 @@ class _HomeScreenState extends State<HomeScreen>
   bool _isBalanceLoading = true;
   List<dynamic> _notifications = [];
   int _unreadNotifsCount = 0;
+  int _unopenedGiftsCount = 0;
+  Timer? _syncTimer;
+  Timer? _balanceTimer;
+  bool _isSyncingInBackground = false;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _wasOffline = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _saveTokenToPrefs();
     _entryController = AnimationController(
       vsync: this,
@@ -75,6 +86,8 @@ class _HomeScreenState extends State<HomeScreen>
     _fadeIn =
         CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic);
     _entryController.forward();
+    _startBackgroundSyncLoop();
+    _startConnectivitySyncWatcher();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -90,6 +103,7 @@ class _HomeScreenState extends State<HomeScreen>
       auth.fetchProfile();
       _fetchWalletBalance();
       _fetchNotifications();
+      _fetchUnopenedGifts();
 
       if (!socket.isConnected && widget.accessToken.isNotEmpty) {
         socket.connect(widget.accessToken);
@@ -99,6 +113,73 @@ class _HomeScreenState extends State<HomeScreen>
         if (mounted) _showNotificationSnackbar(data);
       });
     });
+  }
+
+  bool _isOffline(List<ConnectivityResult> results) {
+    return results.isEmpty ||
+        results.every((result) => result == ConnectivityResult.none);
+  }
+
+  Future<void> _startConnectivitySyncWatcher() async {
+    final connectivity = Connectivity();
+
+    try {
+      final initial = await connectivity.checkConnectivity();
+      _wasOffline = _isOffline(initial);
+    } catch (_) {
+      _wasOffline = false;
+    }
+
+    _connectivitySub = connectivity.onConnectivityChanged.listen((results) {
+      final isOfflineNow = _isOffline(results);
+      final regainedConnection = _wasOffline && !isOfflineNow;
+
+      _wasOffline = isOfflineNow;
+
+      if (!regainedConnection) return;
+
+      _runBackgroundSync();
+      _fetchWalletBalance();
+      _fetchNotifications();
+      _fetchUnopenedGifts();
+    });
+  }
+
+  void _startBackgroundSyncLoop() {
+    _runBackgroundSync();
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      _runBackgroundSync();
+    });
+    // Auto-refresh balance every 30s
+    _balanceTimer?.cancel();
+    _balanceTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _fetchWalletBalance();
+    });
+  }
+
+  Future<void> _runBackgroundSync() async {
+    if (_isSyncingInBackground) return;
+    if (widget.accessToken.isEmpty) return;
+
+    _isSyncingInBackground = true;
+    try {
+      await SyncManager.manualSync();
+    } catch (e) {
+      debugPrint('Background sync skipped: $e');
+    } finally {
+      _isSyncingInBackground = false;
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _runBackgroundSync();
+      _fetchWalletBalance();
+      _fetchNotifications();
+      _fetchUnopenedGifts();
+    }
   }
 
   void _showNotificationSnackbar(dynamic data) {
@@ -243,6 +324,27 @@ class _HomeScreenState extends State<HomeScreen>
     } catch (_) {}
   }
 
+  Future<void> _fetchUnopenedGifts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? prefs.getString('access_token');
+      if (token == null) return;
+      final response = await http.get(
+        Uri.parse('${widget.apiBaseUrl}/api/gifts/received'),
+        headers: { 'Authorization': 'Bearer $token' },
+      );
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        int count = data.where((g) => g['status'] == 'pending').length;
+        if (mounted) {
+          setState(() {
+            _unopenedGiftsCount = count;
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
   Future<void> _markNotificationsRead() async {
     if (_unreadNotifsCount == 0) return;
     try {
@@ -264,6 +366,10 @@ class _HomeScreenState extends State<HomeScreen>
   // ── HOME SCREEN TABS ──────────────────────────────────────────
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _syncTimer?.cancel();
+    _balanceTimer?.cancel();
+    _connectivitySub?.cancel();
     _entryController.dispose();
     super.dispose();
   }
@@ -300,6 +406,7 @@ class _HomeScreenState extends State<HomeScreen>
                   children: [
                     _LuckyHeader(
                       userData: widget.userData,
+                      unopenedGiftsCount: _unopenedGiftsCount,
                       unreadNotifsCount: _unreadNotifsCount,
                       onGiftTap: () => Navigator.push(
                         context,
@@ -386,6 +493,11 @@ class _HomeScreenState extends State<HomeScreen>
                                 context,
                                 MaterialPageRoute(
                                     builder: (_) => PaymentScreen()),
+                              ),
+                              onCartTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const CartScreen()),
                               ),
                             ),
                             const SizedBox(height: 28),
@@ -545,6 +657,7 @@ class _HomeScreenState extends State<HomeScreen>
 class _LuckyHeader extends StatelessWidget {
   const _LuckyHeader({
     required this.userData,
+    required this.unopenedGiftsCount,
     required this.unreadNotifsCount,
     required this.onGiftTap,
     required this.onNotifTap,
@@ -552,6 +665,7 @@ class _LuckyHeader extends StatelessWidget {
   });
 
   final Map<String, dynamic> userData;
+  final int unopenedGiftsCount;
   final int unreadNotifsCount;
   final VoidCallback onGiftTap;
   final VoidCallback onNotifTap;
@@ -622,18 +736,19 @@ class _LuckyHeader extends StatelessWidget {
           Row(
             children: [
               _HeaderIconBtn(
-                icon: Icons.card_giftcard_outlined,
+                assetPath: 'assets/ảnh icon Luckyly/Lucky_Ly/trang_chu/quà của tôi.png',
+                badge: unopenedGiftsCount,
                 onTap: onGiftTap,
               ),
               const SizedBox(width: 8),
               _HeaderIconBtn(
-                icon: Icons.notifications_outlined,
+                assetPath: 'assets/ảnh icon Luckyly/Lucky_Ly/trang_chu/thông báo.png',
                 badge: unreadNotifsCount,
                 onTap: onNotifTap,
               ),
               const SizedBox(width: 8),
               _HeaderIconBtn(
-                icon: Icons.chat_bubble_outline,
+                assetPath: 'assets/ảnh icon Luckyly/Lucky_Ly/trang_chu/chat.png',
                 onTap: onChatTap,
               ),
             ],
@@ -645,9 +760,10 @@ class _LuckyHeader extends StatelessWidget {
 }
 
 class _HeaderIconBtn extends StatelessWidget {
-  const _HeaderIconBtn({required this.icon, this.badge = 0, this.onTap});
+  const _HeaderIconBtn({this.icon, this.assetPath, this.badge = 0, this.onTap});
 
-  final IconData icon;
+  final IconData? icon;
+  final String? assetPath;
   final int badge;
   final VoidCallback? onTap;
 
@@ -665,7 +781,11 @@ class _HeaderIconBtn extends StatelessWidget {
               color: const Color(0xFF952CB1).withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: const Color(0xFF952CB1), size: 22),
+            child: assetPath != null
+                ? Center(
+                    child: Image.asset(assetPath!,
+                        width: 20, height: 20, fit: BoxFit.contain))
+                : Icon(icon, color: const Color(0xFF952CB1), size: 22),
           ),
           if (badge > 0)
             Positioned(
@@ -871,7 +991,7 @@ class _ActionDef {
 // ═══════════════════════════════════════════════════════════════
 // WALLET + CELEBRATE SECTION
 // ═══════════════════════════════════════════════════════════════
-class _WalletAndCelebrateSection extends StatelessWidget {
+class _WalletAndCelebrateSection extends StatefulWidget {
   const _WalletAndCelebrateSection({
     required this.onCelebrateTap,
     this.balance,
@@ -883,6 +1003,19 @@ class _WalletAndCelebrateSection extends StatelessWidget {
   final double? balance;
   final bool isLoading;
   final VoidCallback onRefresh;
+
+  @override
+  State<_WalletAndCelebrateSection> createState() => _WalletAndCelebrateSectionState();
+}
+
+class _WalletAndCelebrateSectionState extends State<_WalletAndCelebrateSection> {
+  bool _isHidden = false;
+
+  String get _displayBalance {
+    if (_isHidden) return '\u2022\u2022\u2022\u2022\u2022\u2022';
+    if (widget.balance == null) return '--- \u0111';
+    return '${widget.balance!.toStringAsFixed(0).replaceAllMapped(RegExp(r"(\d)(?=(\d{3})+(?!\d))"), (m) => "${m[1]},")}\u0111';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -929,18 +1062,31 @@ class _WalletAndCelebrateSection extends StatelessWidget {
                   ),
                   Row(
                     children: [
+                      // Refresh button
                       GestureDetector(
-                        onTap: onRefresh,
+                        onTap: widget.onRefresh,
                         child: Icon(Icons.refresh_rounded, color: Colors.white70, size: 18),
                       ),
-                      const SizedBox(width: 8),
-                      Icon(Icons.visibility_outlined, color: Colors.white70),
+                      const SizedBox(width: 12),
+                      // Hide/show balance toggle
+                      GestureDetector(
+                        onTap: () => setState(() => _isHidden = !_isHidden),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: Icon(
+                            _isHidden ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            key: ValueKey(_isHidden),
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              if (isLoading)
+              if (widget.isLoading)
                 const SizedBox(
                   height: 42,
                   child: Center(
@@ -952,15 +1098,27 @@ class _WalletAndCelebrateSection extends StatelessWidget {
                   ),
                 )
               else
-                Text(
-                  balance != null
-                      ? '${balance!.toStringAsFixed(0).replaceAllMapped(RegExp(r"(\d)(?=(\d{3})+(?!\d))"), (m) => "${m[1]},")}đ'
-                      : '--- đ',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 36,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -1,
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (child, anim) => FadeTransition(
+                    opacity: anim,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.2),
+                        end: Offset.zero,
+                      ).animate(anim),
+                      child: child,
+                    ),
+                  ),
+                  child: Text(
+                    _displayBalance,
+                    key: ValueKey('$_isHidden-${widget.balance}'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 36,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1,
+                    ),
                   ),
                 ),
               const SizedBox(height: 6),
@@ -985,19 +1143,19 @@ class _WalletAndCelebrateSection extends StatelessWidget {
                 physics: const BouncingScrollPhysics(),
                 child: Row(
                   children: [
-                    _WalletActionBtn('Nạp tiền', Icons.add_circle_outline, onTap: () async {
+                    _WalletActionBtn('Nạp tiền', 'assets/ảnh icon Luckyly/Lucky_Ly/trang_chu/nạp tiền.png', onTap: () async {
                       await showTopUpSheet(context);
-                      onRefresh();
+                      widget.onRefresh();
                     }),
                     const SizedBox(width: 12),
-                    _WalletActionBtn('Rút tiền', Icons.remove_circle_outline, onTap: () async {
+                    _WalletActionBtn('Rút tiền', 'assets/ảnh icon Luckyly/Lucky_Ly/trang_chu/rút tiền.png', onTap: () async {
                       await showWithdrawSheet(context);
-                      onRefresh();
+                      widget.onRefresh();
                     }),
                     const SizedBox(width: 12),
-                    _WalletActionBtn('Chuyển', Icons.swap_horiz_rounded, onTap: () async {
+                    _WalletActionBtn('Chuyển', 'assets/ảnh icon Luckyly/Lucky_Ly/trang_chu/chuyển tiền.png', onTap: () async {
                       await showTransferSheet(context);
-                      onRefresh();
+                      widget.onRefresh();
                     }),
                   ],
                 ),
@@ -1010,7 +1168,7 @@ class _WalletAndCelebrateSection extends StatelessWidget {
 
         // ── Celebrate Card ───────────────────────────────────
         GestureDetector(
-          onTap: onCelebrateTap,
+          onTap: widget.onCelebrateTap,
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -1083,8 +1241,14 @@ class _WalletAndCelebrateSection extends StatelessWidget {
                     ),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.card_giftcard,
-                      size: 32, color: Color(0xFF952CB1)),
+                  child: Center(
+                    child: Image.asset(
+                      'assets/ảnh icon Luckyly/Lucky_Ly/trang_chu/hộp quà.png',
+                      width: 32,
+                      height: 32,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -1096,10 +1260,10 @@ class _WalletAndCelebrateSection extends StatelessWidget {
 }
 
 class _WalletActionBtn extends StatelessWidget {
-  const _WalletActionBtn(this.label, this.icon, {this.onTap});
+  const _WalletActionBtn(this.label, this.assetPath, {this.onTap});
 
   final String label;
-  final IconData icon;
+  final String assetPath;
   final VoidCallback? onTap;
 
   @override
@@ -1116,7 +1280,7 @@ class _WalletActionBtn extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: Colors.white, size: 14),
+            Image.asset(assetPath, width: 16, height: 16, fit: BoxFit.contain),
             const SizedBox(width: 5),
             Text(
               label,
@@ -1142,12 +1306,14 @@ class _FeatureGrid extends StatelessWidget {
     required this.onAvatarTap,
     required this.onMarketingTap,
     required this.onPaymentTap,
+    required this.onCartTap,
   });
 
   final bool isMarketing;
   final VoidCallback onAvatarTap;
   final VoidCallback onMarketingTap;
   final VoidCallback onPaymentTap;
+  final VoidCallback onCartTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1172,10 +1338,10 @@ class _FeatureGrid extends StatelessWidget {
         onPaymentTap,
       ),
       _FeatureDef(
-        Icons.receipt_long_outlined,
-        'Hóa đơn',
-        const Color(0xFF7C3AED),
-        null,
+        Icons.shopping_cart_outlined,
+        'Giỏ hàng',
+        const Color(0xFF0E7490),
+        onCartTap,
       ),
       if (!isMarketing)
         _FeatureDef(

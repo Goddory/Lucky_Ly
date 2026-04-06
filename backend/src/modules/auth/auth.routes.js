@@ -20,7 +20,7 @@ router.post('/login', authRateLimiter, login);
 router.post('/facebook-login', authRateLimiter, facebookLogin);
 router.post('/google', authRateLimiter, googleLogin);
 router.post('/refresh', authRateLimiter, refresh);
-router.post('/logout', authRateLimiter, logout);
+router.post('/logout', authRateLimiter, authenticateToken, logout);
 router.get('/sessions', authRateLimiter, authenticateToken, sessions);
 router.post('/logout-all', authRateLimiter, authenticateToken, logoutAll);
 router.post('/logout-device', authRateLimiter, authenticateToken, logoutSession);

@@ -436,16 +436,8 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen> {
             const SizedBox(height: 28),
 
             // Send button
-            ElevatedButton.icon(
+            ElevatedButton(
               onPressed: _isSending ? null : _sendGift,
-              icon: _isSending
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: const CustomLoading(size: 80),
-                    )
-                  : const Icon(Icons.send_rounded),
-              label: Text(_isSending ? 'Đang gửi...' : 'Gửi quà 🎁'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _themeColor,
                 foregroundColor: Colors.white,
@@ -459,6 +451,20 @@ class _GiftPreviewScreenState extends State<GiftPreviewScreen> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              child: _isSending
+                  ? const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CustomLoading(size: 80),
+                        ),
+                        SizedBox(width: 8),
+                        Text('Đang gửi...'),
+                      ],
+                    )
+                  : const Text('Gửi quà'),
             ),
           ],
         ),

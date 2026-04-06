@@ -13,8 +13,10 @@ class StoreProvider extends ChangeNotifier {
   Map<String, dynamic>? _overview;
   List<dynamic> _revenueData = [];
   List<dynamic> _cartItems = [];
+  List<Map<String, dynamic>> _availablePromotions = [];
   bool _isLoading = false;
   bool _isCartLoading = false;
+  bool _isPromotionsLoading = false;
 
   StoreProvider(this._authProvider) {
     _setMockOverview();
@@ -27,8 +29,10 @@ class StoreProvider extends ChangeNotifier {
   Map<String, dynamic>? get overview => _overview;
   List<dynamic> get revenueData => _revenueData;
   List<dynamic> get cartItems => _cartItems;
+  List<Map<String, dynamic>> get availablePromotions => _availablePromotions;
   bool get isLoading => _isLoading;
   bool get isCartLoading => _isCartLoading;
+  bool get isPromotionsLoading => _isPromotionsLoading;
 
   Future<void> fetchInventory() async {
     _isLoading = true;
@@ -100,6 +104,34 @@ class StoreProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> fetchAvailablePromotions() async {
+    _isPromotionsLoading = true;
+    notifyListeners();
+    try {
+      final res = await _authProvider.apiClient.get('/api/promotions/available');
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final promotionsRaw = data['promotions'];
+        if (promotionsRaw is List) {
+          _availablePromotions = promotionsRaw
+              .whereType<Map>()
+              .map((promo) => Map<String, dynamic>.from(promo))
+              .toList();
+        } else {
+          _availablePromotions = [];
+        }
+      } else {
+        _availablePromotions = [];
+      }
+    } catch (e) {
+      debugPrint('Error fetching available promotions: $e');
+      _availablePromotions = [];
+    } finally {
+      _isPromotionsLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<Map<String, dynamic>> addToCart(String itemId) async {
     _isLoading = true;
     notifyListeners();
@@ -137,15 +169,28 @@ class StoreProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> checkoutCart(List<String> itemIds) async {
+  Future<Map<String, dynamic>> checkoutCart(List<String> itemIds, {String? voucherCode}) async {
     _isCartLoading = true;
     notifyListeners();
     try {
-      final res = await _authProvider.apiClient.post('/api/store/market/cart/checkout', {'itemIds': itemIds});
+      final payload = <String, dynamic>{'itemIds': itemIds};
+      if (voucherCode != null && voucherCode.trim().isNotEmpty) {
+        payload['voucherCode'] = voucherCode.trim();
+      }
+
+      final res = await _authProvider.apiClient.post('/api/store/market/cart/checkout', payload);
       final data = jsonDecode(res.body);
       if (res.statusCode == 200) {
         await fetchCart();
-        return {'success': true, 'message': 'Thanh toán thành công'};
+        await fetchAvailablePromotions();
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Thanh toán thành công',
+          'totalAmount': data['totalAmount'],
+          'discountAmount': data['discountAmount'],
+          'finalAmount': data['finalAmount'],
+          'appliedVoucher': data['appliedVoucher'],
+        };
       } else {
         return {'success': false, 'message': data['message'] ?? 'Thất bại'};
       }

@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
 import 'screens/gifts/themed_gift_builder_screen.dart';
@@ -8,33 +9,56 @@ class CelebrateScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final holidays = [
-      {'name': 'Tết Nguyên Đán', 'image': Icons.home, 'color': Colors.red},
-      {'name': 'Valentine', 'image': Icons.favorite, 'color': Colors.pink},
-      {'name': 'Quốc tế Phụ nữ 8/3', 'image': Icons.woman, 'color': Colors.purple},
+      {'name': 'Tết Nguyên Đán', 'asset': 'assets/ảnh icon Luckyly/Lucky_Ly/Chào mừng lễ hội/tết nguyên đán.png', 'color': Colors.red},
+      {'name': 'Valentine', 'asset': 'assets/ảnh icon Luckyly/Lucky_Ly/Chào mừng lễ hội/valentine.png', 'color': Colors.pink},
+      {'name': 'Quốc tế Phụ nữ 8/3', 'asset': 'assets/ảnh icon Luckyly/Lucky_Ly/Chào mừng lễ hội/quốc tế phụ nữ.png', 'color': Colors.purple},
       {'name': 'Giỗ tổ Hùng Vương', 'image': Icons.account_balance, 'color': Colors.orange},
-      {'name': 'Giải phóng miền Nam 30/4', 'image': Icons.flag, 'color': Colors.redAccent},
-      {'name': 'Quốc tế Lao động 1/5', 'image': Icons.work, 'color': Colors.blue},
+      {'name': 'Giải phóng miền Nam 30/4', 'asset': 'assets/ảnh icon Luckyly/Lucky_Ly/Chào mừng lễ hội/giải phóng miền nam.png', 'color': Colors.redAccent},
+      {'name': 'Quốc tế Lao động 1/5', 'asset': 'assets/ảnh icon Luckyly/Lucky_Ly/Chào mừng lễ hội/quốc tế lao động.png', 'color': Colors.blue},
     ];
 
     return Scaffold(
-      backgroundColor: AppTheme.of(context).bg,
-      appBar: AppBar(
-        title: const Text('Chào mừng lễ hội', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        flexibleSpace: Container(decoration: BoxDecoration(gradient: AppTheme.of(context).primaryGradient)),
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+      backgroundColor: const Color(0xFFFFF7FB),
+      extendBodyBehindAppBar: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(64),
+        child: ClipRRect(
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: AppBar(
+              backgroundColor: Colors.white.withOpacity(0.8),
+              elevation: 0.5,
+              shadowColor: const Color(0xFF45274b).withOpacity(0.2),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Color(0xFF7e22ce)),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: const Text(
+                'Lễ Hội',
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  color: Color(0xFF581c87),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              centerTitle: true,
+            ),
+          ),
+        ),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 100, 20, 16),
             child: Text(
               'Chọn chủ đề lễ hội',
               style: TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
-                color: AppTheme.of(context).textDark,
+                color: Color(0xFF45274b),
                 letterSpacing: -0.5,
               ),
             ),
@@ -53,7 +77,8 @@ class CelebrateScreen extends StatelessWidget {
                 final h = holidays[index];
                 return _buildHolidayCard(
                   h['name'] as String,
-                  h['image'] as IconData,
+                  h['image'] as IconData?,
+                  h['asset'] as String?,
                   h['color'] as Color,
                   context,
                 );
@@ -65,7 +90,7 @@ class CelebrateScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHolidayCard(String name, IconData icon, Color color, BuildContext context) {
+  Widget _buildHolidayCard(String name, IconData? icon, String? assetPath, Color color, BuildContext context) {
     return AnimatedInteractiveScale(
       onTap: () {
         String? giftTheme;
@@ -82,16 +107,16 @@ class CelebrateScreen extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.of(context).card,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: color.withValues(alpha: 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: color.withOpacity(0.12),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
             ),
           ],
-          border: Border.all(color: color.withValues(alpha: 0.05)),
+          border: Border.all(color: color.withOpacity(0.1)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -99,18 +124,21 @@ class CelebrateScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
+                color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 28),
+              child: assetPath != null 
+                  ? Image.asset(assetPath, width: 32, height: 32, fit: BoxFit.contain)
+                  : Icon(icon, color: color, size: 28),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text(
                 name,
-                style: TextStyle(
-                  color: AppTheme.of(context).textDark, 
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  color: Color(0xFF45274b), 
                   fontWeight: FontWeight.w700, 
                   fontSize: 11,
                   height: 1.2,

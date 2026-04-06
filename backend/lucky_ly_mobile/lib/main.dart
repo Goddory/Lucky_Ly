@@ -25,6 +25,7 @@ import 'providers/friend_provider.dart';
 import 'providers/chat_provider.dart';
 import 'providers/store_provider.dart';
 import 'core/services/socket_service.dart';
+import 'core/services/api_client.dart';
 
 // Entry point khởi chạy ứng dụng Flutter.
 void main() async {
@@ -133,7 +134,34 @@ class AuthScreenWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AuthScreen();
+    return Consumer<AuthProvider>(
+      builder: (context, auth, _) {
+        if (!auth.isSessionHydrated) {
+          return const Scaffold(
+            body: Center(child: CustomLoading(size: 80)),
+          );
+        }
+
+        if (!auth.isAuthenticated) {
+          return const AuthScreen();
+        }
+
+        final restoredUser = Map<String, dynamic>.from(auth.userData ?? <String, dynamic>{});
+        final restoredEmail = auth.userEmail ?? restoredUser['email']?.toString() ?? '';
+
+        if (restoredUser['email'] == null && restoredEmail.isNotEmpty) {
+          restoredUser['email'] = restoredEmail;
+        }
+
+        return HomeScreen(
+          userEmail: restoredEmail,
+          userData: restoredUser,
+          accessToken: auth.accessToken ?? '',
+          refreshToken: auth.refreshToken ?? '',
+          apiBaseUrl: ApiClient.getBaseUrl(),
+        );
+      },
+    );
   }
 }
 
@@ -356,6 +384,9 @@ class _AuthScreenState extends State<AuthScreen>
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('access_token', accessToken);
+    await prefs.setString('accessToken', accessToken);
+    await prefs.setString('refresh_token', refreshToken);
+    await prefs.setString('refreshToken', refreshToken);
     await prefs.setString('last_login_email', normalizedEmail);
     await _secureStorage.write(
       key: 'refresh_token_$normalizedEmail',
@@ -1618,9 +1649,11 @@ class _AuthScreenState extends State<AuthScreen>
     final refreshToken = responseBody['refreshToken']?.toString() ?? '';
     
     if (accessToken.isNotEmpty) {
+      await prefs.setString('access_token', accessToken);
       await prefs.setString('accessToken', accessToken);
     }
     if (refreshToken.isNotEmpty) {
+      await prefs.setString('refresh_token', refreshToken);
       await prefs.setString('refreshToken', refreshToken);
     }
 

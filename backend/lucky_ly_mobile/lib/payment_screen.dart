@@ -48,22 +48,6 @@ class PaymentScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             _PaymentOptionCard(
-              icon: Icons.credit_card,
-              color: theme.primary,
-              title: 'Thẻ tín dụng / Ghi nợ',
-              subtitle: 'Visa, Mastercard, JCB',
-              onTap: () {},
-            ),
-            const SizedBox(height: 12),
-            _PaymentOptionCard(
-              icon: Icons.account_balance,
-              color: const Color(0xFF0C8DB8),
-              title: 'Chuyển khoản ngân hàng',
-              subtitle: 'Vietcombank, Techcombank, ...',
-              onTap: () {},
-            ),
-            const SizedBox(height: 12),
-            _PaymentOptionCard(
               icon: Icons.payment,
               color: const Color(0xFF005BAA), // Darker blue for VNPay
               title: 'Thanh toán qua VNPay',

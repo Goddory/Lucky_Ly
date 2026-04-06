@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../data/gift_catalog.dart';
 import '../../app_theme.dart';
@@ -47,72 +48,94 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
     super.dispose();
   }
 
-  Color get _themeColor =>
-      widget.theme == 'tet' ? const Color(0xFFc0392b) : const Color(0xFFe84393);
-  Color get _themeAccent =>
-      widget.theme == 'tet' ? const Color(0xFFf39c12) : const Color(0xFF9b59b6);
-  LinearGradient get _themeGradient => LinearGradient(
+  Color get _themeColor => const Color(0xFF952cb1);
+  Color get _themeAccent => const Color(0xFFbe004c);
+  LinearGradient get _themeGradient => const LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: widget.theme == 'tet'
-        ? [const Color(0xFFe74c3c), const Color(0xFFc0392b)]
-        : [const Color(0xFFfd79a8), const Color(0xFFe84393)],
+    colors: [Color(0xFF9333ea), Color(0xFFf472b6)],
   );
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = AppTheme.of(context);
     return Scaffold(
-      backgroundColor: appTheme.bg,
-      appBar: AppBar(
-        title: Text(
-          widget.theme == 'tet' ? 'Quà Tết' : 'Quà Valentine',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+      backgroundColor: const Color(0xFFFFF7FB),
+      extendBodyBehindAppBar: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(64),
+        child: ClipRRect(
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: AppBar(
+              backgroundColor: Colors.white.withOpacity(0.8),
+              elevation: 0.5,
+              shadowColor: const Color(0xFF45274b).withOpacity(0.2),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Color(0xFF7e22ce)),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: Text(
+                widget.theme == 'tet' ? 'Quà Tết' : 'Quà Valentine',
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  color: Color(0xFF581c87),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              centerTitle: true,
+            ),
           ),
         ),
-        flexibleSpace: Container(
-          decoration: BoxDecoration(gradient: _themeGradient),
-        ),
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Column(
         children: [
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle('Chọn mẫu quà 3D', Icons.view_in_ar),
-                  const SizedBox(height: 12),
-                  _buildModelCarousel(),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle('Thêm sticker', Icons.auto_awesome),
-                  const SizedBox(height: 12),
-                  _buildStickerGrid(),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle(
-                    'Khu vực thiết kế',
-                    Icons.dashboard_customize,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDesignArea(),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle('Lời nhắn', Icons.message_outlined),
-                  const SizedBox(height: 12),
-                  _buildMessageInput(),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle(
-                    widget.theme == 'tet' ? 'Tiền mừng tuổi (Lì xì)' : 'Gửi kèm tiền mặt',
-                    Icons.account_balance_wallet_outlined,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildCashInput(),
-                ],
-              ),
+            child: ListView(
+              padding: const EdgeInsets.only(top: 88, left: 16, right: 16, bottom: 24),
+              children: [
+                _buildSectionTitle('Chọn mẫu quà 3D', Icons.view_in_ar),
+                const SizedBox(height: 12),
+                _buildModelCarousel(),
+                const SizedBox(height: 32),
+                _buildSectionTitle('Khu vực thiết kế', Icons.dashboard_customize),
+                const SizedBox(height: 12),
+                _buildDesignArea(),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildSectionTitle('Thêm sticker', Icons.auto_awesome),
+                    TextButton(
+                      onPressed: () {},
+                      child: const Text(
+                        'TẤT CẢ',
+                        style: TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
+                          color: Color(0xFF952cb1),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _buildStickerGrid(),
+                const SizedBox(height: 32),
+                _buildSectionTitle('Lời nhắn', Icons.message_outlined),
+                const SizedBox(height: 12),
+                _buildMessageInput(),
+                const SizedBox(height: 32),
+                _buildSectionTitle(
+                  widget.theme == 'tet' ? 'Tiền mừng tuổi (Lì xì)' : 'Gửi kèm tiền mặt',
+                  Icons.account_balance_wallet_outlined,
+                ),
+                const SizedBox(height: 12),
+                _buildCashInput(),
+                const SizedBox(height: 24),
+              ],
             ),
           ),
           _buildBottomBar(),
@@ -127,18 +150,20 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: _themeColor.withValues(alpha: 0.1),
+            color: const Color(0xFFFDD6FF),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: _themeColor, size: 20),
+          child: Icon(icon, color: const Color(0xFF952cb1), size: 18),
         ),
         const SizedBox(width: 12),
         Text(
-          title,
-          style: TextStyle(
-            color: AppTheme.of(context).textDark,
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
+          title.toUpperCase(),
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
+            color: Color(0xFF75547a),
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            letterSpacing: 1.5,
           ),
         ),
       ],
@@ -147,9 +172,10 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
 
   Widget _buildModelCarousel() {
     return SizedBox(
-      height: 160,
+      height: 170,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
         itemCount: _models.length,
         itemBuilder: (context, index) {
           final model = _models[index];
@@ -159,80 +185,78 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOutCubic,
-              width: 120,
-              margin: const EdgeInsets.only(right: 12),
+              width: 110,
+              margin: const EdgeInsets.only(right: 16),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? _themeColor.withValues(alpha: 0.1)
-                    : Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                color: const Color(0xFFFFEFFC),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isSelected ? _themeColor : Colors.grey.shade200,
-                  width: isSelected ? 2.5 : 1,
+                  color: isSelected ? const Color(0xFF952cb1) : Colors.transparent,
+                  width: isSelected ? 2.0 : 0.0,
                 ),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: _themeColor.withValues(alpha: 0.2),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                    : [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 8,
-                        ),
-                      ],
+                boxShadow: [
+                  if (isSelected) 
+                    BoxShadow(
+                      color: const Color(0xFF952cb1).withOpacity(0.2),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                ],
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  ScaleTransition(
-                    scale: isSelected
-                        ? _pulseAnimation
-                        : const AlwaysStoppedAnimation(1.0),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: _themeAccent.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ScaleTransition(
+                        scale: isSelected
+                            ? _pulseAnimation
+                            : const AlwaysStoppedAnimation(1.0),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.6),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            _getIconForModel(model.thumbnailIcon),
+                            color: const Color(0xFF952cb1),
+                            size: 36,
+                          ),
+                        ),
                       ),
-                      child: Icon(
-                        _getIconForModel(model.thumbnailIcon),
-                        color: _themeColor,
-                        size: 36,
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          model.name,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            color: isSelected ? const Color(0xFF952cb1) : const Color(0xFF75547a),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      model.name,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: AppTheme.of(context).textDark,
-                        fontSize: 12,
-                        fontWeight: isSelected
-                            ? FontWeight.w800
-                            : FontWeight.w600,
+                  if (isSelected)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF952cb1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.check, color: Colors.white, size: 12),
                       ),
                     ),
-                  ),
-                  if (isSelected) ...[
-                    const SizedBox(height: 4),
-                    Container(
-                      width: 20,
-                      height: 3,
-                      decoration: BoxDecoration(
-                        color: _themeColor,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -269,40 +293,34 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
 
   Widget _buildStickerThumb(
     GiftSticker sticker, {
-    double size = 56,
+    double size = 64,
     bool dragging = false,
   }) {
     return Container(
       width: size,
       height: size,
-      margin: const EdgeInsets.only(right: 10),
+      margin: const EdgeInsets.only(right: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _themeColor.withValues(alpha: 0.15)),
+        color: const Color(0xFFFFEFFC),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: dragging
             ? [
                 BoxShadow(
-                  color: _themeColor.withValues(alpha: 0.3),
+                  color: const Color(0xFF952cb1).withOpacity(0.3),
                   blurRadius: 12,
                 ),
               ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 4,
-                ),
-              ],
+            : null,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(13),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(6),
+          padding: const EdgeInsets.all(12),
           child: Image.asset(
             sticker.assetPath,
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) =>
-                Icon(Icons.auto_awesome, color: _themeColor, size: 24),
+                const Icon(Icons.auto_awesome, color: Color(0xFF75547a), size: 24),
           ),
         ),
       ),
@@ -330,21 +348,15 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
         final isHovering = candidateData.isNotEmpty;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          height: 240,
+          height: 380,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: widget.theme == 'tet'
-                  ? [const Color(0xFFFFF5F5), const Color(0xFFFEF3E2)]
-                  : [const Color(0xFFFFF0F6), const Color(0xFFF8F0FC)],
-            ),
-            borderRadius: BorderRadius.circular(20),
+            color: const Color(0xFFFFEFFC),
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: isHovering
-                  ? _themeColor
-                  : _themeColor.withValues(alpha: 0.15),
-              width: isHovering ? 2.5 : 1.5,
+                  ? const Color(0xFF952cb1)
+                  : Colors.transparent,
+              width: isHovering ? 2.5 : 0.0,
               strokeAlign: BorderSide.strokeAlignInside,
             ),
           ),
@@ -500,61 +512,94 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _themeColor.withValues(alpha: 0.12)),
+        border: Border.all(color: const Color(0xFFFFE6FE), width: 2),
       ),
       child: TextField(
         controller: _cashController,
         keyboardType: TextInputType.number,
-        style: TextStyle(
-          color: AppTheme.of(context).textDark,
+        style: const TextStyle(
+          fontFamily: 'Plus Jakarta Sans',
+          color: Color(0xFF45274b),
           fontSize: 16,
           fontWeight: FontWeight.w700,
         ),
         decoration: InputDecoration(
           hintText: 'Nhập số tiền (VD: 20000)',
           hintStyle: TextStyle(
-            color: AppTheme.of(context).textLight,
+            fontFamily: 'Plus Jakarta Sans',
+            color: const Color(0xFF75547a).withOpacity(0.4),
             fontSize: 14,
-            fontWeight: FontWeight.normal,
           ),
-          prefixIcon: Icon(Icons.payments_outlined, color: _themeColor),
+          prefixIcon: const Icon(Icons.payments_outlined, color: Color(0xFF952cb1)),
           suffixText: 'VNĐ',
-          suffixStyle: TextStyle(
-            color: _themeColor,
+          suffixStyle: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
+            color: Color(0xFF952cb1),
             fontWeight: FontWeight.bold,
           ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
     );
   }
 
   Widget _buildMessageInput() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _themeColor.withValues(alpha: 0.12)),
-      ),
-      child: TextField(
-        controller: _messageController,
-        maxLines: 3,
-        maxLength: 200,
-        style: TextStyle(color: AppTheme.of(context).textDark, fontSize: 15),
-        decoration: InputDecoration(
-          hintText: widget.theme == 'tet'
-              ? 'Chúc mừng năm mới! 🎉'
-              : 'Gửi lời yêu thương... 💕',
-          hintStyle: TextStyle(color: AppTheme.of(context).textLight),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.all(16),
-          counterStyle: TextStyle(
-            color: AppTheme.of(context).textMuted,
-            fontSize: 11,
+    return Stack(
+      children: [
+        TextField(
+          controller: _messageController,
+          maxLines: 4,
+          maxLength: 200,
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
+            color: Color(0xFF45274b), 
+            fontSize: 15
+          ),
+          decoration: InputDecoration(
+            hintText: widget.theme == 'tet'
+                ? 'Nhập lời chúc của bạn tại đây...'
+                : 'Gửi lời yêu thương...',
+            hintStyle: TextStyle(color: const Color(0xFF75547a).withOpacity(0.4), fontFamily: 'Plus Jakarta Sans'),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFFFFE6FE), width: 2),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFF952cb1), width: 2),
+            ),
+            counterStyle: TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
+              color: const Color(0xFF75547a).withOpacity(0.5),
+              fontSize: 11,
+            ),
           ),
         ),
-      ),
+        Positioned(
+          bottom: 12,
+          right: 16,
+          child: Row(
+            children: [
+              Icon(Icons.edit_note, size: 18, color: const Color(0xFF75547a).withOpacity(0.4)),
+              const SizedBox(width: 4),
+              Text(
+                'TÙY CHỈNH',
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                  color: const Color(0xFF75547a).withOpacity(0.4),
+                ),
+              ),
+            ],
+          ),
+        )
+      ],
     );
   }
 
@@ -562,11 +607,11 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withOpacity(0.9),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
             offset: const Offset(0, -4),
           ),
         ],
@@ -574,60 +619,78 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
       child: Row(
         children: [
           Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () {
-                setState(() => _placedStickers.clear());
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('Đặt lại'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _themeColor,
-                side: BorderSide(color: _themeColor),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+            child: SizedBox(
+              height: 56,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFDD6FF),
+                  foregroundColor: const Color(0xFF952cb1),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                ),
+                onPressed: () {
+                  setState(() => _placedStickers.clear());
+                },
+                child: const Text(
+                  'Đặt lại', 
+                  style: TextStyle(fontFamily: 'Plus Jakarta Sans', fontWeight: FontWeight.bold, fontSize: 16)
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             flex: 2,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => GiftPreviewScreen(
-                      theme: widget.theme,
-                      model: _models[_selectedModelIndex],
-                      stickers: _placedStickers
-                          .map(
-                            (s) => {
-                              'id': s.sticker.id,
-                              'x': s.x,
-                              'y': s.y,
-                              'scale': s.scale,
-                              'rotation': s.rotation,
-                            },
-                          )
-                          .toList(),
-                      message: _messageController.text.trim(),
-                      cashAmount: double.tryParse(_cashController.text) ?? 0,
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.visibility),
-              label: const Text('Xem trước & Gửi'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _themeColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+            child: Container(
+              height: 56,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF9333ea), Color(0xFFf472b6)],
                 ),
-                elevation: 0,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFa855f7).withOpacity(0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => GiftPreviewScreen(
+                        theme: widget.theme,
+                        model: _models[_selectedModelIndex],
+                        stickers: _placedStickers
+                            .map(
+                              (s) => {
+                                'id': s.sticker.id,
+                                'x': s.x,
+                                'y': s.y,
+                                'scale': s.scale,
+                                'rotation': s.rotation,
+                              },
+                            )
+                            .toList(),
+                        message: _messageController.text.trim(),
+                        cashAmount: double.tryParse(_cashController.text) ?? 0,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text(
+                  'Xem trước & Gửi',
+                  style: TextStyle(fontFamily: 'Plus Jakarta Sans', color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
           ),

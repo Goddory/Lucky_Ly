@@ -201,18 +201,6 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
                                 ),
                               ],
                             ),
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: primaryContainer, width: 2),
-                                image: const DecorationImage(
-                                  image: NetworkImage('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150'), // Admin Profile Placeholder
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                       ),
@@ -236,45 +224,48 @@ class _ThemeManagementScreenState extends State<ThemeManagementScreen> {
           BoxShadow(color: onSurface.withValues(alpha: 0.06), blurRadius: 32, offset: const Offset(0, 12))
         ],
       ),
-      child: Stack(
-        children: [
-          // Lớp nền Gradient mờ ảo
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF9333EA).withValues(alpha: 0.1), // purple-600
-                    const Color(0xFFF472B6).withValues(alpha: 0.1), // pink-400
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+      child: SizedBox(
+        width: double.infinity,
+        child: Stack(
+          children: [
+            // Lớp nền Gradient mờ ảo
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF9333EA).withValues(alpha: 0.1), // purple-600
+                      const Color(0xFFF472B6).withValues(alpha: 0.1), // pink-400
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
               ),
             ),
-          ),
-          // Nội dung text
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ShaderMask(
-                shaderCallback: (bounds) => const LinearGradient(
-                  colors: [Color(0xFF7E22CE), Color(0xFFEC4899)], // purple-700 to pink-500
-                ).createShader(bounds),
-                child: const Text(
-                  'Quản lý Theme',
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white),
+            // Nội dung text
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    colors: [Color(0xFF7E22CE), Color(0xFFEC4899)], // purple-700 to pink-500
+                  ).createShader(bounds),
+                  child: const Text(
+                    'Quản lý Theme',
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Thay đổi màu sắc hệ thống chung',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: onSurfaceVariant.withValues(alpha: 0.8)),
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(height: 8),
+                Text(
+                  'Thay đổi màu sắc hệ thống chung',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: onSurfaceVariant.withValues(alpha: 0.8)),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

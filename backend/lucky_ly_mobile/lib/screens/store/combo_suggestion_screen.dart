@@ -33,7 +33,7 @@ class _ComboSuggestionScreenState extends State<ComboSuggestionScreen> {
               _buildGlassAppBar(context),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -57,14 +57,6 @@ class _ComboSuggestionScreenState extends State<ComboSuggestionScreen> {
                 ),
               ),
             ],
-          ),
-
-          // Floating Bottom Navigation
-          Positioned(
-            bottom: 24,
-            left: 24,
-            right: 24,
-            child: _buildFloatingBottomNav(),
           ),
         ],
       ),
@@ -284,56 +276,6 @@ class _ComboSuggestionScreenState extends State<ComboSuggestionScreen> {
     );
   }
 
-  Widget _buildFloatingBottomNav() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(40),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.8),
-            borderRadius: BorderRadius.circular(40),
-            boxShadow: [BoxShadow(color: const Color(0xFF302E30).withOpacity(0.06), blurRadius: 24, offset: const Offset(0, 8))],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.home, 'Home', false),
-              _buildNavItem(Icons.psychology, 'Smart Expert', true),
-              _buildNavItem(Icons.card_giftcard, 'My Combos', false),
-              _buildNavItem(Icons.person, 'Profile', false),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, bool isActive) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFFE37CFF).withOpacity(0.2) : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Icon(icon, color: isActive ? const Color(0xFF8F2BAD) : const Color(0xFF302E30).withOpacity(0.5)),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: isActive ? const Color(0xFF8F2BAD) : const Color(0xFF302E30).withOpacity(0.5),
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 class ComboCard extends StatelessWidget {

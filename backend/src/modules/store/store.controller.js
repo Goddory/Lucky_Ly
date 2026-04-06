@@ -154,7 +154,11 @@ export async function removeFromCartHandler(req, res, next) {
 
 export async function checkoutCartHandler(req, res, next) {
   try {
-    const result = await storeService.checkoutCart(req.user.userId, req.body.itemIds);
+    const result = await storeService.checkoutCart(
+      req.user.userId,
+      req.body.itemIds,
+      req.body.voucherCode,
+    );
     if (!result.success) {
       return res.status(400).json({ message: result.message });
     }

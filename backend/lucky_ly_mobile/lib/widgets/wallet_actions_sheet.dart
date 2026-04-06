@@ -61,14 +61,16 @@ const _kDivider = Color(0xFFE2E8F0);
 // ─────────────────────────────────────────────────────────────────
 class _SheetShell extends StatelessWidget {
   const _SheetShell({
-    required this.icon,
+    this.icon,
+    this.assetPath,
     required this.iconColor,
     required this.title,
     required this.subtitle,
     required this.child,
   });
 
-  final IconData icon;
+  final IconData? icon;
+  final String? assetPath;
   final Color iconColor;
   final String title;
   final String subtitle;
@@ -106,7 +108,9 @@ class _SheetShell extends StatelessWidget {
                 color: iconColor.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: iconColor, size: 36),
+              child: assetPath != null
+                  ? Center(child: Image.asset(assetPath!, width: 36, height: 36, fit: BoxFit.contain))
+                  : Icon(icon, color: iconColor, size: 36),
             ),
             const SizedBox(height: 16),
             Text(
@@ -292,9 +296,9 @@ class _TopUpSheetState extends State<_TopUpSheet> {
   String _selectedGateway = 'momo';
 
   final _gateways = const [
-    _GatewayDef('momo', 'MoMo', Color(0xFFA50064), Icons.account_balance_wallet),
-    _GatewayDef('vnpay', 'VNPay', Color(0xFF005BAA), Icons.payment),
-    _GatewayDef('zalopay', 'ZaloPay', Color(0xFF0068FF), Icons.account_balance_wallet_outlined),
+    _GatewayDef('momo', 'MoMo', Color(0xFFA50064), 'assets/ảnh icon Luckyly/Lucky_Ly/pay/momo.png'),
+    _GatewayDef('vnpay', 'VNPay', Color(0xFF005BAA), 'assets/ảnh icon Luckyly/Lucky_Ly/pay/vnpay.png'),
+    _GatewayDef('zalopay', 'ZaloPay', Color(0xFF0068FF), 'assets/ảnh icon Luckyly/Lucky_Ly/pay/zalo.png'),
   ];
 
   @override
@@ -368,7 +372,7 @@ class _TopUpSheetState extends State<_TopUpSheet> {
   @override
   Widget build(BuildContext context) {
     return _SheetShell(
-      icon: Icons.add_circle_outline_rounded,
+      assetPath: 'assets/ảnh icon Luckyly/Lucky_Ly/trang_chu/nạp tiền.png',
       iconColor: _kPrimary,
       title: 'Nạp tiền vào ví',
       subtitle: 'Chọn cổng thanh toán và nhập số tiền',
@@ -401,12 +405,23 @@ class _TopUpSheetState extends State<_TopUpSheet> {
                     ),
                     child: Column(
                       children: [
-                        Icon(g.icon,
-                            color: isSelected
-                                ? g.color
-                                : _kTextMuted,
-                            size: 22),
-                        const SizedBox(height: 4),
+                        ColorFiltered(
+                          colorFilter: isSelected
+                              ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply)
+                              : const ColorFilter.matrix(<double>[
+                                  0.2126, 0.7152, 0.0722, 0, 0,
+                                  0.2126, 0.7152, 0.0722, 0, 0,
+                                  0.2126, 0.7152, 0.0722, 0, 0,
+                                  0,      0,      0,      1, 0,
+                                ]),
+                          child: Image.asset(
+                            g.assetPath,
+                            width: 28,
+                            height: 28,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
                         Text(
                           g.name,
                           style: TextStyle(
@@ -467,8 +482,9 @@ class _GatewayDef {
   final String id;
   final String name;
   final Color color;
-  final IconData icon;
-  const _GatewayDef(this.id, this.name, this.color, this.icon);
+  final String assetPath;
+
+  const _GatewayDef(this.id, this.name, this.color, this.assetPath);
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -568,7 +584,7 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
   @override
   Widget build(BuildContext context) {
     return _SheetShell(
-      icon: Icons.remove_circle_outline_rounded,
+      assetPath: 'assets/ảnh icon Luckyly/Lucky_Ly/trang_chu/rút tiền.png',
       iconColor: _kPink,
       title: 'Rút tiền',
       subtitle: 'Rút về tài khoản ngân hàng của bạn',
@@ -792,7 +808,7 @@ class _TransferSheetState extends State<_TransferSheet> {
   @override
   Widget build(BuildContext context) {
     return _SheetShell(
-      icon: Icons.swap_horiz_rounded,
+      assetPath: 'assets/ảnh icon Luckyly/Lucky_Ly/trang_chu/chuyển tiền.png',
       iconColor: const Color(0xFF7C3AED),
       title: 'Chuyển tiền',
       subtitle: 'Chuyển tiền cho bạn bè qua email',

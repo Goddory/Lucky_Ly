@@ -1,7 +1,104 @@
 import { pool } from '../../db/pool.js';
 import crypto from 'crypto';
 
+const GIFT_CLAIM_WINDOW_HOURS = 24;
+const GIFT_CLAIM_WINDOW_MS = GIFT_CLAIM_WINDOW_HOURS * 60 * 60 * 1000;
+
+let schemaEnsurePromise = null;
+
+export const ensureGiftCashflowSchema = async () => {
+  if (!schemaEnsurePromise) {
+    schemaEnsurePromise = pool.query(`
+      ALTER TABLE gifts ADD COLUMN IF NOT EXISTS cash_amount NUMERIC(18,2) NOT NULL DEFAULT 0;
+      ALTER TABLE gifts ADD COLUMN IF NOT EXISTS opened_at TIMESTAMPTZ;
+      ALTER TABLE gifts ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMPTZ;
+      ALTER TABLE gifts ADD COLUMN IF NOT EXISTS refunded_at TIMESTAMPTZ;
+      ALTER TABLE gifts ADD COLUMN IF NOT EXISTS receiver_email VARCHAR(255);
+      ALTER TABLE gifts ADD COLUMN IF NOT EXISTS theme VARCHAR(20);
+      ALTER TABLE gifts ADD COLUMN IF NOT EXISTS model_id VARCHAR(100);
+      ALTER TABLE gifts ADD COLUMN IF NOT EXISTS stickers JSONB DEFAULT '[]';
+      ALTER TABLE gifts ADD COLUMN IF NOT EXISTS message TEXT;
+    `).catch((error) => {
+      schemaEnsurePromise = null;
+      throw error;
+    });
+  }
+
+  await schemaEnsurePromise;
+};
+
+const getGiftCashAmount = (gift) => Number(gift?.cash_amount || 0);
+
+const parseOpenedAt = (gift) => {
+  if (!gift?.opened_at) return null;
+  const openedAt = new Date(gift.opened_at);
+  return Number.isNaN(openedAt.getTime()) ? null : openedAt;
+};
+
+const isClaimWindowExpired = (gift) => {
+  const openedAt = parseOpenedAt(gift);
+  if (!openedAt) return false;
+  return (Date.now() - openedAt.getTime()) >= GIFT_CLAIM_WINDOW_MS;
+};
+
+const ensureWalletExists = async (client, userId) => {
+  await client.query(
+    `INSERT INTO wallets (user_id, balance, currency, status) VALUES ($1, 0, 'VND', 'ACTIVE')
+     ON CONFLICT (user_id) DO NOTHING`,
+    [userId]
+  );
+};
+
+const recordGiftTransaction = async (client, {
+  senderId,
+  receiverId = null,
+  amount,
+  txType,
+  note,
+  orderPrefix,
+  giftId,
+}) => {
+  const orderId = `${orderPrefix}_${Date.now()}_${giftId}`;
+  await client.query(
+    `INSERT INTO transactions (sender_id, receiver_id, amount, order_id, status, tx_type, note, provider)
+     VALUES ($1, $2, $3, $4, 'success', $5, $6, 'wallet')`,
+    [senderId, receiverId, amount, orderId, txType, note]
+  );
+};
+
+const refundGiftAmountLocked = async (client, gift) => {
+  if (gift.claimed_at || gift.refunded_at) return gift;
+
+  const cashAmount = getGiftCashAmount(gift);
+  if (cashAmount <= 0) return gift;
+
+  await ensureWalletExists(client, gift.sender_id);
+  await client.query('UPDATE wallets SET balance = balance + $1 WHERE user_id = $2', [cashAmount, gift.sender_id]);
+
+  await recordGiftTransaction(client, {
+    senderId: gift.sender_id,
+    receiverId: null,
+    amount: cashAmount,
+    txType: 'gift_refund',
+    note: `Hoàn tiền quà #${gift.id} sau ${GIFT_CLAIM_WINDOW_HOURS}h không nhận`,
+    orderPrefix: 'GIFT_REFUND',
+    giftId: gift.id,
+  });
+
+  const { rows } = await client.query(
+    `UPDATE gifts
+     SET refunded_at = NOW()
+     WHERE id = $1
+     RETURNING *`,
+    [gift.id]
+  );
+
+  return rows[0];
+};
+
 export const createGift = async (senderId, giftData) => {
+  await ensureGiftCashflowSchema();
+
   const { receiverEmail, theme, modelId, stickers, message, cashAmount = 0 } = giftData;
   const numCash = Number(cashAmount);
   
@@ -32,12 +129,15 @@ export const createGift = async (senderId, giftData) => {
       await client.query('UPDATE wallets SET balance = balance - $1 WHERE user_id = $2', [numCash, senderId]);
       
       // 2) Record transaction
-      const orderId = `GIFT_SEND_${Date.now()}_${senderId.slice(0, 8)}`;
-      await client.query(
-        `INSERT INTO transactions (sender_id, amount, order_id, status, tx_type, note, provider)
-         VALUES ($1, $2, $3, 'success', 'purchase', $4, 'wallet')`,
-        [senderId, numCash, orderId, `Gửi quà kèm ${numCash.toLocaleString()}đ cho ${normalizedReceiverEmail}`]
-      );
+      await recordGiftTransaction(client, {
+        senderId,
+        receiverId: null,
+        amount: numCash,
+        txType: 'gift_sent',
+        note: `Gửi quà kèm ${numCash.toLocaleString('vi-VN')}đ cho ${normalizedReceiverEmail}`,
+        orderPrefix: 'GIFT_SEND',
+        giftId: Date.now(),
+      });
     }
 
     // 3) Create gift
@@ -60,6 +160,8 @@ export const createGift = async (senderId, giftData) => {
 };
 
 export const createGiftLink = async (senderId, giftData) => {
+  await ensureGiftCashflowSchema();
+
   const { itemType, amount, maxReceivers, message } = giftData;
 
   if (!itemType) {
@@ -85,6 +187,8 @@ export const createGiftLink = async (senderId, giftData) => {
 };
 
 export const claimGift = async (qrToken, receiverId) => {
+  await ensureGiftCashflowSchema();
+
   const giftResult = await pool.query(
     `SELECT * FROM gifts WHERE qr_token = $1 LIMIT 1`,
     [qrToken]
@@ -158,6 +262,8 @@ export const claimGift = async (qrToken, receiverId) => {
 };
 
 export const cancelGift = async (giftId, senderId) => {
+  await ensureGiftCashflowSchema();
+
   const { rows } = await pool.query(
     `UPDATE gifts SET is_cancelled = TRUE
      WHERE id = $1 AND sender_id = $2 AND is_cancelled = FALSE AND current_receivers = 0
@@ -175,6 +281,8 @@ export const cancelGift = async (giftId, senderId) => {
 };
 
 export const getGiftByToken = async (token) => {
+  await ensureGiftCashflowSchema();
+
   const { rows } = await pool.query(
     `SELECT g.*, u.username AS sender_name, u.avatar_url AS sender_avatar
      FROM gifts g
@@ -186,6 +294,8 @@ export const getGiftByToken = async (token) => {
 };
 
 export const getReceivedGifts = async (userEmail) => {
+  await ensureGiftCashflowSchema();
+
   const query = `
     SELECT g.*, u.username AS sender_name, u.avatar_url AS sender_avatar
     FROM gifts g
@@ -198,6 +308,8 @@ export const getReceivedGifts = async (userEmail) => {
 };
 
 export const getSentGifts = async (senderId) => {
+  await ensureGiftCashflowSchema();
+
   const query = `
     SELECT g.*, u.email AS receiver_display
     FROM gifts g
@@ -210,6 +322,8 @@ export const getSentGifts = async (senderId) => {
 };
 
 export const getGiftByIdForUser = async (id, userId, userEmail) => {
+  await ensureGiftCashflowSchema();
+
   const query = `
     SELECT g.*, u.username AS sender_name, u.avatar_url AS sender_avatar, u.full_name AS sender_full_name
     FROM gifts g
@@ -225,6 +339,8 @@ export const getGiftByIdForUser = async (id, userId, userEmail) => {
 };
 
 export const markAsOpened = async (id, userEmail) => {
+  await ensureGiftCashflowSchema();
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -240,38 +356,12 @@ export const markAsOpened = async (id, userEmail) => {
       return null;
     }
     
-    const gift = giftResult.rows[0];
-    const cashAmount = Number(gift.cash_amount || 0);
-    
-    // 2) If there's money, credit the receiver's wallet
-    if (cashAmount > 0) {
-      // Find receiverId from email
-      const userRes = await client.query('SELECT user_id FROM users WHERE LOWER(email) = LOWER($1)', [userEmail]);
-      if (userRes.rowCount > 0) {
-        const receiverId = userRes.rows[0].user_id;
-        
-        // Upsert wallet
-        await client.query(
-          `INSERT INTO wallets (user_id, balance, currency, status) VALUES ($1, 0, 'VND', 'ACTIVE')
-           ON CONFLICT (user_id) DO NOTHING`,
-          [receiverId]
-        );
-        
-        await client.query('UPDATE wallets SET balance = balance + $1 WHERE user_id = $2', [cashAmount, receiverId]);
-        
-        // Record transaction
-        const orderId = `GIFT_RECV_${Date.now()}_${id}`;
-        await client.query(
-          `INSERT INTO transactions (sender_id, receiver_id, amount, order_id, status, tx_type, note, provider)
-           VALUES ($1, $2, $3, $4, 'success', 'purchase', $5, 'wallet')`,
-          [gift.sender_id, receiverId, cashAmount, orderId, `Nhận quà kèm ${cashAmount.toLocaleString()}đ`]
-        );
-      }
-    }
-    
-    // 3) Mark as opened
+    // 2) Mark as opened only (money is claimed by explicit receive action)
     const { rows } = await client.query(
-      `UPDATE gifts SET status = 'opened', opened_at = NOW() WHERE id = $1 RETURNING *`,
+      `UPDATE gifts
+       SET status = 'opened', opened_at = COALESCE(opened_at, NOW())
+       WHERE id = $1
+       RETURNING *`,
       [id]
     );
     
@@ -285,7 +375,104 @@ export const markAsOpened = async (id, userEmail) => {
   }
 };
 
+export const receiveGiftCash = async (id, userEmail) => {
+  await ensureGiftCashflowSchema();
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const giftResult = await client.query(
+      `SELECT *
+       FROM gifts
+       WHERE id = $1
+         AND LOWER(receiver_email) = LOWER($2)
+       FOR UPDATE`,
+      [id, userEmail]
+    );
+
+    if (giftResult.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    let gift = giftResult.rows[0];
+    const cashAmount = getGiftCashAmount(gift);
+
+    if (gift.status === 'pending') {
+      const err = new Error('Vui lòng mở quà trước khi nhận tiền');
+      err.statusCode = 409;
+      throw err;
+    }
+
+    if (cashAmount <= 0) {
+      await client.query('COMMIT');
+      return { gift, action: 'no_cash' };
+    }
+
+    if (gift.claimed_at) {
+      await client.query('COMMIT');
+      return { gift, action: 'already_claimed' };
+    }
+
+    if (gift.refunded_at) {
+      const err = new Error('Tiền trong quà đã được hoàn về người gửi');
+      err.statusCode = 410;
+      throw err;
+    }
+
+    if (isClaimWindowExpired(gift)) {
+      gift = await refundGiftAmountLocked(client, gift);
+      await client.query('COMMIT');
+      return { gift, action: 'refunded' };
+    }
+
+    const receiverResult = await client.query(
+      'SELECT user_id FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1',
+      [userEmail]
+    );
+
+    if (receiverResult.rowCount === 0) {
+      const err = new Error('Không tìm thấy tài khoản người nhận');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const receiverId = receiverResult.rows[0].user_id;
+    await ensureWalletExists(client, receiverId);
+    await client.query('UPDATE wallets SET balance = balance + $1 WHERE user_id = $2', [cashAmount, receiverId]);
+
+    await recordGiftTransaction(client, {
+      senderId: receiverId,
+      receiverId: gift.sender_id,
+      amount: cashAmount,
+      txType: 'gift_receive',
+      note: `Nhận ${cashAmount.toLocaleString('vi-VN')}đ từ quà #${gift.id}`,
+      orderPrefix: 'GIFT_RECEIVE',
+      giftId: gift.id,
+    });
+
+    const { rows } = await client.query(
+      `UPDATE gifts
+       SET claimed_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [gift.id]
+    );
+
+    await client.query('COMMIT');
+    return { gift: rows[0], action: 'claimed' };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
 export const countPendingGifts = async (userEmail) => {
+  await ensureGiftCashflowSchema();
+
   const query = `
     SELECT COUNT(*) AS count
     FROM gifts
@@ -293,4 +480,133 @@ export const countPendingGifts = async (userEmail) => {
   `;
   const { rows } = await pool.query(query, [userEmail]);
   return parseInt(rows[0].count, 10);
+};
+
+export const processExpiredGiftRefunds = async (limit = 100) => {
+  await ensureGiftCashflowSchema();
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { rows: expiringGifts } = await client.query(
+      `SELECT *
+       FROM gifts
+       WHERE status = 'opened'
+         AND cash_amount > 0
+         AND claimed_at IS NULL
+         AND refunded_at IS NULL
+         AND opened_at IS NOT NULL
+         AND opened_at <= NOW() - INTERVAL '${GIFT_CLAIM_WINDOW_HOURS} hours'
+       ORDER BY opened_at ASC
+       LIMIT $1
+       FOR UPDATE SKIP LOCKED`,
+      [limit]
+    );
+
+    for (const gift of expiringGifts) {
+      await refundGiftAmountLocked(client, gift);
+    }
+
+    await client.query('COMMIT');
+    return expiringGifts.length;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
+export const listRefundedGiftsMonitor = async ({
+  requesterId,
+  requesterRole,
+  scope = 'mine',
+  limit = 20,
+  offset = 0,
+}) => {
+  await ensureGiftCashflowSchema();
+
+  const canViewAll = ['admin', 'marketing_admin'].includes((requesterRole || '').toLowerCase());
+  const effectiveScope = scope === 'all' && canViewAll ? 'all' : 'mine';
+
+  const filterSql = effectiveScope === 'all'
+    ? ''
+    : 'AND g.sender_id = $1';
+
+  const params = effectiveScope === 'all'
+    ? [limit, offset]
+    : [requesterId, limit, offset];
+
+  const countParams = effectiveScope === 'all' ? [] : [requesterId];
+
+  const countQuery = `
+    SELECT COUNT(*)::int AS total
+    FROM gifts g
+    WHERE g.refunded_at IS NOT NULL
+      AND g.claimed_at IS NULL
+      ${filterSql}
+  `;
+
+  const listQuery = `
+    SELECT
+      g.id,
+      g.sender_id,
+      g.receiver_email,
+      g.cash_amount,
+      g.status,
+      g.opened_at,
+      g.refunded_at,
+      g.created_at,
+      u.username AS sender_name,
+      u.email AS sender_account
+    FROM gifts g
+    LEFT JOIN users u ON g.sender_id = u.user_id
+    WHERE g.refunded_at IS NOT NULL
+      AND g.claimed_at IS NULL
+      ${filterSql}
+    ORDER BY g.refunded_at DESC
+    LIMIT $${effectiveScope === 'all' ? 1 : 2}
+    OFFSET $${effectiveScope === 'all' ? 2 : 3}
+  `;
+
+  const summaryQuery = `
+    SELECT
+      COUNT(*) FILTER (WHERE refunded_at IS NOT NULL AND claimed_at IS NULL)::int AS total_refunded,
+      COUNT(*) FILTER (
+        WHERE refunded_at IS NOT NULL
+          AND claimed_at IS NULL
+          AND refunded_at >= NOW() - INTERVAL '24 hours'
+      )::int AS refunded_last_24h,
+      MAX(refunded_at) AS last_refunded_at
+    FROM gifts g
+    WHERE g.refunded_at IS NOT NULL
+      AND g.claimed_at IS NULL
+      ${filterSql}
+  `;
+
+  const [{ rows: countRows }, { rows }, { rows: summaryRows }] = await Promise.all([
+    pool.query(countQuery, countParams),
+    pool.query(listQuery, params),
+    pool.query(summaryQuery, countParams),
+  ]);
+
+  const total = Number(countRows[0]?.total || 0);
+  const summary = summaryRows[0] || {
+    total_refunded: 0,
+    refunded_last_24h: 0,
+    last_refunded_at: null,
+  };
+
+  return {
+    data: rows,
+    total,
+    summary: {
+      totalRefunded: Number(summary.total_refunded || 0),
+      refundedLast24h: Number(summary.refunded_last_24h || 0),
+      lastRefundedAt: summary.last_refunded_at,
+    },
+    scope: effectiveScope,
+    canViewAll,
+  };
 };

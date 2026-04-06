@@ -137,11 +137,73 @@ export const openGift = async (req, res, next) => {
   }
 };
 
+export const receiveGiftCash = async (req, res, next) => {
+  try {
+    const sender = await userService.getUserProfile(req.user.userId);
+    const result = await giftsService.receiveGiftCash(req.params.id, sender.email);
+
+    if (!result) {
+      return res.status(404).json({ message: 'Gift not found.' });
+    }
+
+    if (result.action === 'no_cash') {
+      return res.status(200).json({ message: 'Gift has no cash to receive.', gift: result.gift });
+    }
+
+    if (result.action === 'already_claimed') {
+      return res.status(200).json({ message: 'Cash has already been received.', gift: result.gift });
+    }
+
+    if (result.action === 'refunded') {
+      return res.status(410).json({
+        message: 'Cash claim window expired. Money was refunded to sender.',
+        gift: result.gift,
+      });
+    }
+
+    res.status(200).json({ message: 'Cash received successfully!', gift: result.gift });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getPendingCount = async (req, res, next) => {
   try {
     const sender = await userService.getUserProfile(req.user.userId);
     const count = await giftsService.countPendingGifts(sender.email);
     res.status(200).json({ count });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const listRefundedGiftsMonitor = async (req, res, next) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+    const scope = req.query.scope === 'all' ? 'all' : 'mine';
+
+    const result = await giftsService.listRefundedGiftsMonitor({
+      requesterId: req.user.userId,
+      requesterRole: req.user.role,
+      scope,
+      limit,
+      offset,
+    });
+
+    res.status(200).json({
+      data: result.data,
+      paging: {
+        limit,
+        offset,
+        total: result.total,
+        hasMore: offset + result.data.length < result.total,
+      },
+      scope: result.scope,
+      canViewAll: result.canViewAll,
+      summary: result.summary,
+      serverTime: new Date().toISOString(),
+    });
   } catch (error) {
     next(error);
   }

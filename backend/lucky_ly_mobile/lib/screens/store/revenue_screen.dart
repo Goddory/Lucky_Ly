@@ -36,7 +36,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
               _buildGlassAppBar(context),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -52,12 +52,6 @@ class _RevenueScreenState extends State<RevenueScreen> {
                 ),
               ),
             ],
-          ),
-          Positioned(
-            bottom: 24,
-            left: 20,
-            right: 20,
-            child: _buildFloatingBottomNav(),
           ),
         ],
       ),
@@ -402,62 +396,6 @@ class _RevenueScreenState extends State<RevenueScreen> {
     );
   }
 
-  Widget _buildFloatingBottomNav() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(40),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.7),
-            borderRadius: BorderRadius.circular(40),
-            boxShadow: [
-              BoxShadow(color: const Color(0xFF8F2BAD).withOpacity(0.15), blurRadius: 50, offset: const Offset(0, 20)),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.home, 'Home', false),
-              _buildNavItem(Icons.analytics, 'Insights', true),
-              _buildNavItem(Icons.card_giftcard, 'Gifts', false),
-              _buildNavItem(Icons.account_balance_wallet, 'Wallet', false),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, bool isActive) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFFE37CFF).withOpacity(0.2) : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Icon(
-            icon,
-            color: isActive ? const Color(0xFF8F2BAD) : const Color(0xFF302E30).withOpacity(0.5),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label.toUpperCase(),
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1,
-            color: isActive ? const Color(0xFF8F2BAD) : const Color(0xFF302E30).withOpacity(0.5),
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 class _ChartLabel extends StatelessWidget {

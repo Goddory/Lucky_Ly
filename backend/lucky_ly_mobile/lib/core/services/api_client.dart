@@ -6,10 +6,16 @@ class ApiClient {
   final String baseUrl;
   String? _accessToken;
 
-  ApiClient({required this.baseUrl, String? accessToken}) : _accessToken = accessToken;
+  ApiClient({required this.baseUrl, String? accessToken}) : _accessToken = _normalizeToken(accessToken);
 
-  void updateToken(String token) {
-    _accessToken = token;
+  static String? _normalizeToken(String? token) {
+    if (token == null) return null;
+    final trimmed = token.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  void updateToken(String? token) {
+    _accessToken = _normalizeToken(token);
   }
 
   Map<String, String> get _headers => {

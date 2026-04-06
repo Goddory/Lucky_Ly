@@ -32,7 +32,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         final data = jsonDecode(response.body);
         if (mounted) {
           setState(() {
-            _transactions = data is List ? data : (data['transactions'] ?? []);
+            _transactions = data is List
+                ? data
+                : (data['data'] ?? data['transactions'] ?? []);
             _isLoading = false;
           });
         }
@@ -132,7 +134,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildTransactionItem(dynamic tx) {
-    bool isMinus = tx['tx_type'] == 'withdraw' || tx['tx_type'] == 'purchase' || tx['tx_type'] == 'transfer';
+    bool isMinus = tx['tx_type'] == 'withdraw' ||
+      tx['tx_type'] == 'purchase' ||
+      tx['tx_type'] == 'transfer' ||
+      tx['tx_type'] == 'gift_sent';
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),

@@ -13,7 +13,7 @@ avatarSyncSchema.index({ userId: 1, localId: 1 }, { unique: true });
 
 // User Sync (Profile info)
 const userSyncSchema = new mongoose.Schema({
-  userId: { type: String, required: true, index: true }, // The ID of the user record
+  userId: { type: String, required: true }, // The ID of the user record
   fullName: { type: String },
   email: { type: String },
   avatarUrl: { type: String },
