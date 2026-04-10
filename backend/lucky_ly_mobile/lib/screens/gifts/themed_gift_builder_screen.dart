@@ -5,8 +5,21 @@ import '../../app_theme.dart';
 import 'gift_preview_screen.dart';
 import '../../widgets/glb_model_viewer.dart';
 
+/// ThemedGiftBuilderScreen - Màn hình tạo quà theo chủ đề
+/// 
+/// Chức năng chính:
+/// - Chọn mẫu quà 3D theo theme (Tết / Valentine)
+/// - Kéo thả sticker vào khu vực thiết kế
+/// - Nhập lời nhắn và số tiền kèm theo
+/// - Chuyển sang màn preview trước khi gửi quà
+/// 
+/// Màn hình này đóng vai trò là gift composer:
+/// user chọn model, trang trí, nhập message, nhập cash rồi xem trước.
 class ThemedGiftBuilderScreen extends StatefulWidget {
+  /// Theme đang sử dụng ('tet' hoặc 'valentine')
   const ThemedGiftBuilderScreen({super.key, required this.theme});
+
+  /// Giá trị theme để lấy bộ model/sticker phù hợp
   final String theme; // 'tet' or 'valentine'
 
   @override
@@ -14,27 +27,50 @@ class ThemedGiftBuilderScreen extends StatefulWidget {
       _ThemedGiftBuilderScreenState();
 }
 
+/// State của màn hình tạo quà theo theme
 class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
     with SingleTickerProviderStateMixin {
+  /// Danh sách model 3D theo theme hiện tại
   late final List<GiftModel> _models;
+
+  /// Danh sách sticker có thể kéo thả vào thiết kế
   late final List<GiftSticker> _stickers;
+
+  /// Index của model 3D đang được chọn trong carousel
   int _selectedModelIndex = 0;
+
+  /// Danh sách sticker đã được đặt vào khu vực thiết kế
   final List<_PlacedSticker> _placedStickers = [];
+
+  /// Lưu trạng thái gesture scale/drag cho từng sticker đã đặt
   final Map<int, _StickerGestureState> _gestureStates = {};
+
+  /// Controller cho nội dung lời nhắn
   final TextEditingController _messageController = TextEditingController();
+
+  /// Controller cho số tiền kèm theo
   final TextEditingController _cashController = TextEditingController();
+
+  /// Animation controller tạo hiệu ứng pulse nhẹ cho model đang chọn
   late AnimationController _pulseController;
+
+  /// Animation scale nhẹ để làm model đang chọn nổi bật hơn
   late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
+    /// Load model và sticker theo theme từ GiftCatalog
     _models = GiftCatalog.getModels(widget.theme);
     _stickers = GiftCatalog.getStickers(widget.theme);
+
+    /// Tạo animation pulse lặp liên tục cho model được chọn
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
+
+    /// Scale dao động từ 1.0 đến 1.05 để tạo cảm giác sống động
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
@@ -42,14 +78,20 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
 
   @override
   void dispose() {
+    /// Giải phóng controller và text controllers để tránh memory leak
     _pulseController.dispose();
     _messageController.dispose();
     _cashController.dispose();
     super.dispose();
   }
 
+  /// Màu nhấn chính của UI
   Color get _themeColor => const Color(0xFF952cb1);
+
+  /// Màu accent phụ
   Color get _themeAccent => const Color(0xFFbe004c);
+
+  /// Gradient nền chủ đạo cho các phần nhấn mạnh
   LinearGradient get _themeGradient => const LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -58,13 +100,16 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
 
   @override
   Widget build(BuildContext context) {
+    /// Layout tổng thể: app bar mờ, vùng thiết kế, bottom bar hành động
     return Scaffold(
       backgroundColor: const Color(0xFFFFF7FB),
       extendBodyBehindAppBar: true,
       appBar: PreferredSize(
+        /// AppBar tùy biến cao 64px
         preferredSize: const Size.fromHeight(64),
         child: ClipRRect(
           child: BackdropFilter(
+            /// Hiệu ứng kính mờ cho app bar
             filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: AppBar(
               backgroundColor: Colors.white.withOpacity(0.8),
@@ -92,16 +137,24 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
         children: [
           Expanded(
             child: ListView(
+              /// Padding trên cùng chừa chỗ cho app bar trong suốt
               padding: const EdgeInsets.only(top: 88, left: 16, right: 16, bottom: 24),
               children: [
+                /// Tiêu đề khu chọn model 3D
                 _buildSectionTitle('Chọn mẫu quà 3D', Icons.view_in_ar),
                 const SizedBox(height: 12),
+
+                /// Carousel ngang chọn model quà
                 _buildModelCarousel(),
                 const SizedBox(height: 32),
+
+                /// Khu vực đặt và chỉnh sửa quà
                 _buildSectionTitle('Khu vực thiết kế', Icons.dashboard_customize),
                 const SizedBox(height: 12),
                 _buildDesignArea(),
                 const SizedBox(height: 32),
+
+                /// Khu vực sticker kéo thả
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -122,12 +175,18 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                   ],
                 ),
                 const SizedBox(height: 8),
+
+                /// Danh sách sticker dạng ngang
                 _buildStickerGrid(),
                 const SizedBox(height: 32),
+
+                /// Input lời nhắn cá nhân
                 _buildSectionTitle('Lời nhắn', Icons.message_outlined),
                 const SizedBox(height: 12),
                 _buildMessageInput(),
                 const SizedBox(height: 32),
+
+                /// Input tiền mặt / lì xì theo theme
                 _buildSectionTitle(
                   widget.theme == 'tet' ? 'Tiền mừng tuổi (Lì xì)' : 'Gửi kèm tiền mặt',
                   Icons.account_balance_wallet_outlined,
@@ -144,6 +203,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
     );
   }
 
+  /// Xây dựng tiêu đề cho từng section trong màn hình
   Widget _buildSectionTitle(String title, IconData icon) {
     return Row(
       children: [
@@ -170,6 +230,12 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
     );
   }
 
+  /// Carousel ngang cho phép chọn mẫu quà 3D
+  /// 
+  /// Cách hoạt động:
+  /// - Hiển thị từng model trong list _models
+  /// - Chạm vào item sẽ set _selectedModelIndex
+  /// - Item được chọn có viền, shadow và hiệu ứng pulse
   Widget _buildModelCarousel() {
     return SizedBox(
       height: 170,
@@ -181,6 +247,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
           final model = _models[index];
           final isSelected = index == _selectedModelIndex;
           return GestureDetector(
+            /// Chọn model hiện tại
             onTap: () => setState(() => _selectedModelIndex = index),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
@@ -209,6 +276,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      /// Model đang được chọn thì pulse nhẹ
                       ScaleTransition(
                         scale: isSelected
                             ? _pulseAnimation
@@ -227,6 +295,8 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                         ),
                       ),
                       const SizedBox(height: 16),
+
+                      /// Tên model 3D
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: Text(
@@ -245,6 +315,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                     ],
                   ),
                   if (isSelected)
+                    /// Dấu check ở góc trên phải để đánh dấu item đang chọn
                     Positioned(
                       top: 8,
                       right: 8,
@@ -266,6 +337,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
     );
   }
 
+  /// Grid sticker dạng ngang cho phép kéo thả vào khu thiết kế
   Widget _buildStickerGrid() {
     return SizedBox(
       height: 80,
@@ -275,15 +347,18 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
         itemBuilder: (context, index) {
           final sticker = _stickers[index];
           return Draggable<GiftSticker>(
+            /// Sticker được kéo ra khỏi list
             data: sticker,
             feedback: Material(
               color: Colors.transparent,
               child: _buildStickerThumb(sticker, size: 60, dragging: true),
             ),
+            /// Khi đang kéo thì chỗ cũ mờ đi
             childWhenDragging: Opacity(
               opacity: 0.3,
               child: _buildStickerThumb(sticker),
             ),
+            /// Thumbnail sticker bình thường
             child: _buildStickerThumb(sticker),
           );
         },
@@ -291,6 +366,11 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
     );
   }
 
+  /// Thumbnail nhỏ cho mỗi sticker
+  /// 
+  /// Tham số:
+  /// - size: kích thước hiển thị
+  /// - dragging: có đang kéo hay không để đổi shadow
   Widget _buildStickerThumb(
     GiftSticker sticker, {
     double size = 64,
@@ -327,12 +407,21 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
     );
   }
 
+  /// Khu vực thiết kế chính, nơi người dùng thả sticker lên quà
+  /// 
+  /// Chức năng:
+  /// - Nhận sticker từ DragTarget
+  /// - Hiển thị model quà 3D ở giữa
+  /// - Render các sticker đã đặt
+  /// - Cho phép kéo, xoay, phóng to và xóa sticker
   Widget _buildDesignArea() {
     return DragTarget<GiftSticker>(
       onAcceptWithDetails: (details) {
+        /// Chuyển tọa độ global của sticker về local trong vùng thiết kế
         final RenderBox box = context.findRenderObject() as RenderBox;
         final localOffset = box.globalToLocal(details.offset);
         setState(() {
+          /// Thêm sticker mới vào danh sách sticker đã đặt
           _placedStickers.add(
             _PlacedSticker(
               sticker: details.data,
@@ -345,6 +434,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
         });
       },
       builder: (context, candidateData, rejectedData) {
+        /// Khi đang kéo sticker lên vùng này thì đổi viền để báo hiệu drop target
         final isHovering = candidateData.isNotEmpty;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -362,7 +452,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
           ),
           child: Stack(
             children: [
-              // Main gift preview
+              /// Preview chính của mẫu quà 3D đang chọn
               Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -391,7 +481,8 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                   ],
                 ),
               ),
-              // Placed stickers
+
+              /// Render tất cả sticker đã được đặt lên khu thiết kế
               ..._placedStickers.asMap().entries.map((entry) {
                 final idx = entry.key;
                 final placed = entry.value;
@@ -399,6 +490,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                   left: placed.x.clamp(0, 260),
                   top: placed.y.clamp(0, 190),
                   child: GestureDetector(
+                    /// Bắt đầu gesture scale/drag để lưu trạng thái gốc
                     onScaleStart: (details) {
                       _gestureStates[idx] = _StickerGestureState(
                         focalPoint: details.focalPoint,
@@ -408,6 +500,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                         startRotation: placed.rotation,
                       );
                     },
+                    /// Cập nhật vị trí, scale và rotation của sticker khi kéo/chụm
                     onScaleUpdate: (details) {
                       final state = _gestureStates[idx];
                       if (state == null) return;
@@ -425,12 +518,14 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                         placed.rotation = state.startRotation + details.rotation;
                       });
                     },
+                    /// Xóa trạng thái gesture khi kết thúc
                     onScaleEnd: (_) {
                       _gestureStates.remove(idx);
                     },
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
+                        /// Sticker hiển thị với xoay và scale hiện tại
                         Transform.rotate(
                           angle: placed.rotation,
                           child: Transform.scale(
@@ -450,6 +545,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                             ),
                           ),
                         ),
+                        /// Nút x nhỏ để xóa sticker khỏi vùng thiết kế
                         Positioned(
                           top: -6,
                           right: -6,
@@ -484,7 +580,8 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
                   ),
                 );
               }),
-              // Hint for drag
+
+              /// Hint hướng dẫn nếu chưa đặt sticker nào
               if (_placedStickers.isEmpty && !isHovering)
                 Positioned(
                   bottom: 12,
@@ -507,6 +604,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
     );
   }
 
+  /// Input nhập số tiền kèm theo quà
   Widget _buildCashInput() {
     return Container(
       decoration: BoxDecoration(
@@ -544,6 +642,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
     );
   }
 
+  /// Input nhập lời nhắn gửi kèm quà
   Widget _buildMessageInput() {
     return Stack(
       children: [
@@ -599,6 +698,11 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
             ],
           ),
         )
+          /// Thanh hành động phía dưới màn hình
+          /// 
+          /// Gồm:
+          /// - Nút Đặt lại: xóa sticker đã đặt
+          /// - Nút Xem trước & Gửi: mở GiftPreviewScreen với dữ liệu hiện tại
       ],
     );
   }
@@ -623,12 +727,14 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
               height: 56,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
+                  /// Nút reset dùng màu nhạt để không lấn át nút chính
                   backgroundColor: const Color(0xFFFDD6FF),
                   foregroundColor: const Color(0xFF952cb1),
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                 ),
                 onPressed: () {
+                  /// Chỉ xóa sticker, không ảnh hưởng model hay lời nhắn
                   setState(() => _placedStickers.clear());
                 },
                 child: const Text(
@@ -639,6 +745,8 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
             ),
           ),
           const SizedBox(width: 16),
+
+          /// Nút chính sang bước preview và gửi
           Expanded(
             flex: 2,
             child: Container(
@@ -658,11 +766,13 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
               ),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
+                  /// Để gradient từ Container bên ngoài hiển thị
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                 ),
                 onPressed: () {
+                  /// Điều hướng sang màn preview, truyền toàn bộ dữ liệu đã cấu hình
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -699,6 +809,7 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
     );
   }
 
+  /// Map tên icon từ catalog sang IconData của Flutter
   IconData _getIconForModel(String iconName) {
     switch (iconName) {
       case 'redeem':
@@ -723,11 +834,21 @@ class _ThemedGiftBuilderScreenState extends State<ThemedGiftBuilderScreen>
   }
 }
 
+/// Lưu thông tin một sticker đã được đặt vào vùng thiết kế
 class _PlacedSticker {
+  /// Sticker gốc từ catalog
   final GiftSticker sticker;
+
+  /// Tọa độ X trong vùng thiết kế
   double x;
+
+  /// Tọa độ Y trong vùng thiết kế
   double y;
+
+  /// Hệ số scale của sticker
   double scale;
+
+  /// Góc xoay của sticker (radian)
   double rotation;
 
   _PlacedSticker({
@@ -739,11 +860,21 @@ class _PlacedSticker {
   });
 }
 
+/// Lưu state gốc của gesture để phục vụ kéo/xoay/phóng to sticker
 class _StickerGestureState {
+  /// Điểm chạm gốc khi bắt đầu gesture
   final Offset focalPoint;
+
+  /// Vị trí X ban đầu của sticker
   final double startX;
+
+  /// Vị trí Y ban đầu của sticker
   final double startY;
+
+  /// Scale ban đầu
   final double startScale;
+
+  /// Rotation ban đầu
   final double startRotation;
 
   _StickerGestureState({

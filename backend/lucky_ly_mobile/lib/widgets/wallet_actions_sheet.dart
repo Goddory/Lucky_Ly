@@ -10,6 +10,7 @@ import '../core/services/api_client.dart';
 // PUBLIC ENTRY POINTS
 // ─────────────────────────────────────────────────────────────────
 
+// Mở bottom sheet nạp tiền, dùng API base từ cấu hình hiện tại của app.
 Future<void> showTopUpSheet(BuildContext context) async {
   await showModalBottomSheet(
     context: context,
@@ -19,6 +20,7 @@ Future<void> showTopUpSheet(BuildContext context) async {
   );
 }
 
+// Mở bottom sheet rút tiền về ngân hàng.
 Future<void> showWithdrawSheet(BuildContext context) async {
   await showModalBottomSheet(
     context: context,
@@ -28,6 +30,7 @@ Future<void> showWithdrawSheet(BuildContext context) async {
   );
 }
 
+// Mở bottom sheet chuyển tiền giữa các người dùng qua email.
 Future<void> showTransferSheet(BuildContext context) async {
   await showModalBottomSheet(
     context: context,
@@ -37,6 +40,7 @@ Future<void> showTransferSheet(BuildContext context) async {
   );
 }
 
+// Mở bottom sheet admin để cộng tiền trực tiếp vào ví người dùng.
 Future<void> showAdminAddMoneySheet(BuildContext context) async {
   await showModalBottomSheet(
     context: context,
@@ -49,6 +53,7 @@ Future<void> showAdminAddMoneySheet(BuildContext context) async {
 // ─────────────────────────────────────────────────────────────────
 // DESIGN TOKENS
 // ─────────────────────────────────────────────────────────────────
+// Bảng màu dùng chung cho toàn bộ sheet để giữ giao diện đồng nhất.
 const _kPrimary = Color(0xFF952CB1);
 const _kPink = Color(0xFFBE004C);
 const _kBg = Color(0xFFFFF7FB);
@@ -59,6 +64,7 @@ const _kDivider = Color(0xFFE2E8F0);
 // ─────────────────────────────────────────────────────────────────
 // SHARED BOTTOM SHEET SHELL
 // ─────────────────────────────────────────────────────────────────
+// Khung layout dùng chung cho mọi sheet: handle, icon, tiêu đề và nội dung.
 class _SheetShell extends StatelessWidget {
   const _SheetShell({
     this.icon,
@@ -78,6 +84,7 @@ class _SheetShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Bottom inset giúp sheet không bị bàn phím che khuất.
     return Padding(
       padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -90,7 +97,7 @@ class _SheetShell extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // handle
+            // Thanh kéo ở phía trên để người dùng nhận biết đây là bottom sheet.
             Container(
               width: 40,
               height: 4,
@@ -100,7 +107,7 @@ class _SheetShell extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            // Icon
+            // Icon hoặc ảnh đại diện cho từng loại thao tác.
             Container(
               width: 72,
               height: 72,
@@ -113,6 +120,7 @@ class _SheetShell extends StatelessWidget {
                   : Icon(icon, color: iconColor, size: 36),
             ),
             const SizedBox(height: 16),
+            // Tiêu đề chính của sheet.
             Text(
               title,
               style: const TextStyle(
@@ -122,6 +130,7 @@ class _SheetShell extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
+            // Dòng mô tả ngắn giải thích hành động.
             Text(
               subtitle,
               style: const TextStyle(fontSize: 13, color: _kTextMuted),
@@ -138,6 +147,7 @@ class _SheetShell extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────
 // QUICK AMOUNT CHIPS
 // ─────────────────────────────────────────────────────────────────
+// Các nút chọn nhanh số tiền để nhập liệu nhanh hơn.
 class _QuickAmountChips extends StatelessWidget {
   const _QuickAmountChips({
     required this.amounts,
@@ -150,9 +160,11 @@ class _QuickAmountChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
+      // Wrap cho phép chip tự xuống dòng khi màn hình hẹp.
       spacing: 8,
       runSpacing: 8,
       children: amounts.map((a) {
+        // Hiển thị gọn: 50K, 100K, 1Tr...
         final label = a >= 1000000
             ? '${a ~/ 1000000}Tr'
             : '${a ~/ 1000}K';
@@ -185,6 +197,7 @@ class _QuickAmountChips extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────
 // STYLED TEXT FIELD
 // ─────────────────────────────────────────────────────────────────
+// TextField có style thống nhất cho cả amount, email, note...
 class _StyledField extends StatelessWidget {
   const _StyledField({
     required this.controller,
@@ -237,6 +250,7 @@ class _StyledField extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────
 // PRIMARY BUTTON
 // ─────────────────────────────────────────────────────────────────
+// Nút hành động chính dùng chung cho mọi sheet.
 class _PrimaryBtn extends StatelessWidget {
   const _PrimaryBtn({
     required this.label,
@@ -253,6 +267,7 @@ class _PrimaryBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
+      // Button cao và rộng để dễ thao tác trên mobile.
       width: double.infinity,
       height: 54,
       child: ElevatedButton(
@@ -282,6 +297,7 @@ class _PrimaryBtn extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────
 // 1. NẠP TIỀN — chọn cổng thanh toán
 // ─────────────────────────────────────────────────────────────────
+// Bottom sheet nạp tiền, cho phép chọn cổng thanh toán và số tiền.
 class _TopUpSheet extends StatefulWidget {
   const _TopUpSheet({required this.apiBaseUrl});
   final String apiBaseUrl;
@@ -296,6 +312,7 @@ class _TopUpSheetState extends State<_TopUpSheet> {
   String _selectedGateway = 'momo';
 
   final _gateways = const [
+    // Mỗi gateway gồm id, tên, màu và asset icon.
     _GatewayDef('momo', 'MoMo', Color(0xFFA50064), 'assets/ảnh icon Luckyly/Lucky_Ly/pay/momo.png'),
     _GatewayDef('vnpay', 'VNPay', Color(0xFF005BAA), 'assets/ảnh icon Luckyly/Lucky_Ly/pay/vnpay.png'),
     _GatewayDef('zalopay', 'ZaloPay', Color(0xFF0068FF), 'assets/ảnh icon Luckyly/Lucky_Ly/pay/zalo.png'),
@@ -308,6 +325,7 @@ class _TopUpSheetState extends State<_TopUpSheet> {
   }
 
   Future<void> _submit() async {
+    // Chỉ giữ lại chữ số để tránh lỗi parse từ input người dùng.
     final amountText =
         _amountCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
     if (amountText.isEmpty) return;
@@ -315,20 +333,23 @@ class _TopUpSheetState extends State<_TopUpSheet> {
     setState(() => _isLoading = true);
 
     try {
+      // Lấy token để gọi API thanh toán có xác thực.
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken') ??
           prefs.getString('access_token');
 
+      // Tạo payload theo cổng đang chọn.
       final path = '/api/payment/$_selectedGateway/create';
       final body = {
         'amount': int.parse(amountText),
         'orderInfo': 'Nap tien vao vi Lucky Ly',
       };
-      // ZaloPay needs returnUrl
+      // ZaloPay cần returnUrl để xử lý callback sau thanh toán.
       if (_selectedGateway == 'zalopay') {
         body['returnUrl'] = 'luckyly://payment/return';
       }
 
+      // Gửi request tạo giao dịch thanh toán lên backend.
       final response = await http.post(
         Uri.parse('${widget.apiBaseUrl}$path'),
         headers: {
@@ -341,6 +362,7 @@ class _TopUpSheetState extends State<_TopUpSheet> {
       if (!mounted) return;
 
       if (response.statusCode == 200) {
+        // Nếu backend trả payUrl thì mở cổng thanh toán bằng app ngoài.
         final data = jsonDecode(response.body);
         final payUrl = data['payUrl'] as String?;
         if (payUrl != null) {
@@ -371,6 +393,7 @@ class _TopUpSheetState extends State<_TopUpSheet> {
 
   @override
   Widget build(BuildContext context) {
+    // Dựng UI nạp tiền dựa trên shell dùng chung.
     return _SheetShell(
       assetPath: 'assets/ảnh icon Luckyly/Lucky_Ly/trang_chu/nạp tiền.png',
       iconColor: _kPrimary,
@@ -379,7 +402,7 @@ class _TopUpSheetState extends State<_TopUpSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Gateway selector
+          // Chọn cổng thanh toán.
           Row(
             children: _gateways.map((g) {
               final isSelected = _selectedGateway == g.id;
@@ -442,7 +465,7 @@ class _TopUpSheetState extends State<_TopUpSheet> {
 
           const SizedBox(height: 20),
 
-          // Quick amounts
+          // Các mốc số tiền nạp nhanh.
           _QuickAmountChips(
             amounts: const [
               50000, 100000, 200000, 500000, 1000000
@@ -453,7 +476,7 @@ class _TopUpSheetState extends State<_TopUpSheet> {
 
           const SizedBox(height: 16),
 
-          // Amount input
+          // Ô nhập số tiền chính.
           _StyledField(
             controller: _amountCtrl,
             hint: 'Nhập số tiền',
@@ -490,6 +513,7 @@ class _GatewayDef {
 // ─────────────────────────────────────────────────────────────────
 // 2. RÚT TIỀN
 // ─────────────────────────────────────────────────────────────────
+// Bottom sheet rút tiền về ngân hàng.
 class _WithdrawSheet extends StatefulWidget {
   const _WithdrawSheet({required this.apiBaseUrl});
   final String apiBaseUrl;
@@ -523,6 +547,7 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
   }
 
   Future<void> _submit() async {
+    // Bắt buộc phải có đủ số tiền, số tài khoản và tên chủ tài khoản.
     final amountText =
         _amountCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
     if (amountText.isEmpty ||
@@ -535,6 +560,7 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
     setState(() => _isLoading = true);
 
     try {
+      // Gửi yêu cầu rút tiền lên backend.
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken') ??
           prefs.getString('access_token');
@@ -557,6 +583,7 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
+        // Đóng sheet khi gửi yêu cầu thành công.
         Navigator.pop(context);
         _showSuccess(data['message'] ??
             'Yêu cầu rút tiền đã được ghi nhận');
@@ -583,6 +610,7 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
 
   @override
   Widget build(BuildContext context) {
+    // Dựng UI rút tiền dựa trên shell dùng chung.
     return _SheetShell(
       assetPath: 'assets/ảnh icon Luckyly/Lucky_Ly/trang_chu/rút tiền.png',
       iconColor: _kPink,
@@ -591,14 +619,14 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Quick amounts
+          // Số tiền rút nhanh.
           _QuickAmountChips(
             amounts: const [100000, 200000, 500000, 1000000, 2000000],
             onSelected: (v) => _amountCtrl.text = v.toString(),
           ),
           const SizedBox(height: 16),
 
-          // Amount
+          // Ô nhập số tiền.
           _StyledField(
             controller: _amountCtrl,
             hint: 'Số tiền rút',
@@ -608,7 +636,7 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
           ),
           const SizedBox(height: 12),
 
-          // Bank selector
+          // Chọn ngân hàng nhận tiền.
           Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -639,7 +667,7 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
           ),
           const SizedBox(height: 12),
 
-          // Account number
+          // Số tài khoản.
           _StyledField(
             controller: _accountCtrl,
             hint: 'Số tài khoản',
@@ -649,7 +677,7 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
           ),
           const SizedBox(height: 12),
 
-          // Account name
+          // Tên chủ tài khoản.
           _StyledField(
             controller: _accountNameCtrl,
             hint: 'Tên chủ tài khoản (in hoa)',
@@ -657,7 +685,7 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
           ),
           const SizedBox(height: 8),
 
-          // Notice
+          // Lưu ý thời gian xử lý.
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -694,6 +722,7 @@ class _WithdrawSheetState extends State<_WithdrawSheet> {
 // ─────────────────────────────────────────────────────────────────
 // 3. CHUYỂN TIỀN (PEER-TO-PEER)
 // ─────────────────────────────────────────────────────────────────
+// Bottom sheet chuyển tiền cho người dùng khác qua email.
 class _TransferSheet extends StatefulWidget {
   const _TransferSheet({required this.apiBaseUrl});
   final String apiBaseUrl;
@@ -717,6 +746,7 @@ class _TransferSheetState extends State<_TransferSheet> {
   }
 
   Future<void> _submit() async {
+    // Cần email người nhận và số tiền hợp lệ.
     final email = _emailCtrl.text.trim();
     final amountText =
         _amountCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -727,6 +757,7 @@ class _TransferSheetState extends State<_TransferSheet> {
     }
 
     // Confirm dialog
+    // Hộp thoại xác nhận trước khi gửi tiền.
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -761,6 +792,7 @@ class _TransferSheetState extends State<_TransferSheet> {
     setState(() => _isLoading = true);
 
     try {
+      // Gửi request chuyển tiền lên backend.
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken') ??
           prefs.getString('access_token');
@@ -782,6 +814,7 @@ class _TransferSheetState extends State<_TransferSheet> {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
+        // Đóng sheet và báo thành công nếu backend xử lý OK.
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -807,6 +840,7 @@ class _TransferSheetState extends State<_TransferSheet> {
 
   @override
   Widget build(BuildContext context) {
+    // Dựng UI chuyển tiền dựa trên shell dùng chung.
     return _SheetShell(
       assetPath: 'assets/ảnh icon Luckyly/Lucky_Ly/trang_chu/chuyển tiền.png',
       iconColor: const Color(0xFF7C3AED),
@@ -815,7 +849,7 @@ class _TransferSheetState extends State<_TransferSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Email
+          // Email người nhận.
           _StyledField(
             controller: _emailCtrl,
             hint: 'Email người nhận',
@@ -825,14 +859,14 @@ class _TransferSheetState extends State<_TransferSheet> {
           ),
           const SizedBox(height: 12),
 
-          // Quick amounts
+          // Mốc tiền nhanh.
           _QuickAmountChips(
             amounts: const [10000, 20000, 50000, 100000, 200000],
             onSelected: (v) => _amountCtrl.text = v.toString(),
           ),
           const SizedBox(height: 12),
 
-          // Amount
+          // Số tiền chuyển.
           _StyledField(
             controller: _amountCtrl,
             hint: 'Số tiền',
@@ -842,7 +876,7 @@ class _TransferSheetState extends State<_TransferSheet> {
           ),
           const SizedBox(height: 12),
 
-          // Note
+          // Nội dung chuyển tiền tùy chọn.
           _StyledField(
             controller: _noteCtrl,
             hint: 'Lời nhắn (tuỳ chọn)...',
@@ -866,6 +900,7 @@ class _TransferSheetState extends State<_TransferSheet> {
 // ─────────────────────────────────────────────────────────────────
 // ADMIN: CỘNG TIỀN VÀO VÍ NGƯỜI DÙNG
 // ─────────────────────────────────────────────────────────────────
+// Bottom sheet riêng cho admin để cộng tiền vào ví người dùng.
 class _AdminAddMoneySheet extends StatefulWidget {
   const _AdminAddMoneySheet({required this.apiBaseUrl});
   final String apiBaseUrl;
@@ -889,6 +924,7 @@ class _AdminAddMoneySheetState extends State<_AdminAddMoneySheet> {
   }
 
   Future<void> _submit() async {
+    // Cần email người dùng và số tiền để thực hiện cộng tiền.
     final email = _emailCtrl.text.trim();
     final amountText = _amountCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
 
@@ -930,6 +966,7 @@ class _AdminAddMoneySheetState extends State<_AdminAddMoneySheet> {
     setState(() => _isLoading = true);
 
     try {
+      // Gửi request admin-add lên backend.
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken') ??
           prefs.getString('access_token');
@@ -951,6 +988,7 @@ class _AdminAddMoneySheetState extends State<_AdminAddMoneySheet> {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
+        // Đóng sheet sau khi thao tác thành công.
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -976,6 +1014,7 @@ class _AdminAddMoneySheetState extends State<_AdminAddMoneySheet> {
 
   @override
   Widget build(BuildContext context) {
+    // Dựng UI cộng tiền theo layout dùng chung.
     return _SheetShell(
       icon: Icons.account_balance_wallet,
       iconColor: const Color(0xFFC0065B),
@@ -992,11 +1031,13 @@ class _AdminAddMoneySheetState extends State<_AdminAddMoneySheet> {
                 color: Color(0xFFC0065B), size: 20),
           ),
           const SizedBox(height: 12),
+          // Mốc tiền cộng nhanh.
           _QuickAmountChips(
             amounts: const [100000, 200000, 500000, 1000000, 5000000],
             onSelected: (v) => _amountCtrl.text = v.toString(),
           ),
           const SizedBox(height: 12),
+          // Số tiền cộng vào ví.
           _StyledField(
             controller: _amountCtrl,
             hint: 'Số tiền nạp',
@@ -1005,6 +1046,7 @@ class _AdminAddMoneySheetState extends State<_AdminAddMoneySheet> {
             formatters: [FilteringTextInputFormatter.digitsOnly],
           ),
           const SizedBox(height: 12),
+          // Ghi chú lý do cộng tiền.
           _StyledField(
             controller: _noteCtrl,
             hint: 'Lý do/Ghi chú...',

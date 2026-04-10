@@ -13,7 +13,6 @@ import 'screens/avaturn_screen.dart' as screens;
 import 'screens/avatar_3d_screen.dart' as screens;
 import 'package:lucky_ly_mobile/widgets/custom_loading.dart';
 
-
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
     super.key,
@@ -34,6 +33,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
+  // Animation nhẹ để màn hình profile vào mượt hơn khi mở.
   late AnimationController _entryController;
   late Animation<double> _fadeIn;
 
@@ -44,7 +44,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   late String authProvider;
   late String userRole;
 
-  bool get _isAdmin => userRole.toLowerCase() == 'admin' || userRole.toLowerCase() == 'marketing_admin' || userRole.toLowerCase() == 'system_admin';
+  bool get _isAdmin =>
+      userRole.toLowerCase() == 'admin' ||
+      userRole.toLowerCase() == 'marketing_admin' ||
+      userRole.toLowerCase() == 'system_admin';
 
   bool isEditing = false;
   bool isSaving = false;
@@ -56,6 +59,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void initState() {
     super.initState();
+    // Lấy dữ liệu từ AuthProvider trước, sau đó mới fallback về widget.userData.
     _entryController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -89,6 +93,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<void> _loadLocalUser() async {
+    // Ưu tiên dữ liệu đã lưu local để màn hình phản ánh trạng thái offline mới nhất.
     final dbHelper = DatabaseHelper.instance;
     final user = await dbHelper.getUser(_resolveCurrentUserId());
     if (user != null) {
@@ -106,8 +111,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-
-
   @override
   void dispose() {
     _entryController.dispose();
@@ -119,6 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Mỗi lần AuthProvider thay đổi, profile sẽ cập nhật lại các trường cần thiết.
     return Consumer<AuthProvider>(
       builder: (context, auth, child) {
         final userData = auth.userData ?? {};
@@ -150,11 +154,12 @@ class _ProfileScreenState extends State<ProfileScreen>
             ],
           ),
         );
-      }
+      },
     );
   }
 
   Widget _buildPrivacySection(bool isSearchable, AuthProvider auth) {
+    // Toggle này đồng bộ trực tiếp trạng thái hiển thị công khai của tài khoản.
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Container(
@@ -178,8 +183,14 @@ class _ProfileScreenState extends State<ProfileScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Chế độ công khai', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                  Text('Cho phép người khác tìm thấy bạn', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                    'Chế độ công khai',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                  Text(
+                    'Cho phép người khác tìm thấy bạn',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                 ],
               ),
             ),
@@ -349,7 +360,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                     decoration: BoxDecoration(
                       gradient: isEditing
-                          ? const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF059669)])
+                          ? const LinearGradient(
+                              colors: [Color(0xFF10B981), Color(0xFF059669)],
+                            )
                           : AppTheme.of(context).primaryGradient,
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -494,7 +507,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => AdminDashboardScreen(apiBaseUrl: widget.apiBaseUrl, accessToken: widget.accessToken)),
+                    MaterialPageRoute(
+                      builder: (_) => AdminDashboardScreen(
+                        apiBaseUrl: widget.apiBaseUrl,
+                        accessToken: widget.accessToken,
+                      ),
+                    ),
                   );
                 },
               ),
@@ -502,7 +520,9 @@ class _ProfileScreenState extends State<ProfileScreen>
             ],
             _SettingsTile(
               icon: Icons.palette_outlined,
-              label: _isAdmin ? 'Quản lý giao diện hệ thống' : 'Xem giao diện hệ thống',
+              label: _isAdmin
+                  ? 'Quản lý giao diện hệ thống'
+                  : 'Xem giao diện hệ thống',
               color: AppTheme.of(context).primary,
               onTap: () => _showThemeBottomSheet(context),
             ),
@@ -522,7 +542,11 @@ class _ProfileScreenState extends State<ProfileScreen>
               onTap: () {
                 // Điều hướng tới AvaturnScreen
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const screens.AvaturnScreen(avaturnSubdomain: 'https://luckyly.avaturn.dev/')),
+                  MaterialPageRoute(
+                    builder: (_) => const screens.AvaturnScreen(
+                      avaturnSubdomain: 'https://luckyly.avaturn.dev/',
+                    ),
+                  ),
                 );
               },
             ),
@@ -534,7 +558,9 @@ class _ProfileScreenState extends State<ProfileScreen>
               onTap: () {
                 // Điều hướng tới Avatar3DScreen hiển thị model bằng ModelViewer
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const screens.Avatar3DScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const screens.Avatar3DScreen(),
+                  ),
                 );
               },
             ),
@@ -628,6 +654,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showThemeBottomSheet(BuildContext context) {
+    // Bottom sheet này vừa hiển thị theme hiện tại vừa cho admin đổi theme toàn hệ thống.
     final canEditTheme = _isAdmin;
     context.read<ThemeProvider>().syncThemeFromServer(
       apiBaseUrl: widget.apiBaseUrl,
@@ -644,21 +671,32 @@ class _ProfileScreenState extends State<ProfileScreen>
           builder: (context, themeProvider, _) {
             return SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 24,
+                  horizontal: 16,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      canEditTheme ? 'Quản lý giao diện hệ thống' : 'Giao diện hệ thống',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      canEditTheme
+                          ? 'Quản lý giao diện hệ thống'
+                          : 'Giao diện hệ thống',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       canEditTheme
                           ? 'Thay đổi sẽ áp dụng cho toàn bộ người dùng.'
                           : 'Bạn chỉ có quyền xem. Chỉ admin mới được đổi giao diện.',
-                      style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 13,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     if (themeProvider.isSyncing)
@@ -676,7 +714,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                       'Mặc định',
                       Icons.phone_android,
                       enabled: canEditTheme,
-                      onTap: () => _applyGlobalTheme(ctx, themeProvider, AppThemeType.defaultTheme),
+                      onTap: () => _applyGlobalTheme(
+                        ctx,
+                        themeProvider,
+                        AppThemeType.defaultTheme,
+                      ),
                     ),
                     _buildThemeOption(
                       context,
@@ -686,7 +728,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                       Icons.celebration,
                       color: Colors.red,
                       enabled: canEditTheme,
-                      onTap: () => _applyGlobalTheme(ctx, themeProvider, AppThemeType.tet),
+                      onTap: () => _applyGlobalTheme(
+                        ctx,
+                        themeProvider,
+                        AppThemeType.tet,
+                      ),
                     ),
                     _buildThemeOption(
                       context,
@@ -696,7 +742,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                       Icons.favorite,
                       color: Colors.pink,
                       enabled: canEditTheme,
-                      onTap: () => _applyGlobalTheme(ctx, themeProvider, AppThemeType.valentine),
+                      onTap: () => _applyGlobalTheme(
+                        ctx,
+                        themeProvider,
+                        AppThemeType.valentine,
+                      ),
                     ),
                   ],
                 ),
@@ -713,6 +763,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     ThemeProvider provider,
     AppThemeType type,
   ) async {
+    // Chỉ admin mới được ghi theme lên server, user thường chỉ được xem.
     if (!_isAdmin) return;
 
     final success = await provider.updateThemeAsAdmin(
@@ -727,7 +778,10 @@ class _ProfileScreenState extends State<ProfileScreen>
       if (sheetContext.mounted) {
         Navigator.of(sheetContext).pop();
       }
-      _showSnack('Đã áp dụng giao diện cho toàn bộ người dùng.', isError: false);
+      _showSnack(
+        'Đã áp dụng giao diện cho toàn bộ người dùng.',
+        isError: false,
+      );
       return;
     }
 
@@ -988,7 +1042,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       final newEmail = emailController.text.trim();
       final newAvatarUrl = avatarUrlController.text.trim();
 
-      // Lưu offline SQLite (isSync = 0 dirty)
+      // Lưu cục bộ trước để tránh mất dữ liệu nếu mạng không ổn định.
       final userRecord = {
         'userId': currentId,
         'fullName': newFullName,
@@ -1018,7 +1072,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         isError: false,
       );
 
-      // Auto-trigger sync optionally
+      // Nếu muốn sync ngay, có thể kích hoạt sync nền ở đây.
       // SyncManager.pushData();
     } catch (e) {
       _showSnack('Lưu offline thất bại: $e');
@@ -1027,6 +1081,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<void> _handleLogout({bool force = false}) async {
+    // Khi force = true, bỏ qua confirm dialog; dùng cho các luồng bắt buộc đăng xuất.
     if (!force) {
       final confirmed = await showDialog<bool>(
         context: context,
@@ -1078,6 +1133,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showSnack(String message, {bool isError = true}) {
+    // SnackBar thống nhất để báo trạng thái thành công/thất bại trên màn hình này.
     if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -1100,6 +1156,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   String _getInitials(String name) {
+    // Dùng chữ cái đầu để làm avatar fallback khi chưa có ảnh đại diện.
     final parts = name.trim().split(' ');
     if (parts.length >= 2) {
       return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
@@ -1108,6 +1165,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   String _providerLabel(String provider) {
+    // Chuẩn hóa nhãn hiển thị cho các provider đăng nhập.
     switch (provider) {
       case 'facebook':
         return '🔵 Facebook';
@@ -1119,7 +1177,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 }
 
-// Row hiển thị thông tin hoặc input chỉnh sửa
+// Hiển thị một trường thông tin, hoặc chuyển sang TextField khi đang chỉnh sửa.
 class _InfoRow extends StatelessWidget {
   const _InfoRow({
     required this.icon,

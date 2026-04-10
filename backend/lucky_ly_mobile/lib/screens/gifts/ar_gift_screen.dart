@@ -18,10 +18,25 @@ import 'package:vector_math/vector_math_64.dart' as vector;
 import 'package:lucky_ly_mobile/app_theme.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// ARGiftScreen - Màn hình thực tế tăng cường để hiển thị quà 3D trong không gian thật
+/// 
+/// Chức năng chính:
+/// - Kiểm tra ARCore/AR services trên thiết bị
+/// - Hiển thị camera AR với plane detection
+/// - Cho phép chạm vào mặt phẳng để đặt mô hình quà 3D
+/// - Hiển thị hint quét bề mặt và nút đặt lại
+/// 
+/// Input:
+/// - gift: Dữ liệu quà tặng để phục vụ UI/logic mở rộng sau này
+/// - modelPath: Đường dẫn asset tới file mô hình 3D (.glb)
 class ARGiftScreen extends StatefulWidget {
+  /// Thông tin quà tặng hiện tại
   final Map<String, dynamic> gift;
+
+  /// Đường dẫn asset tới mô hình 3D sẽ render trong AR
   final String modelPath;
 
+  /// Constructor của màn hình AR quà tặng
   const ARGiftScreen({
     super.key,
     required this.gift,
@@ -32,25 +47,54 @@ class ARGiftScreen extends StatefulWidget {
   State<ARGiftScreen> createState() => _ARGiftScreenState();
 }
 
+/// State của ARGiftScreen, quản lý toàn bộ vòng đời AR session và placement logic
 class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderStateMixin {
+  /// Quản lý AR session lifecycle
   ARSessionManager? arSessionManager;
+
+  /// Quản lý thêm node/mô hình 3D vào AR scene
   ARObjectManager? arObjectManager;
+
+  /// Quản lý anchor để ghim mô hình vào mặt phẳng thực tế
   ARAnchorManager? arAnchorManager;
 
+  /// Node mô hình quà đang được render
   ARNode? giftNode;
+
+  /// Anchor hiện tại của mô hình quà
   ARPlaneAnchor? currentAnchor;
+
+  /// Timer chạy animation xoay/lắc nhẹ cho mô hình
   Timer? animationTimer;
+
+  /// Timer đếm thời gian để đổi hint quét bề mặt
   Timer? _scanHintTimer;
+
+  /// Animation controller dùng cho hiệu ứng pulse của hint
   late AnimationController _pulseController;
 
+  /// Cờ cho biết AR có được hỗ trợ trên thiết bị hay không
   bool isSupported = true;
+
+  /// Cờ cho biết AR đã khởi tạo xong chưa
   bool isInitialized = false;
+
+  /// Cờ cho biết quà đã được đặt xuống mặt phẳng chưa
   bool isPlaced = false;
+
+  /// Cờ trong lúc đang kiểm tra ARCore availability
   bool isChecking = true;
+
+  /// Cờ hiển thị hint "chạm vào bề mặt" sau khi scan đủ lâu
   bool _showTapHint = false; // after scan timeout, show "tap anywhere" hint
+
+  /// Biến thời gian dùng để tạo animation xoay/lắc
   double _time = 0.0;
+
+  /// Trạng thái text hiển thị bên dưới icon scan
   String _scanStatus = 'Đang khởi tạo AR...';
 
+  /// initState: khởi tạo pulse animation và kiểm tra ARCore
   @override
   void initState() {
     super.initState();
@@ -61,6 +105,7 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
     _checkARCoreAvailability();
   }
 
+  /// dispose: giải phóng timer, controller và AR session để tránh leak
   @override
   void dispose() {
     _pulseController.dispose();
@@ -70,6 +115,12 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
     super.dispose();
   }
 
+  /// Kiểm tra thiết bị có hỗ trợ ARCore hay không
+  /// 
+  /// Flow:
+  /// 1. Gọi MethodChannel native để check ARCore
+  /// 2. Nếu không có plugin native thì bỏ qua và tiếp tục
+  /// 3. Nếu không hỗ trợ → mở dialog hướng dẫn cài ARCore
   Future<void> _checkARCoreAvailability() async {
     try {
       final bool? available = await const MethodChannel('WJ_arcore_check')
@@ -92,6 +143,7 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
     }
   }
 
+  /// Hiển thị dialog hướng dẫn cài ARCore khi thiết bị chưa có hỗ trợ
   void _showInstallARCoreDialog() {
     if (!mounted) return;
     showDialog(
@@ -109,6 +161,12 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
           ),
           content: const Text(
             'Thiết bị cần cài "Google Play Services for AR" (ARCore) để sử dụng tính năng Camera AR.\n\n'
+        /// Hiển thị dialog lỗi chung khi AR không thể chạy
+        /// 
+        /// Thường được gọi khi:
+        /// - Session null
+        /// - Lỗi native ARCore
+        /// - Không thể khởi động AR session
             'Bấm nút bên dưới để mở Google Play Store và cài đặt.',
           ),
           actions: [
@@ -140,9 +198,11 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
         );
       },
     );
+            /// Scaffold chính với AppBar trong suốt và AR camera làm nền
   }
 
   void _showErrorDialog(String message) {
+                /// AppBar trong suốt để nhìn thấy camera phía sau
     if (!mounted) return;
     showDialog(
       context: context,
@@ -201,19 +261,24 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
         ),
       ),
       body: isChecking
+          /// Trong lúc kiểm tra ARCore → hiển thị loading
           ? const Center(child: CircularProgressIndicator())
           : !isSupported
+              /// Nếu thiết bị không hỗ trợ → hiển thị màn hình thay thế
               ? _buildUnsupportedView()
               : Stack(
                   children: [
+                    /// ARView là camera AR chính với plane detection
                     ARView(
                       onARViewCreated: onARViewCreated,
                       planeDetectionConfig: PlaneDetectionConfig.horizontalAndVertical,
                     ),
-                    // Scanning overlay with instructions
+
+                    /// Lớp overlay hướng dẫn scan và đặt quà
                     if (!isPlaced && isSupported)
                       _buildScanningOverlay(),
-                    // Reset button when gift is placed
+
+                    /// Nút đặt lại vị trí quà sau khi đã place
                     if (isPlaced)
                       Positioned(
                         bottom: 40,
@@ -237,6 +302,7 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
     );
   }
 
+          /// Overlay hướng dẫn người dùng scan bề mặt và chạm để đặt quà
   Widget _buildScanningOverlay() {
     return Positioned(
       bottom: 20,
@@ -245,7 +311,8 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Scanning animation icon
+
+          /// Icon pulse thay đổi tùy theo trạng thái scan
           if (!_showTapHint)
             AnimatedBuilder(
               animation: _pulseController,
@@ -265,6 +332,8 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
                 );
               },
             ),
+
+          /// Khi hết thời gian scan ban đầu thì chuyển sang icon chạm tay
           if (_showTapHint)
             AnimatedBuilder(
               animation: _pulseController,
@@ -285,7 +354,8 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
               },
             ),
           const SizedBox(height: 12),
-          // Status text
+
+          /// Dòng trạng thái mô tả người dùng cần làm gì tiếp theo
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             decoration: BoxDecoration(
@@ -303,6 +373,7 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
     );
   }
 
+  /// Màn hình fallback khi thiết bị không hỗ trợ ARCore
   Widget _buildUnsupportedView() {
     return Center(
       child: Padding(
@@ -339,6 +410,7 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
     );
   }
 
+  /// Reset lại trạng thái đặt quà để người dùng có thể chọn vị trí khác
   void _resetPlacement() {
     if (currentAnchor != null) {
       arAnchorManager?.removeAnchor(currentAnchor!);
@@ -355,16 +427,22 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
     _startScanHintTimer();
   }
 
+  /// Khởi động timer nhắc scan bề mặt sau một khoảng thời gian
+  /// 
+  /// Mục tiêu:
+  /// - Sau 3 giây: nhắc người dùng di chuyển điện thoại chậm hơn
+  /// - Sau 6 giây tiếp theo: đổi sang hint chạm bề mặt để đặt quà
   void _startScanHintTimer() {
     _scanHintTimer?.cancel();
-    // Phase 1: After 3s — tell user to move phone slowly
+
+    /// Giai đoạn 1: Sau 3 giây, nhắc di chuyển điện thoại chậm
     _scanHintTimer = Timer(const Duration(seconds: 3), () {
       if (!mounted || isPlaced) return;
       setState(() {
         _scanStatus = 'Di chuyển điện thoại chậm qua lại trên bề mặt phẳng...';
       });
 
-      // Phase 2: After 6s more — show "tap to place" instruction
+      /// Giai đoạn 2: Sau thêm 6 giây, chuyển sang hint chạm để đặt
       _scanHintTimer = Timer(const Duration(seconds: 6), () {
         if (!mounted || isPlaced) return;
         setState(() {
@@ -375,6 +453,13 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
     });
   }
 
+  /// Callback được gọi khi ARView đã sẵn sàng
+  /// 
+  /// Nhận các manager cần thiết để vận hành AR scene:
+  /// - SessionManager: điều khiển session
+  /// - ObjectManager: thêm object/node
+  /// - AnchorManager: quản lý anchor
+  /// - LocationManager: hỗ trợ định vị nếu cần
   void onARViewCreated(
       ARSessionManager sessionManager,
       ARObjectManager objectManager,
@@ -384,7 +469,7 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
     arObjectManager = objectManager;
     arAnchorManager = anchorManager;
 
-    // Intercept native errors
+    /// Bắt lỗi native từ AR session để hiển thị message thân thiện
     arSessionManager!.onErrorCallback = (String error) {
       if (!mounted) return;
       if (error.toLowerCase().contains('session is null')) {
@@ -394,7 +479,7 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
           'Vui lòng cập nhật "Google Play Services for AR" trên Play Store.\n\nChi tiết: $error',
         );
       } else {
-        // Normal error (e.g. failed to add node, missing asset, etc.)
+        /// Lỗi bình thường: fail add node, thiếu asset, v.v.
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Lỗi AR: $error'),
           backgroundColor: Colors.redAccent,
@@ -404,8 +489,10 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
 
     try {
       arSessionManager!.onInitialize(
-        showFeaturePoints: false, // Turned off because users thought they were the gift
-        showPlanes: true,         // Only show the plane grid
+        /// Tắt feature points để tránh người dùng nhầm với quà
+        showFeaturePoints: false,
+        /// Chỉ hiển thị plane grid để người dùng biết bề mặt có thể đặt quà
+        showPlanes: true,
         showWorldOrigin: false,
         handlePans: false,
         handleRotation: false,
@@ -419,7 +506,7 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
       arObjectManager?.onInitialize();
       arSessionManager?.onPlaneOrPointTap = onPlaneOrPointTapped;
 
-      // Start scan hint timer
+      /// Bắt đầu timer nhắc scan bề mặt
       _startScanHintTimer();
     } catch (e) {
       if (mounted) {
@@ -431,6 +518,15 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
     }
   }
 
+  /// Xử lý khi người dùng chạm vào mặt phẳng hoặc điểm AR hợp lệ
+  /// 
+  /// Quy trình:
+  /// 1. Kiểm tra điều kiện hợp lệ: đã init, chưa đặt quà, có hit test result
+  /// 2. Tạo anchor mới từ world transform của điểm chạm
+  /// 3. Copy file .glb từ assets ra thư mục app để ar_flutter_plugin load được
+  /// 4. Tạo ARNode và add vào plane anchor
+  /// 5. Nếu thành công: lưu node, dừng hint timer, bật animation
+  /// 6. Nếu thất bại: remove anchor và báo lỗi
   Future<void> onPlaneOrPointTapped(List<ARHitTestResult> hitTestResults) async {
     if (!mounted || isPlaced || hitTestResults.isEmpty) return;
     if (!isInitialized || arAnchorManager == null || arObjectManager == null) return;
@@ -443,11 +539,10 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
       currentAnchor = newAnchor;
 
       try {
-        // MỘT MẸO RẤT QUAN TRỌNG:
-        // ar_flutter_plugin không hỗ trợ giải mã file .glb từ thư mục assets một cách chính xác
-        // (nó sẽ coi là file .gltf và văng lỗi "Unable to load renderable").
-        // Cách giải quyết: Copy file .glb từ asset ra thư mục app_flutter (DocumentsDir)
-        // và dùng NodeType.fileSystemAppFolderGLB.
+        
+        /// ar_flutter_plugin không load .glb trực tiếp từ assets một cách ổn định.
+        /// Cách an toàn là copy file ra thư mục Documents của app
+        /// rồi dùng NodeType.fileSystemAppFolderGLB.
         final docsDir = await getApplicationDocumentsDirectory();
         final filename = widget.modelPath.split('/').last;
         final file = File('${docsDir.path}/$filename');
@@ -459,6 +554,7 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
           );
         }
 
+        /// Tạo node mô hình 3D với scale nhỏ vừa phải để phù hợp bề mặt thật
         var node = ARNode(
           type: NodeType.fileSystemAppFolderGLB,
           uri: filename,
@@ -472,6 +568,7 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
           giftNode = node;
           _scanHintTimer?.cancel();
           if (mounted) setState(() => isPlaced = true);
+          /// Khi đã đặt thành công, chạy animation lặp cho mô hình
           _startAnimationLoop();
         } else {
           arAnchorManager?.removeAnchor(newAnchor);
@@ -488,6 +585,12 @@ class _ARGiftScreenState extends State<ARGiftScreen> with SingleTickerProviderSt
     }
   }
 
+  /// Chạy animation loop để làm mô hình quà xoay/lắc nhẹ liên tục
+  /// 
+  /// Hiệu ứng:
+  /// - Xoay trục X chậm
+  /// - Lắc nhẹ theo Y/Z bằng sin/cos
+  /// - Cập nhật mỗi 50ms để tạo cảm giác sống động
   void _startAnimationLoop() {
     animationTimer?.cancel();
     _time = 0.0;

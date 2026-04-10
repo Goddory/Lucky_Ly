@@ -9,6 +9,7 @@ class ConfettiPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Vẽ từng mảnh confetti dựa trên tiến trình animation hiện tại.
     for (final p in particles) {
       final paint = Paint()..color = p.color.withValues(alpha: (1.0 - progress).clamp(0.0, 1.0));
       final x = p.x * size.width + sin(progress * p.spin * 2 * pi) * 30;
@@ -33,6 +34,7 @@ class ConfettiPainter extends CustomPainter {
   bool shouldRepaint(covariant ConfettiPainter oldDelegate) => true;
 }
 
+// Widget phủ lên màn hình để phát confetti khi mở quà thành công hoặc có sự kiện chúc mừng.
 class ConfettiOverlay extends StatefulWidget {
   final bool isPlaying;
   final String theme;
@@ -55,6 +57,7 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
   @override
   void initState() {
     super.initState();
+    // Tạo sẵn danh sách hạt và controller cho animation confetti.
     _particles = _generateParticles();
     _controller = AnimationController(
       vsync: this,
@@ -65,6 +68,7 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
   @override
   void didUpdateWidget(covariant ConfettiOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Khi isPlaying chuyển từ false sang true thì reset hạt và chạy lại animation.
     if (widget.isPlaying && !oldWidget.isPlaying) {
       _particles = _generateParticles();
       _controller.forward(from: 0);
@@ -72,6 +76,7 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
   }
 
   List<_Particle> _generateParticles() {
+    // Đổi màu theo theme để confetti khớp chủ đề lễ hội.
     final rng = Random();
     final colors = widget.theme == 'tet'
         ? [
@@ -102,6 +107,7 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
 
   @override
   Widget build(BuildContext context) {
+    // Nếu animation chưa chạy thì không tốn tài nguyên vẽ overlay.
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {

@@ -5,10 +5,27 @@ import 'package:http/http.dart' as http;
 import '../../app_theme.dart';
 import 'push_campaign_screen.dart';
 
+/// CustomerSegmentsScreen - Màn hình CRM phân tích phân khúc khách hàng
+/// 
+/// Chức năng chính:
+/// - Tải dữ liệu phân cụm K-Means từ backend
+/// - Hiển thị danh sách cluster và các chỉ số trung bình
+/// - Hiển thị danh sách khách hàng có nguy cơ rời bỏ (churn)
+/// - Điều hướng sang màn hình gửi chiến dịch marketing
+/// 
+/// Dữ liệu đầu vào từ API thường gồm:
+/// - clusters: danh sách nhóm khách hàng
+/// - churn_users: danh sách user có nguy cơ churn
+/// - total_churn: tổng số user churn
+/// - churn_rate: tỷ lệ churn
 class CustomerSegmentsScreen extends StatefulWidget {
+  /// Base URL của API server
   final String apiBaseUrl;
+
+  /// JWT token để gọi API admin
   final String accessToken;
 
+  /// Constructor của màn hình phân khúc khách hàng
   const CustomerSegmentsScreen({
     super.key,
     required this.apiBaseUrl,
@@ -20,20 +37,40 @@ class CustomerSegmentsScreen extends StatefulWidget {
 }
 
 class _CustomerSegmentsScreenState extends State<CustomerSegmentsScreen> {
+  /// Cờ loading khi đang tải dữ liệu từ backend
   bool _loading = true;
+
+  /// Dữ liệu thô trả về từ API sau khi decode JSON
   Map<String, dynamic> _data = {};
 
+  /// Bộ màu chủ đạo dùng cho giao diện CRM
   static const Color primary = Color(0xFF952CB1);
+  /// Màu nền nhấn cho các khối glass UI
   static const Color primaryContainer = Color(0xFFF1A6FF);
+  /// Màu nền tổng thể
   static const Color background = Color(0xFFFFF7FB);
+  /// Màu nền phụ cho các container mờ
   static const Color surfaceContainerLow = Color(0xFFFFEFFC);
 
+  /// initState: tự động tải dữ liệu phân khúc khi màn hình mở
   @override
   void initState() {
     super.initState();
     _loadSegments();
   }
 
+  /// Gọi API để tải dữ liệu phân khúc khách hàng
+  /// 
+  /// API: GET /api/promotions/segments
+  /// 
+  /// Quy trình:
+  /// 1. Gửi request với Authorization header
+  /// 2. Nếu status 200 → decode JSON và lưu vào _data
+  /// 3. Nếu lỗi → chỉ tắt loading để UI không bị kẹt
+  /// 
+  /// Ghi chú:
+  /// - Hàm này dùng cho pull-to-refresh nữa
+  /// - Không throw exception ra ngoài, chỉ setState cập nhật UI
   Future<void> _loadSegments() async {
     try {
       final res = await http.get(
@@ -55,16 +92,18 @@ class _CustomerSegmentsScreenState extends State<CustomerSegmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    /// Tách các trường dữ liệu từ response API
     final clusters = (_data['clusters'] as List?) ?? [];
     final churnUsers = (_data['churn_users'] as List?) ?? [];
     final totalChurn = _data['total_churn'] ?? 0;
     final churnRate = _data['churn_rate'] ?? 0;
 
     return Scaffold(
+      /// Nền tổng thể của màn hình CRM
       backgroundColor: background,
       body: Stack(
         children: [
-          // Muted Purple Background Gradient
+          /// Nền gradient nhẹ tạo hiệu ứng glass/CRM dashboard
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -76,7 +115,7 @@ class _CustomerSegmentsScreenState extends State<CustomerSegmentsScreen> {
             ),
           ),
           
-          // Abstract floating glowing orbs
+          /// Các khối tròn mờ trang trí phía trên để tạo chiều sâu
           Positioned(
             top: -80, right: -60,
             child: Container(
@@ -84,6 +123,8 @@ class _CustomerSegmentsScreenState extends State<CustomerSegmentsScreen> {
               decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.4)),
             ),
           ),
+
+          /// Khối tròn trang trí phía dưới
           Positioned(
             top: 400, left: -100,
             child: Container(
@@ -95,41 +136,50 @@ class _CustomerSegmentsScreenState extends State<CustomerSegmentsScreen> {
           SafeArea(
             child: Column(
               children: [
+                /// Thanh app bar kính mờ ở phía trên
                 _buildGlassAppBar(),
                 Expanded(
+                  /// Khi đang loading thì hiển thị progress indicator
                   child: _loading
                       ? const Center(child: CircularProgressIndicator(color: primary))
                       : RefreshIndicator(
+                          /// Kéo xuống để làm mới dữ liệu segment
                           color: primary,
                           backgroundColor: Colors.white,
                           onRefresh: _loadSegments,
                           child: SingleChildScrollView(
+                            /// Cho phép scroll linh hoạt trên toàn bộ nội dung
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.all(20),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Cluster section header
+                                /// Phần tiêu đề phân cụm K-Means
                                 _buildSectionHeader(
                                   titleVi: 'Phân cụm K-Means',
                                   titleEn: 'K-Means Clusters',
                                   subtitle: 'Phân nhóm dựa trên chi tiêu, hoạt động, thông tin ví',
                                 ),
                                 const SizedBox(height: 20),
+
+                                /// Render từng cluster card từ danh sách clusters
                                 ...clusters.map<Widget>((c) => _buildClusterCard(c)),
 
                                 const SizedBox(height: 32),
 
-                                // Churn section
+                                /// Khu vực hiển thị khách hàng có nguy cơ rời bỏ
                                 Row(
                                   children: [
                                     Expanded(
+                                      /// Header của khu vực churn
                                       child: _buildSectionHeader(
                                         titleVi: 'Khách hàng rời bỏ',
                                         titleEn: 'Churn Risk',
                                         subtitle: 'Inactive >30 ngày & Ví <50k',
                                       ),
                                     ),
+
+                                    /// Badge hiển thị tổng số churn và tỷ lệ churn
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                       decoration: BoxDecoration(
@@ -150,13 +200,17 @@ class _CustomerSegmentsScreenState extends State<CustomerSegmentsScreen> {
                                   ],
                                 ),
                                 const SizedBox(height: 20),
+
+                                /// Chỉ hiển thị tối đa 20 user churn đầu tiên
                                 ...churnUsers.take(20).map<Widget>((u) => _buildChurnRow(u)),
 
+                                /// Thông báo thêm từ backend nếu có
                                 if (_data['message'] != null) ...[
                                   const SizedBox(height: 24),
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(16),
                                     child: BackdropFilter(
+                                      /// Hiệu ứng kính mờ cho message box
                                       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                                       child: Container(
                                         padding: const EdgeInsets.all(16),
@@ -191,6 +245,8 @@ class _CustomerSegmentsScreenState extends State<CustomerSegmentsScreen> {
           ),
         ],
       ),
+
+      /// Nút nổi để điều hướng sang màn hình gửi chiến dịch
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
@@ -211,9 +267,11 @@ class _CustomerSegmentsScreenState extends State<CustomerSegmentsScreen> {
     );
   }
 
+  /// Xây dựng app bar kính mờ cho màn hình CRM
   Widget _buildGlassAppBar() {
     return ClipRRect(
       child: BackdropFilter(
+        /// Làm mờ background phía sau để tạo hiệu ứng glass
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
           height: 60,
@@ -239,6 +297,9 @@ class _CustomerSegmentsScreenState extends State<CustomerSegmentsScreen> {
     );
   }
 
+  /// Xây dựng tiêu đề cho từng section
+  /// 
+  /// Dùng cho cả phần K-Means và Churn Risk
   Widget _buildSectionHeader({
     required String titleVi,
     required String titleEn,
@@ -270,6 +331,14 @@ class _CustomerSegmentsScreenState extends State<CustomerSegmentsScreen> {
     );
   }
 
+  /// Xây dựng card hiển thị một cluster khách hàng
+  /// 
+  /// Dữ liệu cluster thường gồm:
+  /// - id, name, count
+  /// - avg_spending, avg_age, student_pct
+  /// - avg_days_inactive, avg_wallet, voucher_usage_rate
+  /// 
+  /// Mỗi cluster dùng màu và icon khác nhau để dễ phân biệt
   Widget _buildClusterCard(Map<String, dynamic> cluster) {
     final colors = [primary, const Color(0xFF6366F1), const Color(0xFF14B8A6)];
     final icons = [Icons.memory, Icons.data_usage, Icons.timeline];
@@ -346,6 +415,12 @@ class _CustomerSegmentsScreenState extends State<CustomerSegmentsScreen> {
     );
   }
 
+  /// Hiển thị một hàng metrics gồm nhiều chỉ số của cluster
+  /// 
+  /// Dùng để trình bày:
+  /// - Giá trị chính (value)
+  /// - Nhãn tiếng Việt (labelVi)
+  /// - Nhãn tiếng Anh (labelEn)
   Widget _buildMetricRow(List<_MetricItem> items) {
     return Row(
       children: items.map((item) => Expanded(
@@ -368,6 +443,13 @@ class _CustomerSegmentsScreenState extends State<CustomerSegmentsScreen> {
     );
   }
 
+  /// Xây dựng một dòng trong danh sách khách hàng churn
+  /// 
+  /// Mỗi row hiển thị:
+  /// - User ID
+  /// - Tag STUDENT nếu là sinh viên
+  /// - Số ngày inactive và số dư ví
+  /// - Nhãn cluster/churn ở bên phải
   Widget _buildChurnRow(Map<String, dynamic> user) {
     final bool isStudent = user['is_student'] == true;
     return ClipRRect(
@@ -451,6 +533,13 @@ class _CustomerSegmentsScreenState extends State<CustomerSegmentsScreen> {
   }
 }
 
+/// Model nhỏ để lưu một metric trong cluster card
+/// 
+/// Bao gồm:
+/// - labelVi: nhãn tiếng Việt
+/// - value: giá trị hiển thị
+/// - labelEn: nhãn tiếng Anh
+/// - color: màu nhấn cho giá trị
 class _MetricItem {
   final String labelVi;
   final String value;

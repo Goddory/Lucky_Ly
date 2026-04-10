@@ -14,6 +14,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
   @override
   void initState() {
     super.initState();
+    // Đợi frame đầu tiên hoàn tất rồi mới gọi provider để tránh lấy context quá sớm.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<StoreProvider>().fetchRevenue();
       context.read<StoreProvider>().fetchOverview();
@@ -22,6 +23,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Lấy dữ liệu doanh thu và tổng quan từ StoreProvider để render toàn bộ màn hình.
     final store = context.watch<StoreProvider>();
     final revenueData = store.revenueData;
     final overview = store.overview;
@@ -59,6 +61,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
   }
 
   SliverAppBar _buildGlassAppBar(BuildContext context) {
+    // Thanh app bar có hiệu ứng kính mờ để phù hợp phong cách dashboard.
     return SliverAppBar(
       backgroundColor: const Color(0xFFFBF5F8).withOpacity(0.8),
       pinned: true,
@@ -102,6 +105,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
   }
 
   Widget _buildHeroSection(String revenue) {
+    // Khối tiêu đề lớn dùng để nhấn mạnh ngữ cảnh doanh thu của màn hình.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -153,6 +157,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
   }
 
   Widget _buildLuminousWalletCard(String balance) {
+    // Card số dư chính, dùng gradient và bóng đổ để tạo điểm nhấn thị giác.
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -245,6 +250,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
   }
 
   Widget _buildGrowthChartSection(List<dynamic> data) {
+    // Khu vực biểu đồ tăng trưởng theo thời gian.
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -291,6 +297,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
   }
 
   Widget _buildChartToggleBtn(String label, bool isActive) {
+    // Nút chọn phạm vi dữ liệu cho biểu đồ, hiện tại chỉ mô phỏng trạng thái active.
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
@@ -310,6 +317,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
   }
 
   Widget _buildTransactionHistory(List<dynamic> data) {
+    // Danh sách các giao dịch gần nhất, giới hạn hiển thị 5 bản ghi.
     return Column(
       children: [
         Row(
@@ -343,6 +351,7 @@ class _RevenueScreenState extends State<RevenueScreen> {
   }
 
   Widget _buildTransactionCard(String orderId, String date, String amount) {
+    // Một dòng giao dịch riêng lẻ với mã đơn, ngày và số tiền.
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -422,11 +431,13 @@ class ChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Không có dữ liệu thì không cần vẽ gì.
     if (data.isEmpty) return;
 
+    // scaleX chia đều các điểm theo chiều ngang.
     final scaleX = size.width / (data.length > 1 ? (data.length - 1) : 1);
     
-    // Tìm giá trị cao nhất để vẽ tỉ lệ scaleY
+    // Tìm giá trị lớn nhất để quy đổi dữ liệu sang trục Y của canvas.
     double maxAmount = 0;
     for (var item in data) {
       double amt = double.tryParse(item['amount']?.toString() ?? '0') ?? 0;
@@ -438,6 +449,7 @@ class ChartPainter extends CustomPainter {
 
     final path = Path();
     
+    // Vẽ đường biểu diễn doanh thu theo từng mốc dữ liệu.
     for (int i = 0; i < data.length; i++) {
       double amt = double.tryParse(data[i]['amount']?.toString() ?? '0') ?? 0;
       double x = i * scaleX;
@@ -446,7 +458,7 @@ class ChartPainter extends CustomPainter {
       if (i == 0) {
         path.moveTo(x, y);
       } else {
-        // Vẽ mượt bằng quadraticBezier hoặc cubic
+        // Dùng cubicTo để đường cong mượt hơn thay vì nối thẳng từng điểm.
         double prevAmt = double.tryParse(data[i-1]['amount']?.toString() ?? '0') ?? 0;
         double prevX = (i-1) * scaleX;
         double prevY = size.height - (prevAmt * scaleY);
@@ -464,6 +476,7 @@ class ChartPainter extends CustomPainter {
     fillPath.lineTo(0, size.height);
     fillPath.close();
 
+    // Lớp nền gradient dưới đường biểu đồ.
     final gradientPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
@@ -476,6 +489,7 @@ class ChartPainter extends CustomPainter {
 
     canvas.drawPath(fillPath, gradientPaint);
 
+    // Đường chính của biểu đồ.
     final linePaint = Paint()
       ..color = const Color(0xFF8F2BAD)
       ..strokeWidth = 4
@@ -485,7 +499,7 @@ class ChartPainter extends CustomPainter {
       
     canvas.drawPath(path, linePaint);
 
-    // Vẽ điểm tròn chốt ở vị trí cuối cùng
+          // Đánh dấu điểm dữ liệu cuối cùng để người dùng dễ đọc xu hướng hiện tại.
     if (data.isNotEmpty) {
       double lastAmt = double.tryParse(data.last['amount']?.toString() ?? '0') ?? 0;
       final dotCenter = Offset(size.width, size.height - (lastAmt * scaleY));
