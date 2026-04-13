@@ -14,10 +14,13 @@ async function start() {
     console.log('✅ Connected to Neon PostgreSQL successfully');
 
     const mongoResult = await connectMongo();
-    if (!mongoResult?.connected) {
+    if (mongoResult?.skipped) {
+      console.log('⚠️ MongoDB connection check skipped by configuration');
+    } else if (!mongoResult?.connected) {
       throw new Error(`MongoDB connection failed: ${mongoResult?.reason || 'unknown reason'}`);
+    } else {
+      console.log('✅ Connected to MongoDB successfully');
     }
-    console.log('✅ Connected to MongoDB successfully');
     
     // Firebase Admin SDK (optional, for push notifications)
     initFirebase();

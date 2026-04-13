@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { env } from '../config/env.js';
 
 const RETRYABLE_LABELS = new Set(['RetryableError', 'SystemOverloadedError']);
 
@@ -43,6 +44,11 @@ function sanitizeMongoUri(rawMongoUri) {
 }
 
 const connectMongo = async () => {
+  if (env.mongo.skipConnectionCheck) {
+    console.warn('⚠️ MongoDB connection check is disabled. Server will start without connecting MongoDB.');
+    return { connected: false, skipped: true, reason: 'MongoDB connection check disabled' };
+  }
+
   const mongoUri = sanitizeMongoUri(process.env.MONGO_URI);
   if (!mongoUri) {
     console.warn('⚠️ MONGO_URI is missing in .env. MongoDB will not be connected.');

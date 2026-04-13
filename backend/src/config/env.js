@@ -13,6 +13,9 @@ for (const key of required) {
 export const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: Number(process.env.PORT || 4000),
+  mongo: {
+    skipConnectionCheck: process.env.MONGO_SKIP_CONNECTION_CHECK === 'true'
+  },
   db: {
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),
